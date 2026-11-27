@@ -157,6 +157,9 @@ func Validate(cfg model.Config) (model.Config, []string) {
 
 	// Navigation data
 	out.NavData.PhotoContact = v.text("navData.photoContact", out.NavData.PhotoContact, 200, false)
+	out.NavData.Routes.Contact = v.text("navData.routes.contact", out.NavData.Routes.Contact, 200, false)
+	out.NavData.Routes.DailyCap = v.intRange("navData.routes.dailyCap", out.NavData.Routes.DailyCap, 0, 100000, def.NavData.Routes.DailyCap)
+	out.NavData.Routes.StableSec = v.intRange("navData.routes.stableSec", out.NavData.Routes.StableSec, 0, 3600, def.NavData.Routes.StableSec)
 
 	// Network (DESIGN §1)
 	v.uplinks(&out)

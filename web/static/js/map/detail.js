@@ -263,19 +263,47 @@ export function createDetail(ctx, hooks) {
     const name = (ap, fallback) => ap?.airport?.municipality || ap?.airport?.name || fallback || '';
     const from = { code: code(first, r?.from, r?.fromIata), name: name(first, r?.fromName), icao: first?.airport?.icao || r?.from };
     const to = { code: code(lastAp, r?.to, r?.toIata), name: name(lastAp, r?.toName), icao: lastAp?.airport?.icao || r?.to };
-    const via = ri ? Math.max(0, aps.length - 2) : r?.via || 0;
+    const via = r ? r.via || 0 : Math.max(0, aps.length - 2);
+    // The live route (internal/routes) is the fused, scored active leg: it wins over the lazily
+    // fetched /api/navdata/route answer, which only adds the distance.
+    if (r && r.from) {
+      from.code = r.fromIata || r.from; from.name = r.fromName || from.name; from.icao = r.from;
+      to.code = r.toIata || r.to; to.name = r.toName || to.name; to.icao = r.to;
+    }
+    const states = {
+      fits: ['Route fits', 'green'], uncertain: ['Route uncertain', 'other'], doubtful: ['Doubtful route', 'amber'],
+      reversed: ['Reversed?', 'amber'], unchecked: ['Unchecked', 'other'],
+    };
     let badge;
     const check = ri?.check;
-    if (check && (check.plausible || check.doubtful)) badge = check.plausible ? ui.badge('Route fits', 'green', { tip: check.reason }) : ui.badge('Doubtful route', 'amber', { tip: check.reason || 'The position does not fit this route' });
+    if (r && r.state && states[r.state]) badge = ui.badge(states[r.state][0], states[r.state][1], { tip: r.reason || '' });
+    else if (check && (check.plausible || check.doubtful)) badge = check.plausible ? ui.badge('Route fits', 'green', { tip: check.reason }) : ui.badge('Doubtful route', 'amber', { tip: check.reason || 'The position does not fit this route' });
     else if (r && r.checked) badge = r.plausible ? ui.badge('Route fits', 'green', { tip: 'The current position lies inside the route corridor' }) : ui.badge('Doubtful route', 'amber', { tip: 'The current position does not fit the published route for this callsign' });
     else badge = ui.badge('Unchecked', 'other', { tip: 'Plausibility needs a position and both airports' });
-    const src = (ri?.source || r?.source) === 'adsbdb' ? 'adsbdb.com' : 'standing data';
+    const srcNames = { override: 'operator', learned: 'learned', 'standing-data': 'standing data', adsbdb: 'adsbdb.com' };
+    const srcKey = r?.source || ri?.source;
+    let src = srcNames[srcKey] || 'standing data';
+    if (r && n(r.conf)) src += ` · ${Math.round(r.conf * 100)} %`;
+    if (r && (r.flags || []).includes('variant')) src += ' · similar callsign';
+    const srcTip = [r?.reason, srcKey === 'adsbdb' ? 'Route data: adsbdb.com (shown to this station\'s users only)' : srcKey === 'learned' ? 'Learned by AirView from observed take-offs and landings' : ''].filter(Boolean).join(' - ');
+    let progress = null;
+    if (r && n(r.along) && r.state !== 'unchecked') {
+      const eta = n(r.eta) && r.eta > 0 ? new Date(r.eta * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      const sig = n(r.etaSigma) && r.etaSigma > 0 ? ` ±${Math.max(1, Math.round(r.etaSigma / 60))} min` : '';
+      const bar = h('div.det-route-prog', h('i', { style: { width: Math.max(0, Math.min(100, r.along)) + '%' } }));
+      progress = h('div.det-route-progwrap', bar,
+        h('div.det-route-progtxt',
+          r.legs > 1 ? h('span.muted', `leg ${r.leg}/${r.legs}`) : null,
+          n(r.distRem) ? h('span.muted', `${units.dist(r.distRem)} to go`) : null,
+          eta ? h('span', { tip: 'Estimated arrival (station clock, your time zone); a guess from distance, speed and a standard descent profile' }, `ETA ${eta}${sig}`) : null));
+    }
     return h('div.det-route-box',
       h('div.det-route-line',
         h('div.det-route-ap', h('b.num', { tip: from.icao }, from.code), h('span', from.name)),
         h('div.det-route-mid', h('i'), via ? h('span.muted', `${via} stop${via > 1 ? 's' : ''}`) : null),
         h('div.det-route-ap.end', h('b.num', { tip: to.icao }, to.code), h('span', to.name))),
-      h('div.det-route-foot', badge, n(ri?.distanceKm) ? h('span.muted', units.dist(ri.distanceKm)) : null, h('span.muted', src)));
+      progress,
+      h('div.det-route-foot', badge, n(ri?.distanceKm) ? h('span.muted', units.dist(ri.distanceKm)) : null, h('span.muted', { tip: srcTip }, src)));
   }
 
   function renderRoute(a) {

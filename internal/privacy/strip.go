@@ -24,6 +24,10 @@ func StripAircraft(a *model.Aircraft, keepOwn bool) {
 	a.Feeds, a.Antennas = nil, nil
 	if !keepOwn {
 		a.Mine, a.Stations = false, nil
+		if a.Route != nil && a.Route.Class == "restricted" {
+			// online-provider answers are for the station's own users only
+			a.Route = nil
+		}
 	}
 }
 

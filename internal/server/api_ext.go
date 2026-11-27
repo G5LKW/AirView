@@ -17,6 +17,7 @@ import (
 	"airview/internal/modes"
 	"airview/internal/navdata"
 	"airview/internal/rfstat"
+	rtsvc "airview/internal/routes"
 	"airview/internal/terrain"
 	"airview/internal/trajectory"
 )
@@ -470,7 +471,8 @@ type navStatus struct {
 	Sources        []navdata.Source      `json:"sources"`        // downloadable datasets
 	Import         navdata.ImportStatus  `json:"import"`         // current / last import
 	RegionAirports int                   `json:"regionAirports"` // airports within 800 km of the receiver loaded for the live picture
-	RoutesOnline   bool                  `json:"routesOnline"`   // config.navData.routesOnline
+	RoutesOnline   bool                  `json:"routesOnline"`   // config.navData.routes.online (and routes enabled)
+	AutoRefresh    bool                  `json:"autoRefresh"`    // config.navData.autoRefresh
 	Photos         bool                  `json:"photos"`         // config.navData.photos (and a contact is set)
 	Overlay        bool                  `json:"airportsOverlay"`
 	Attribution    []string              `json:"attribution"` // lines to show where the data is used
@@ -487,13 +489,13 @@ func apiNavStatus(s *Server, r *http.Request) (any, error) {
 	}
 	cfg := s.eng.EffectiveConfig().NavData
 	out := navStatus{Datasets: ds, Sources: navdata.Sources(), Import: nd.ImportStatus(),
-		RoutesOnline: cfg.RoutesOnline, Photos: cfg.Photos && cfg.PhotoContact != "", Overlay: cfg.AirportsOverlay,
+		RoutesOnline: cfg.Routes.Enabled && cfg.Routes.Online, AutoRefresh: cfg.AutoRefresh, Photos: cfg.Photos && cfg.PhotoContact != "", Overlay: cfg.AirportsOverlay,
 		Attribution: []string{"Airport data: OurAirports (ourairports.com)", "Routes: Virtual Radar Server standing data"}}
 	if reg := s.eng.Region(); reg != nil {
 		out.RegionAirports = reg.Len()
 	}
-	if cfg.RoutesOnline {
-		out.Attribution = append(out.Attribution, "Online routes: adsbdb.com")
+	if cfg.Routes.Enabled && cfg.Routes.Online {
+		out.Attribution = append(out.Attribution, "Online routes: adsbdb.com (shown to this station's users only)")
 	}
 	if out.Photos {
 		out.Attribution = append(out.Attribution, "Photos: planespotters.net")
@@ -697,11 +699,25 @@ func apiNavRoute(s *Server, r *http.Request) (any, error) {
 		}
 		pos = &navdata.Point{Lat: lat, Lon: lon}
 	}
-	info, err := s.eng.NavData().Route(r.Context(), cs, pos)
+	// Only an admin may spend the online budget; everyone else gets the
+	// standing data and an already cached answer. Online (restricted-class)
+	// answers are shown only to the station's own users.
+	var info navdata.RouteInfo
+	var err error
+	if s.isAdmin(r) {
+		info, err = s.eng.NavData().Route(r.Context(), cs, pos)
+	} else {
+		info, err = s.eng.NavData().RouteNoFetch(r.Context(), cs, pos)
+	}
 	if err != nil {
 		return nil, navErr(err)
 	}
-	s.eng.PutRoute(info)
+	if info.Source == rtsvc.SrcAdsbdb && !s.routesRestrictedOK(r) {
+		return navdata.RouteInfo{Callsign: info.Callsign}, nil
+	}
+	if rt := s.eng.Routes(); rt != nil {
+		rt.Invalidate(info.Callsign)
+	}
 	return info, nil
 }
 

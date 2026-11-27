@@ -97,6 +97,7 @@ func TestRouteAccessLint(t *testing.T) {
 // answer per viewer (api_view.go); AccessPublic routes contain no station
 // data at all.
 var reviewedOpen = map[string]string{
+	"GET /api/routes/{callsign}":           "public: offline data and the cache only; online look-ups admin only; restricted answers hidden below owner",
 	"GET /api/status":                      "viewer: publicdto.Status below admin",
 	"GET /api/config":                      "viewer: display settings only below admin",
 	"POST /api/login":                      "public: login",

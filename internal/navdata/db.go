@@ -243,8 +243,15 @@ func (n *NavData) AirportByCode(ctx context.Context, code string, runways bool) 
 	if code == "" || len(code) > 16 {
 		return Airport{}, false, nil
 	}
+	// A 3-letter code is an IATA code far more often than an ident (route
+	// data and providers use IATA): IATA first, then ident. Otherwise ICAO,
+	// then ident, then GPS code.
+	order := `(a.icao = ?1) DESC, (a.ident = ?1) DESC, (a.iata = ?1) DESC, (a.gps = ?1) DESC`
+	if len(code) == 3 {
+		order = `(a.iata = ?1) DESC, (a.icao = ?1) DESC, (a.ident = ?1) DESC, (a.gps = ?1) DESC`
+	}
 	as, err := n.queryAirports(ctx, `WHERE a.icao = ?1 OR a.ident = ?1 OR a.iata = ?1 OR a.gps = ?1
-  ORDER BY (a.icao = ?1) DESC, (a.ident = ?1) DESC, (a.iata = ?1) DESC, (a.size >= 0) DESC, a.size DESC, a.scheduled DESC
+  ORDER BY `+order+`, (a.size >= 0) DESC, a.size DESC, a.scheduled DESC
   LIMIT 1`, code)
 	if err != nil || len(as) == 0 {
 		return Airport{}, false, err

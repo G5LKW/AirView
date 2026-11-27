@@ -16,6 +16,7 @@ import (
 	"airview/internal/modes"
 	"airview/internal/navdata"
 	"airview/internal/rfstat"
+	"airview/internal/routes"
 	"airview/internal/terrain"
 	"airview/internal/trajectory"
 )
@@ -52,9 +53,8 @@ type extState struct {
 	cpa      map[uint32]cpaEntry
 	cpaSweep int64
 
-	routeMu sync.Mutex
-	routes  map[string]*routeEntry
-	routeQ  chan string
+	rt       *routes.Service
+	routeCfg atomic.Pointer[model.RoutesConfig]
 
 	regionKick  chan struct{}
 	airportKick chan struct{} // wakes airportLoop (airports.go)
@@ -66,29 +66,15 @@ type cpaEntry struct {
 	ok      bool
 }
 
-// routeEntry is a cached callsign route.
-type routeEntry struct {
-	found    bool
-	pending  bool
-	short    model.RouteShort
-	airports []navdata.RouteAirport
-	exp      time.Time
-}
-
 const (
-	routeCacheMax = 4096
-	routeTTL      = time.Hour
-	routeNegTTL   = 10 * time.Minute
-	cpaEvery      = 5000 // ms between closest-approach recomputations per aircraft
-	cpaBudget     = 80   // recomputations per snapshot
+	cpaEvery  = 5000 // ms between closest-approach recomputations per aircraft
+	cpaBudget = 80   // recomputations per snapshot
 )
 
 // buildExt creates the extension components. Caller holds opMu (Start).
 func (e *Engine) buildExt(cfg model.Config) {
 	x := &extState{
 		cpa:         map[uint32]cpaEntry{},
-		routes:      map[string]*routeEntry{},
-		routeQ:      make(chan string, 256),
 		regionKick:  make(chan struct{}, 1),
 		airportKick: make(chan struct{}, 1),
 	}
@@ -116,6 +102,13 @@ func (e *Engine) buildExt(cfg model.Config) {
 	}
 	x.terr = terrain.NewService(so)
 	x.nd = navdata.New(e.st, e.navOptions(cfg))
+	rc := cfg.NavData.Routes
+	x.routeCfg.Store(&rc)
+	x.rt = routes.New(routes.Options{
+		Store: e.st, Nav: x.nd, Logger: e.log,
+		Config:        func() model.RoutesConfig { return *x.routeCfg.Load() },
+		OverridesFile: filepath.Join(e.dir, "routes.overrides.csv"),
+	})
 	x.al = alerts.New(alerts.Options{Store: e.st, Logger: e.log, UserAgent: model.AppName + "/" + e.opts.Version})
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	if err := x.al.Load(ctx); err != nil {
@@ -137,9 +130,30 @@ func (e *Engine) navOptions(cfg model.Config) navdata.Options {
 	return navdata.Options{
 		UserAgent: model.AppName + "/" + e.opts.Version,
 		Logger:    e.log,
-		Routes:    navdata.RouteOptions{Online: cfg.NavData.RoutesOnline},
-		Photos:    navdata.PhotoOptions{Enabled: cfg.NavData.Photos, Contact: cfg.NavData.PhotoContact},
+		Routes: navdata.RouteOptions{
+			Online:     cfg.NavData.Routes.Enabled && cfg.NavData.Routes.Online,
+			DailyLimit: cfg.NavData.Routes.DailyCap,
+			Contact:    routeContact(cfg.NavData.Routes.Contact),
+		},
+		Photos: navdata.PhotoOptions{Enabled: cfg.NavData.Photos, Contact: cfg.NavData.PhotoContact},
 	}
+}
+
+// routeContact is the contact in the User-Agent of online route look-ups:
+// the configured one, else the project URL (never a personal address).
+func routeContact(c string) string {
+	if c = strings.TrimSpace(c); c != "" {
+		return c
+	}
+	return model.ProjectURL
+}
+
+// Routes returns the route service.
+func (e *Engine) Routes() *routes.Service {
+	if e.ext == nil {
+		return nil
+	}
+	return e.ext.rt
 }
 
 // terrainRequest builds the terrain analysis request of an effective configuration.
@@ -189,6 +203,8 @@ func (e *Engine) applyExt(prev, cur *effective) {
 
 	// Navigation data.
 	x.nd.SetOptions(e.navOptions(c))
+	rc := c.NavData.Routes
+	x.routeCfg.Store(&rc)
 	if prev == nil || !located(prev.cfg.Receiver) || prev.cfg.Receiver.Lat != c.Receiver.Lat || prev.cfg.Receiver.Lon != c.Receiver.Lon {
 		e.kick(x.regionKick)
 	}
@@ -269,7 +285,7 @@ func (e *Engine) startExt(rt *runtimeState, run func(string, func(context.Contex
 	run("terrain", x.terr.Run)
 	run("alerts", func(ctx context.Context) error { x.al.Run(ctx); return nil })
 	run("live", func(ctx context.Context) error { e.liveLoop(ctx); return nil })
-	run("routes", func(ctx context.Context) error { e.routeWorker(ctx); return nil })
+	run("routes", func(ctx context.Context) error { x.rt.Run(ctx); return nil })
 	run("navdata", func(ctx context.Context) error { e.navLoop(ctx); return nil })
 	run("airports", func(ctx context.Context) error { e.airportLoop(ctx); return nil })
 	x.rfMu.Lock()
@@ -307,9 +323,7 @@ func (e *Engine) resetExt() {
 	cancel()
 	x.region.Store(nil)
 	x.tj.SetRunways(nil)
-	x.routeMu.Lock()
-	x.routes = map[string]*routeEntry{}
-	x.routeMu.Unlock()
+	x.rt.Invalidate("")
 	x.enrichMu.Lock()
 	x.cpa = map[uint32]cpaEntry{}
 	x.enrichMu.Unlock()
@@ -416,7 +430,7 @@ func (e *Engine) enrich(s *model.LiveSnapshot) {
 		a := &s.Aircraft[i]
 		if a.Lat == nil || a.Lon == nil {
 			if a.Callsign != "" {
-				a.Route = e.routeFor(a.Callsign, nil, nil)
+				a.Route = x.rt.Live(a, now)
 			}
 			continue
 		}
@@ -456,7 +470,7 @@ func (e *Engine) enrich(s *model.LiveSnapshot) {
 			}
 		}
 		if a.Callsign != "" {
-			a.Route = e.routeFor(a.Callsign, a.Lat, a.Lon)
+			a.Route = x.rt.Live(a, now)
 		}
 	}
 	if s.Now-x.cpaSweep > 60_000 || s.Now < x.cpaSweep {
@@ -499,136 +513,6 @@ func (e *Engine) enrich(s *model.LiveSnapshot) {
 
 func finite(v float64) bool { return !math.IsNaN(v) && !math.IsInf(v, 0) }
 
-// ---------------------------------------------------------------- routes
-
-// routeFor returns the cached route of a callsign (queuing a look-up when it
-// is unknown) with the plausibility for the given position.
-func (e *Engine) routeFor(callsign string, lat, lon *float64) *model.RouteShort {
-	x := e.ext
-	cs := navdata.NormalizeCallsign(callsign)
-	if cs == "" {
-		return nil
-	}
-	now := time.Now()
-	x.routeMu.Lock()
-	ent := x.routes[cs]
-	if ent == nil || now.After(ent.exp) {
-		if len(x.routes) >= routeCacheMax {
-			for k, v := range x.routes {
-				if now.After(v.exp) {
-					delete(x.routes, k)
-				}
-			}
-			if len(x.routes) >= routeCacheMax {
-				clear(x.routes)
-			}
-		}
-		select {
-		case x.routeQ <- cs:
-			x.routes[cs] = &routeEntry{pending: true, exp: now.Add(30 * time.Second)}
-		default:
-		}
-		x.routeMu.Unlock()
-		return nil
-	}
-	if !ent.found {
-		x.routeMu.Unlock()
-		return nil
-	}
-	r := ent.short
-	airports := ent.airports
-	x.routeMu.Unlock()
-	if lat != nil && lon != nil {
-		if chk := navdata.CheckRoute(airports, *lat, *lon); chk != nil {
-			r.Plausible, r.Checked = chk.Plausible, true
-		} else {
-			r.Plausible = true
-		}
-	} else {
-		r.Plausible = true
-	}
-	return &r
-}
-
-// PutRoute stores a route answer (e.g. from a user-requested online
-// look-up) in the live route cache.
-func (e *Engine) PutRoute(info navdata.RouteInfo) {
-	x := e.ext
-	if x == nil || info.Callsign == "" {
-		return
-	}
-	ent := routeEntryOf(info)
-	x.routeMu.Lock()
-	x.routes[info.Callsign] = ent
-	x.routeMu.Unlock()
-}
-
-func routeEntryOf(info navdata.RouteInfo) *routeEntry {
-	now := time.Now()
-	if !info.Found || len(info.Airports) < 2 {
-		return &routeEntry{exp: now.Add(routeNegTTL)}
-	}
-	first, last := info.Airports[0], info.Airports[len(info.Airports)-1]
-	short := model.RouteShort{
-		From: first.Code, To: last.Code, Via: len(info.Airports) - 2, Source: info.Source, Plausible: true,
-	}
-	fill := func(ra navdata.RouteAirport, code, iata, name *string) {
-		if a := ra.Airport; a != nil {
-			*code = a.Code()
-			*iata = a.IATA
-			*name = a.Municipality
-			if *name == "" {
-				*name = a.Name
-			}
-		}
-	}
-	fill(first, &short.From, &short.FromIATA, &short.FromName)
-	fill(last, &short.To, &short.ToIATA, &short.ToName)
-	return &routeEntry{found: true, short: short, airports: info.Airports, exp: now.Add(routeTTL)}
-}
-
-// routeWorker resolves queued callsigns from the offline standing data (no
-// online look-ups: those happen only on request, GET /api/navdata/route).
-func (e *Engine) routeWorker(ctx context.Context) {
-	x := e.ext
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case cs := <-x.routeQ:
-			info, err := e.storedRoute(ctx, cs)
-			if err != nil {
-				if ctx.Err() != nil {
-					return
-				}
-				e.log.Debug("route look-up failed", "callsign", cs, "err", err)
-			}
-			e.PutRoute(info)
-		}
-	}
-}
-
-// storedRoute is navdata.Route restricted to the offline standing data.
-func (e *Engine) storedRoute(ctx context.Context, cs string) (navdata.RouteInfo, error) {
-	nd := e.ext.nd
-	info := navdata.RouteInfo{Callsign: cs}
-	rr, ok, err := nd.StoredRoute(ctx, cs)
-	if err != nil || !ok {
-		return info, err
-	}
-	info.Found, info.Source, info.Airline = true, "standing-data", rr.Airline
-	for _, c := range rr.Codes {
-		ra := navdata.RouteAirport{Code: c}
-		if a, ok, err := nd.AirportByCode(ctx, c, false); err != nil {
-			return info, err
-		} else if ok {
-			ra.Resolved, ra.Airport = true, &a
-		}
-		info.Airports = append(info.Airports, ra)
-	}
-	return info, nil
-}
-
 // ------------------------------------------------------------- navdata
 
 // navLoop (re)loads the airport region around the receiver at start, after
@@ -639,6 +523,7 @@ func (e *Engine) navLoop(ctx context.Context) {
 	tick := time.NewTicker(2 * time.Second)
 	defer tick.Stop()
 	wasRunning := false
+	var auto navRefresh
 	for {
 		select {
 		case <-ctx.Done():
@@ -648,9 +533,8 @@ func (e *Engine) navLoop(ctx context.Context) {
 		case <-tick.C:
 			st := x.nd.ImportStatus()
 			if wasRunning && !st.Running {
-				x.routeMu.Lock()
-				x.routes = map[string]*routeEntry{}
-				x.routeMu.Unlock()
+				x.rt.RecheckStanding()
+				auto.done(st.Error != "", time.Now())
 				e.loadRegion(ctx)
 				if st.Error != "" {
 					e.Notify("warn", "Reference data import failed: "+st.Error)
@@ -660,6 +544,10 @@ func (e *Engine) navLoop(ctx context.Context) {
 				}
 			}
 			wasRunning = st.Running
+			if !st.Running {
+				e.autoRefresh(ctx, &auto, time.Now())
+				wasRunning = x.nd.ImportStatus().Running
+			}
 		}
 	}
 }

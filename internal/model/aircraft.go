@@ -133,18 +133,33 @@ type Aircraft struct {
 // per second, so gaps up to a few seconds are normal reception jitter).
 const PredictAfterSec = 4
 
-// RouteShort is the compact route of a flight in the live picture.
+// RouteShort is the compact route of a flight in the live picture. The
+// airport fields describe the ACTIVE leg of a multi-stop route.
 type RouteShort struct {
-	From      string `json:"from"`               // departure airport code (ICAO, else IATA / ident)
-	To        string `json:"to"`                 // destination airport code
+	From      string `json:"from"`               // departure airport code of the active leg (ICAO, else IATA / ident)
+	To        string `json:"to"`                 // destination airport code of the active leg
 	FromIATA  string `json:"fromIata,omitempty"` //
 	ToIATA    string `json:"toIata,omitempty"`   //
 	FromName  string `json:"fromName,omitempty"` // short airport name / city
 	ToName    string `json:"toName,omitempty"`   //
-	Via       int    `json:"via,omitempty"`      // number of intermediate stops
-	Plausible bool   `json:"plausible"`          // the current position fits the route (false = doubtful)
-	Source    string `json:"source"`             // "standing-data" | "adsbdb"
+	Via       int    `json:"via,omitempty"`      // number of intermediate stops of the whole route
+	Plausible bool   `json:"plausible"`          // the current position fits the route (state fits or uncertain)
+	Source    string `json:"source"`             // "override" | "learned" | "standing-data" | "adsbdb"
 	Checked   bool   `json:"checked,omitempty"`  // plausibility could be checked (position and both airports known)
+
+	State    string   `json:"state,omitempty"`    // fits | uncertain | doubtful | reversed | unchecked
+	Conf     float64  `json:"conf,omitempty"`     // fused confidence 0..1 (2 dp)
+	Reason   string   `json:"reason,omitempty"`   // one line, no station identifiers
+	Stops    []string `json:"stops,omitempty"`    // full ordered route codes when more than 2 airports
+	Leg      int      `json:"leg,omitempty"`      // 1-based active leg (multi-stop routes)
+	Legs     int      `json:"legs,omitempty"`     // number of legs (multi-stop routes)
+	AlongPct float64  `json:"along,omitempty"`    // progress along the active leg, 0..100
+	DistRem  float64  `json:"distRem,omitempty"`  // remaining distance on the active leg, km
+	ETA      int64    `json:"eta,omitempty"`      // estimated arrival at the active leg's end, Unix s (rounded to 30 s)
+	ETASigma int      `json:"etaSigma,omitempty"` // 1-sigma ETA uncertainty, s
+	Kind     string   `json:"kind,omitempty"`     // "" | "positioning" | "charter"
+	Class    string   `json:"lic,omitempty"`      // licence class: open | own | restricted (restricted never leaves the station's own scopes)
+	Flags    []string `json:"flags,omitempty"`    // "variant", "stale-standing"
 }
 
 // AlertMark marks an aircraft that matches an alert rule with a highlight.

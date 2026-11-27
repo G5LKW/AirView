@@ -55,7 +55,7 @@ AirView uses only free data and services that need no account or API key. Some a
 | AWS Terrain Tiles (Mapzen / Tilezen) | terrain line-of-sight analysis | open data, attribution required (shown in the Terrain section) | `terrain.autoPrefetch` or on request |
 | OurAirports | airports, runways, navaids, countries | public domain | import on request |
 | Virtual Radar Server standing data | callsign routes (offline) | CC0 1.0 | import on request |
-| adsbdb.com | online route lookup (sends the callsign) | free API, used as is | `navData.routesOnline` (default off) |
+| adsbdb.com | online route lookup (sends unknown airline callsigns; never the receiver location; answers cached and shown only to the station's own users) | free API, used as is; data may not be republished | `navData.routes.online` (default on) |
 | planespotters.net | aircraft photos (sends the ICAO address) | each photo © its photographer, shown with credit and link | `navData.photos` (default off) |
 | tar1090-db / Mictronics | aircraft database | ODC-By 1.0 | import on request |
 | OpenSky Network | aircraft database | provided as is | import on request |

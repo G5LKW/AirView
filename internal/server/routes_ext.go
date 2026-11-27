@@ -194,7 +194,7 @@ var extRoutes = []Route{
 	{Method: "GET", Path: "/api/navdata/route/{callsign}", Group: grpNav, Access: AccessPublic, API: apiNavRoute, Sample: "/api/navdata/route/{route}",
 		Summary: "Route of a callsign (standing data, then the opt-in online look-up) with airports, great-circle path and a plausibility check.",
 		Params:  []Param{{"lat, lon", "current position of the aircraft: enables `check` (plausible / doubtful)"}},
-		Notes:   "Call lazily (when the user opens an aircraft), not for every aircraft: the live picture already carries `route` from the offline data. The online look-up (adsbdb.com) only runs with `config.navData.routesOnline` and is cached (24 h, unknown 12 h) and paced (2 s, 1000/day; `429` when exhausted). `found:false` when unknown. `path` is `[lon, lat]` with unwrapped longitudes."},
+		Notes:   "Call lazily (when the user opens an aircraft), not for every aircraft: the live picture already carries `route` from the offline data. The online look-up (adsbdb.com) only runs for an admin caller with `config.navData.routes.online`; other callers get the standing data and an already cached answer and is cached (24 h, unknown 12 h) and paced (2 s, 1000/day; `429` when exhausted). `found:false` when unknown. `path` is `[lon, lat]` with unwrapped longitudes."},
 	{Method: "GET", Path: "/api/navdata/photo/{icao}", Group: grpNav, Access: AccessPublic, API: apiNavPhoto, NoAuto: true, Sample: "/api/navdata/photo/3C6444",
 		Summary: "Aircraft photo metadata from planespotters.net (opt-in): thumbnail, large image, link and photographer.",
 		Params:  []Param{{"reg", "registration (improves the match)"}},

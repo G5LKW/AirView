@@ -343,7 +343,8 @@ export function validate(cfg) {
 
   // aviation data
   if (cfg.navData) {
-    for (const k of ['airportsOverlay', 'routesOnline', 'photos']) bool('navdata', 'navData.' + k);
+    for (const k of ['airportsOverlay', 'autoRefresh', 'photos']) bool('navdata', 'navData.' + k);
+    if (cfg.navData.routes) for (const k of ['enabled', 'online', 'learn', 'eta']) bool('navdata', 'navData.routes.' + k);
     const c = cfg.navData.photoContact;
     if (c !== undefined && typeof c !== 'string') add('navdata', 'navData.photoContact', 'Enter text.');
     const ct = String(c ?? '').trim();

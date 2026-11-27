@@ -326,9 +326,23 @@ Controls aviation reference data (internal/navdata). Nothing is downloaded autom
 | Setting | Type | Default | Environment variable | Description |
 |---|---|---|---|---|
 | `navData.airportsOverlay` | boolean | `true` | `AIRVIEW_NAV_DATA_AIRPORTS_OVERLAY` | Airports layer offered on the map (default true) |
-| `navData.routesOnline` | boolean | `false` | `AIRVIEW_NAV_DATA_ROUTES_ONLINE` | routesOnline looks unknown callsigns up at adsbdb.com (sends the callsign to a third party; default false). Without it only the imported offline standing data is used. |
+| `navData.autoRefresh` | boolean | `true` | `AIRVIEW_NAV_DATA_AUTO_REFRESH` | autoRefresh downloads the reference data (airports, runways, navaids, countries, VRS standing-data routes; CC0 / public domain, about 25 MB, no user data sent) at first start and checks it daily at a per-install random time with a conditional GET (default true; off for air-gapped sites). |
 | `navData.photos` | boolean | `false` | `AIRVIEW_NAV_DATA_PHOTOS` | photos shows aircraft photos from planespotters.net (sends the ICAO address; default false). Requires PhotoContact. |
 | `navData.photoContact` | string | `""` | `AIRVIEW_NAV_DATA_PHOTO_CONTACT` | Contact URL or e-mail sent in the User-Agent (required by planespotters.net) |
+
+#### `navData.routes`
+
+Controls route resolution (internal/routes).
+
+| Setting | Type | Default | Environment variable | Description |
+|---|---|---|---|---|
+| `navData.routes.enabled` | boolean | `true` | `AIRVIEW_NAV_DATA_ROUTES_ENABLED` | Master switch of the route feature (default true) |
+| `navData.routes.online` | boolean | `true` | `AIRVIEW_NAV_DATA_ROUTES_ONLINE` | online looks callsigns up at adsbdb.com when no offline route (override, learned, standing data) exists (default true). It sends the callsign, never the receiver location; answers are only cached, never merged into AirView's own tables, and shown only to the station's own users. |
+| `navData.routes.dailyCap` | integer | `1000` | `AIRVIEW_NAV_DATA_ROUTES_DAILY_CAP` | Online look-ups per 24 h (default 1000) |
+| `navData.routes.stableSec` | integer | `45` | `AIRVIEW_NAV_DATA_ROUTES_STABLE_SEC` | A callsign must be received this long before it is looked up online (default 45) |
+| `navData.routes.contact` | string | `""` | `AIRVIEW_NAV_DATA_ROUTES_CONTACT` | contact URL or e-mail in the User-Agent of online look-ups (default: the project URL) |
+| `navData.routes.learn` | boolean | `true` | `AIRVIEW_NAV_DATA_ROUTES_LEARN` | learn routes from observed take-offs and landings (default true) |
+| `navData.routes.eta` | boolean | `true` | `AIRVIEW_NAV_DATA_ROUTES_ETA` | Estimate the arrival time (default true) |
 
 ### Alerts (`alerts`)
 
