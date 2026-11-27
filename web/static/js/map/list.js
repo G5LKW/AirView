@@ -3,6 +3,9 @@
 
 import { ui, h, icon, setText } from '../ui.js';
 import { units } from '../units.js';
+import { parseQuery, matchTerms } from './route-query.js';
+
+const ROUTE_QUERY_TIP = 'Route terms: from:EGLL to:JFK via:FRA airport:LHR route:LHR-JFK (route:LHR~JFK either way) airline:BAW state:doubtful src:learned kind:positioning eta<30m noroute; * and ? wildcards, a leading - negates.';
 
 const SOURCE_BADGE = { adsb: ['ADS-B', 'adsb'], mlat: ['MLAT', 'mlat'], tisb: ['TIS-B', 'tisb'], adsr: ['ADS-R', 'adsr'], modes: ['Mode S', 'modes'], other: ['Other', 'other'] };
 const EMERGENCY_SQUAWKS = new Set(['7500', '7600', '7700']);
@@ -45,7 +48,7 @@ export function createList(ctx, hooks) {
   const shownEl = h('span.side-shown.muted', '');
 
   const search = ui.input({
-    icon: 'search', placeholder: 'Filter: callsign, ICAO, type, operator…  ( / )', size: 'sm', clearable: true, value: query,
+    icon: 'search', placeholder: 'Filter: callsign, ICAO, type… or to:LHR, route:LHR-JFK  ( / )', tip: ROUTE_QUERY_TIP, size: 'sm', clearable: true, value: query,
     spellcheck: 'false', autocomplete: 'off', 'aria-label': 'Filter aircraft',
     onInput: ui.debounce((v) => { query = v.trim(); prefs.set({ q: query }); apply(); }, 120),
   });
@@ -106,8 +109,16 @@ export function createList(ctx, hooks) {
     {
       key: 'route', label: 'Route', width: '92px', tip: 'Route from the reference data (amber = does not fit the position)', sort: (a) => (a.route ? a.route.from + a.route.to : null),
       render: (a) => (a.route ? `${a.route.fromIata || a.route.from}–${a.route.toIata || a.route.to}` : ''),
-      cls: (a) => (a.route && a.route.checked && !a.route.plausible ? 'route-doubt' : ''),
+      cls: (a) => (a.route && (a.route.state ? a.route.state === 'doubtful' || a.route.state === 'reversed' : a.route.checked && !a.route.plausible) ? 'route-doubt' : ''),
     },
+    // optional route columns (Columns menu; ROUTES-DESIGN §6.4)
+    { key: 'rfrom', label: 'From', name: 'Route from', width: '52px', num: true, sort: (a) => (a.route ? a.route.fromIata || a.route.from : null), render: (a) => (a.route ? a.route.fromIata || a.route.from : '') },
+    { key: 'rto', label: 'To', name: 'Route to', width: '52px', num: true, sort: (a) => (a.route ? a.route.toIata || a.route.to : null), render: (a) => (a.route ? a.route.toIata || a.route.to : '') },
+    { key: 'rprog', label: 'Prog', name: 'Route progress', width: '48px', align: 'right', num: true, tip: 'Progress along the active leg', sort: (a) => (n(a.route?.along) ? a.route.along : null), render: (a) => (n(a.route?.along) ? Math.round(a.route.along) + '%' : '') },
+    { key: 'reta', label: 'ETA', name: 'Estimated arrival', width: '52px', num: true, tip: 'Estimated arrival (your time zone)', sort: (a) => (a.route?.eta > 0 ? a.route.eta : null),
+      render: (a) => (a.route?.eta > 0 ? new Date(a.route.eta * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '') },
+    { key: 'rconf', label: 'Conf', name: 'Route confidence', width: '46px', align: 'right', num: true, sortDir: 'desc', sort: (a) => (n(a.route?.conf) ? a.route.conf : null), render: (a) => (n(a.route?.conf) ? Math.round(a.route.conf * 100) + '%' : '') },
+    { key: 'rsrc', label: 'Src', name: 'Route source', width: '72px', sort: (a) => a.route?.source || null, render: (a) => a.route?.source || '', cls: () => 'ellipsis muted' },
     { key: 'squawk', label: 'Sqk', name: 'Squawk', width: '46px', num: true, sort: (a) => a.squawk || null, render: (a) => a.squawk || '', cls: (a) => (EMERGENCY_SQUAWKS.has(a.squawk) ? 'sq-emerg' : '') },
     {
       key: 'alt', label: 'Alt', name: 'Altitude', width: '72px', align: 'right', num: true, sortDir: 'desc', tip: 'Altitude',
@@ -228,16 +239,17 @@ export function createList(ctx, hooks) {
   }
   setWide(!!prefs.get().wide);
 
-  function matches(a, tokens) {
-    if (!tokens.length) return true;
+  function matches(a, q) {
+    if (q.terms.length && !matchTerms(a, q.terms, Math.floor(now / 1000))) return false;
+    if (!q.plain.length) return true;
     const r = a.route;
     const hay = `${a.callsign || ''} ${a.icao} ${a.reg || ''} ${a.type || ''} ${a.typeDesc || ''} ${a.operator || ''} ${a.country || ''} ${a.squawk || ''} ${r ? `${r.from} ${r.to} ${r.fromIata || ''} ${r.toIata || ''}` : ''}`.toLowerCase();
-    for (const t of tokens) if (!hay.includes(t)) return false;
+    for (const t of q.plain) if (!hay.includes(t)) return false;
     return true;
   }
 
   function apply() {
-    const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+    const tokens = parseQuery(query);
     const single = FILTERS.filter((f) => !f.group && active.has(f.id));
     const srcGroup = FILTERS.filter((f) => f.group === 'src' && active.has(f.id));
     const adv = hooks.filter ? hooks.filter() : null;
