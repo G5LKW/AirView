@@ -95,9 +95,12 @@ type Aircraft struct {
 	// config.prediction.coastSec seconds after its last real position.
 	// Predicted positions are never stored, never enter trails, statistics,
 	// coverage or records.
-	Predicted   bool     `json:"predicted,omitempty"`
-	CoastS      *float64 `json:"coastS,omitempty"`      // seconds since the last real position (only while predicted)
-	PredSigmaM  *float64 `json:"predSigmaM,omitempty"`  // 1-sigma horizontal uncertainty of the shown position, m (only while predicted)
+	Predicted  bool     `json:"predicted,omitempty"`
+	CoastS     *float64 `json:"coastS,omitempty"`     // seconds since the last real position (only while predicted)
+	PredSigmaM *float64 `json:"predSigmaM,omitempty"` // 1-sigma horizontal uncertainty of the shown position, m (only while predicted)
+	// PredLearned is the weight (0..1) with which turns learned from the
+	// surrounding traffic moved the predicted position (absent = not used).
+	PredLearned *float64 `json:"predLearned,omitempty"`
 	LastRealLat *float64 `json:"lastRealLat,omitempty"` // last real (received) position, only while predicted
 	LastRealLon *float64 `json:"lastRealLon,omitempty"` //
 	CPAKm       *float64 `json:"cpaKm,omitempty"`       // predicted closest approach to the receiver, km (within 30 min)

@@ -732,7 +732,8 @@ function renderPrediction(S, F) {
         `When no position has arrived for ${START} s, AirView keeps drawing the aircraft where its tracking filter expects it to be: with a soft glow, an uncertainty circle and fading opacity. Positions normally arrive twice a second, so short gaps are ordinary reception jitter. Predicted positions are only drawn - they never enter trails, the database, statistics or records.`)),
     timeline,
     h('div.set-fields.set-fields--2', coastF, pathF),
-    F.toggle('prediction.showPaths', { label: 'Show predicted paths', hint: 'The Live Map draws the predicted path of the selected aircraft, with where it is expected to drop below or rise above the terrain horizon.' }));
+    F.toggle('prediction.showPaths', { label: 'Show predicted paths', hint: 'The Live Map draws the predicted path of the selected aircraft, with where it is expected to drop below or rise above the terrain horizon.' }),
+    F.toggle('prediction.learnedTurns', { label: 'Use turns learned from the traffic', hint: 'Moves the positions of coasting aircraft towards where the surrounding traffic turns (runway in use, arrivals, airway bends). Used only where AirView\'s own self-check has measured it clearly better than flying straight on; elsewhere the tracking filter alone decides.' }));
   paintTimeline();
 
   // ---- status ----

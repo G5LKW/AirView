@@ -97,3 +97,50 @@ func BenchmarkObserve(b *testing.B) {
 		l.Observe(uint32(i%2000), t+int64(i/2000)*1000, 50+float64(i%2000)*0.001, 8, 30000, 270, 450)
 	}
 }
+
+// TestBlend: once the self-check measured the learned turns as better, Blend
+// gives the live filter a turned position with a substantial weight; on
+// straight traffic (no measured benefit) and on an empty learner it gives
+// nothing, so the filter's own prediction stays as it was.
+func TestBlend(t *testing.T) {
+	l := New()
+	t0 := int64(1_800_000_000_000)
+	if _, _, _, ok := l.Blend(50, 8.05, 10000, 270, 300, 40, t0); ok {
+		t.Fatal("an empty learner must not blend")
+	}
+	for i := 0; i < 60; i++ {
+		t0 = fly(l, uint32(0x400000+i), t0, true)
+	}
+	lat, lon, w, ok := l.Blend(50, 8.05, 10000, 270, 300, 40, t0)
+	if !ok || w < 0.3 || w > 1 {
+		t.Fatalf("blend ok=%v w=%.2f", ok, w)
+	}
+	// truth after 40 s
+	tl, tn, tt := 50.0, 8.05, 270.0
+	for s := 0; s < 40; s++ {
+		if tn <= 8.0 && tt != 0 {
+			tt = math.Mod(tt+1.5, 360)
+		}
+		tl, tn = geo.Destination(tl, tn, tt, 300*1.852/3600)
+	}
+	sl, sn := geo.Destination(50, 8.05, 270, 300*1.852/3600*40)
+	// the blended position the tracker would show (straight line standing in for the filter)
+	bl, bn := sl*(1-w)+lat*w, sn*(1-w)+lon*w
+	eB, eS := geo.HaversineKm(bl, bn, tl, tn), geo.HaversineKm(sl, sn, tl, tn)
+	t.Logf("40 s: blended off by %.2f km (w %.2f), straight by %.2f km", eB, w, eS)
+	if eB >= eS {
+		t.Fatalf("blending made it worse: %.2f vs %.2f km", eB, eS)
+	}
+	if _, _, _, ok := l.Blend(50, 8.05, 10000, 270, 300, 500, t0); ok {
+		t.Fatal("blended far beyond the scored horizons")
+	}
+
+	s := New()
+	t1 := int64(1_800_000_000_000)
+	for i := 0; i < 60; i++ {
+		t1 = fly(s, uint32(0x500000+i), t1, false)
+	}
+	if _, _, w, ok := s.Blend(50, 8.4, 10000, 270, 300, 40, t1); ok {
+		t.Fatalf("straight traffic blended with w=%.2f (skill %+v)", w, s.Stats().Skill)
+	}
+}

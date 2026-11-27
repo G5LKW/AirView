@@ -306,6 +306,7 @@ Controls the trajectory filter (internal/trajectory): coasting aircraft on the l
 | `prediction.coastSec` | integer | `60` | `AIRVIEW_PREDICTION_COAST_SEC` | coastSec is how long an aircraft without new positions is shown at its predicted position (default 60, 5..120). Predicted positions start PredictAfterSec (4 s) after the last real position. |
 | `prediction.pathSec` | integer | `120` | `AIRVIEW_PREDICTION_PATH_SEC` | pathSec is the default horizon of predicted paths (default 120, 10..900). |
 | `prediction.showPaths` | boolean | `true` | `AIRVIEW_PREDICTION_SHOW_PATHS` | ShowPaths: the map draws the predicted path of the selected aircraft (default true). |
+| `prediction.learnedTurns` | boolean | `true` | `AIRVIEW_PREDICTION_LEARNED_TURNS` | learnedTurns blends the turns learned from the surrounding traffic (internal/flowlearn) into the positions of coasting aircraft, weighted by the learner's self-check: only where the learned turns were measured clearly better than dead reckoning (default true). |
 
 ### Terrain analysis (`terrain`)
 

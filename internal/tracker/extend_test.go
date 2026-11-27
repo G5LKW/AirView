@@ -142,6 +142,29 @@ func TestCoastingPrediction(t *testing.T) {
 		t.Errorf("stored positions changed from %d to %d while coasting", posBefore, n)
 	}
 
+	// Learned-flow blend: the coasting position moves towards the learned
+	// one by its weight, and the hook gets the last real fix.
+	base := findAC(tr.Snapshot(), hex)
+	var gotLat, gotDt float64
+	tr.SetLearnedTurn(func(lat, lon, altFt, trk, gs, dtS float64, nowMs int64) (float64, float64, float64, bool) {
+		gotLat, gotDt = lat, dtS
+		return *base.Lat + 0.2, *base.Lon, 0.5, true
+	})
+	b := findAC(tr.Snapshot(), hex)
+	if b == nil || !b.Predicted || b.PredLearned == nil || *b.PredLearned != 0.5 || gotLat != *base.LastRealLat || gotDt < model.PredictAfterSec {
+		t.Fatalf("blend not applied: %+v (hook lat %v dt %v)", b, gotLat, gotDt)
+	}
+	if d := *b.Lat - *base.Lat; d < 0.099 || d > 0.101 {
+		t.Errorf("blended latitude moved %.4f deg, want 0.1", d)
+	}
+	tr.SetLearnedTurn(func(lat, lon, altFt, trk, gs, dtS float64, nowMs int64) (float64, float64, float64, bool) {
+		return 0, 0, 0, false
+	})
+	if c := findAC(tr.Snapshot(), hex); c.PredLearned != nil || *c.Lat != *base.Lat {
+		t.Errorf("no learned answer must leave the filter's position: %+v", c)
+	}
+	tr.SetLearnedTurn(nil)
+
 	// Beyond coastSec: no predicted position any more.
 	advance(t, s, 50*time.Second, sink)
 	if a := findAC(tr.Snapshot(), hex); a != nil && a.Predicted {

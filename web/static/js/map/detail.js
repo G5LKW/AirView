@@ -143,6 +143,7 @@ export function createDetail(ctx, hooks) {
       group('Prediction & visibility', 'target', [
         ['Position', (x) => (x.predicted ? `Predicted · ${units.age(x.coastS)} without a position` : hasPosition(x) ? 'Received' : 'No position'), { text: true }],
         ['Uncertainty (1σ, may have turned)', (x) => (x.predicted && n(x.predSigmaM) ? sigmaText(x.predSigmaM) : D)],
+        ['Learned turns', (x) => (x.predicted && n(x.predLearned) ? `${Math.round(x.predLearned * 100)} % weight` : D), { tip: 'How much the turns learned from the surrounding traffic moved this predicted position (only where they were measured better than flying straight on)' }],
         ['Flight phase', () => (intent && intent.phase ? PHASE[intent.phase] || intent.phase : D), { text: true }],
         ['Closest approach', (x) => (n(x.cpaKm) ? `${units.dist(x.cpaKm)} ${n(x.cpaInS) && x.cpaInS > 0 ? 'in ' + units.age(x.cpaInS) : '(now, moving away)'}` : D)],
         ['Terrain line of sight', (x) => (typeof x.terrainVisible !== 'boolean' ? D : `${x.terrainVisible ? 'Visible' : 'Hidden by terrain'}${n(x.losMarginDeg) ? ` (${x.losMarginDeg > 0 ? '+' : ''}${units.num(x.losMarginDeg, 2, 2)}°)` : ''}`), { text: true }],

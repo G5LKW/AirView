@@ -326,6 +326,7 @@ export function validate(cfg) {
   if (cfg.prediction) {
     bool('prediction', 'prediction.enabled');
     bool('prediction', 'prediction.showPaths');
+    bool('prediction', 'prediction.learnedTurns');
     range('prediction', 'prediction.coastSec', 5, 120, 'Coasting time', { int: true, unit: 's', optional: true });
     range('prediction', 'prediction.pathSec', 10, 900, 'Path length', { int: true, unit: 's', optional: true });
   }

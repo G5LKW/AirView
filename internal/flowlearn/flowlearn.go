@@ -388,3 +388,54 @@ func (l *Learner) Stats() Stats {
 	sort.Slice(s.Skill, func(i, j int) bool { return s.Skill[i].HorizonS < s.Skill[j].HorizonS })
 	return s
 }
+
+// MinBlendScored is the number of scored self-check predictions a horizon
+// needs before its learned turns may move the live coasting positions, and
+// MinBlendGain the improvement over dead reckoning it must have shown (where
+// traffic flies straight both are equally good, and blending would only pull
+// the filter's own turn prediction towards a straight line).
+const (
+	MinBlendScored = 50
+	MinBlendGain   = 0.1   // relative: 1 - learned/straight error
+	MinBlendGainM  = 100.0 // absolute: straight minus learned mean error, m
+)
+
+// Blend returns where the learned traffic flow takes an aircraft that was at
+// (lat, lon, altFt) with track trk and ground speed gs (kt) dtS seconds ago,
+// and the weight w (0..1) the live filter's coasting position should give
+// it. w is the self-check weight of the nearest horizon times the mean
+// confidence of the cells the path used; it is 0 (ok false) unless that
+// horizon has at least MinBlendScored scored predictions and the learned
+// prediction was measured at least MinBlendGain and MinBlendGainM better
+// than the straight one. dtS beyond twice
+// the longest horizon is not blended.
+func (l *Learner) Blend(lat, lon, altFt, trk, gs, dtS float64, nowMs int64) (lat2, lon2, w float64, ok bool) {
+	if !(dtS > 0) || dtS > 2*float64(Horizons[len(Horizons)-1]) || math.IsNaN(trk) || !(gs >= minGSKt) {
+		return 0, 0, 0, false
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	hi := 0
+	if dtS > float64(Horizons[0]) {
+		hi = 1
+	}
+	sk := l.sk[hi]
+	if sk.n < MinBlendScored || !(sk.errS > 0) || 1-sk.errL/sk.errS < MinBlendGain || sk.errS-sk.errL < MinBlendGainM || sk.weight <= 0 {
+		return 0, 0, 0, false
+	}
+	pts := l.predictLocked(lat, lon, altFt, trk, gs, dtS, stepS, sk.weight, nowMs)
+	if len(pts) < 2 {
+		return 0, 0, 0, false
+	}
+	// Conf of each point is conf*weight of its step; average over the steps
+	var sum float64
+	for _, p := range pts[1:] {
+		sum += p.Conf
+	}
+	w = sum / float64(len(pts)-1)
+	if !(w > 0.01) {
+		return 0, 0, 0, false
+	}
+	last := pts[len(pts)-1]
+	return last.Lat, last.Lon, math.Min(w, 1), true
+}

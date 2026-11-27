@@ -315,15 +315,17 @@ type Tracker struct {
 	afChecked int64 // statistics for tests / debugging
 
 	// Extensions (see extend.go). Guarded by mu.
-	tj      *trajectory.Manager // tracking filter (nil = off)
-	coastMs int64               // longest predicted position shown after the last real one
-	rf      *rfstat.Stats       // RF statistics (nil = off)
-	onNewAF func(icao uint32)   // first sighting of an airframe ever (called without locks)
-	onACAS  func(acas.Report)   // ACAS resolution advisory report (called under the lock; must be cheap)
-	onHaz   func(HazardReport)  // BDS 4,5 meteorological hazard report (called under the lock; must be cheap)
-	enrich  func(s *model.LiveSnapshot)
-	snapMu  sync.Mutex // serialises snapshot builds (enrich runs without mu)
-	lastBDS uint8      // Comm-B register settled on for the frame being applied
+	tj *trajectory.Manager // tracking filter (nil = off)
+	// learnTurn blends learned traffic-flow turns into coasting positions (nil = off).
+	learnTurn func(lat, lon, altFt, trk, gs, dtS float64, nowMs int64) (lat2, lon2, w float64, ok bool)
+	coastMs   int64              // longest predicted position shown after the last real one
+	rf        *rfstat.Stats      // RF statistics (nil = off)
+	onNewAF   func(icao uint32)  // first sighting of an airframe ever (called without locks)
+	onACAS    func(acas.Report)  // ACAS resolution advisory report (called under the lock; must be cheap)
+	onHaz     func(HazardReport) // BDS 4,5 meteorological hazard report (called under the lock; must be cheap)
+	enrich    func(s *model.LiveSnapshot)
+	snapMu    sync.Mutex // serialises snapshot builds (enrich runs without mu)
+	lastBDS   uint8      // Comm-B register settled on for the frame being applied
 
 	// Latency-chain analysis (nil = off). obs is the reused observation;
 	// cprLat / cprLon / cprOK is the position handleCPR decoded from the

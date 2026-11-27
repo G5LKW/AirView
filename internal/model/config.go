@@ -121,6 +121,11 @@ type PredictionConfig struct {
 	PathSec int `json:"pathSec"`
 	// ShowPaths: the map draws the predicted path of the selected aircraft (default true).
 	ShowPaths bool `json:"showPaths"`
+	// LearnedTurns blends the turns learned from the surrounding traffic
+	// (internal/flowlearn) into the positions of coasting aircraft, weighted
+	// by the learner's self-check: only where the learned turns were measured
+	// clearly better than dead reckoning (default true).
+	LearnedTurns bool `json:"learnedTurns"`
 }
 
 // TerrainConfig controls the terrain line-of-sight analysis (internal/terrain).
@@ -413,7 +418,7 @@ func DefaultConfig() Config {
 		},
 		Demo: DemoConfig{Enabled: false, Aircraft: 60},
 
-		Prediction: PredictionConfig{Enabled: true, CoastSec: 60, PathSec: 120, ShowPaths: true},
+		Prediction: PredictionConfig{Enabled: true, CoastSec: 60, PathSec: 120, ShowPaths: true, LearnedTurns: true},
 		Terrain:    TerrainConfig{Enabled: true, RadiusKm: 450, Zoom: 0, KFactor: 4.0 / 3.0, AutoPrefetch: true},
 		NavData: NavDataConfig{AirportsOverlay: true, AutoRefresh: true,
 			Routes: RoutesConfig{Enabled: true, Online: true, DailyCap: 1000, StableSec: 45, Learn: true, ETA: true}},

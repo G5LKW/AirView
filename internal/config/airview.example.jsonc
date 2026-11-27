@@ -421,7 +421,13 @@
     // ShowPaths: the map draws the predicted path of the selected aircraft
     // (default true).
     // Environment: AIRVIEW_PREDICTION_SHOW_PATHS.
-    "showPaths": true
+    "showPaths": true,
+    // learnedTurns blends the turns learned from the surrounding traffic
+    // (internal/flowlearn) into the positions of coasting aircraft, weighted
+    // by the learner's self-check: only where the learned turns were measured
+    // clearly better than dead reckoning (default true).
+    // Environment: AIRVIEW_PREDICTION_LEARNED_TURNS.
+    "learnedTurns": true
   },
   // Controls the terrain line-of-sight analysis (internal/terrain).
   "terrain": {

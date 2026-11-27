@@ -23,6 +23,18 @@ const predictAfterMs = model.PredictAfterSec * 1000
 // carry the altitude many times per second) fed to the tracking filter.
 const altObsGapMs = 1000
 
+// SetLearnedTurn installs (nil removes) the learned-flow blend of coasting
+// positions: fn gets the last real fix, its track and ground speed and the
+// coasting time and returns the learned position and its weight (0..1;
+// flowlearn.Learner.Blend). The trajectory filter's prediction is moved
+// towards it by that weight.
+func (t *Tracker) SetLearnedTurn(fn func(lat, lon, altFt, trk, gs, dtS float64, nowMs int64) (lat2, lon2, w float64, ok bool)) {
+	t.mu.Lock()
+	t.learnTurn = fn
+	t.snap = nil
+	t.mu.Unlock()
+}
+
 // SetTrajectory installs the tracking filter (nil removes it). coastSec is
 // how long after the last real position the live picture shows the
 // predicted position (config.prediction.coastSec); the manager's MaxCoast
@@ -337,6 +349,18 @@ func (t *Tracker) predictedPos(ac *aircraft, now int64, a *model.Aircraft, al *d
 	pr, ok := t.tj.Predict(ac.key, time.UnixMilli(now))
 	if !ok || !geo.ValidLatLon(pr.Lat, pr.Lon) {
 		return false
+	}
+	if fn := t.learnTurn; fn != nil && fresh(ac.velMs, ac.posMs, fieldTTLMs) {
+		// the turns learned from the surrounding traffic, from the last real fix
+		if lat2, lon2, w, ok := fn(ac.lat, ac.lon, ac.bestAlt(ac.posMs), ac.track, ac.gs, float64(age)/1000, now); ok && w > 0 && geo.ValidLatLon(lat2, lon2) {
+			if lon2-pr.Lon > 180 {
+				lon2 -= 360
+			} else if lon2-pr.Lon < -180 {
+				lon2 += 360
+			}
+			pr.Lat, pr.Lon = pr.Lat*(1-w)+lat2*w, geo.NormalizeLon(pr.Lon*(1-w)+lon2*w)
+			a.PredLearned = al.fp(math.Round(w*100) / 100)
+		}
 	}
 	a.Predicted = true
 	a.Lat, a.Lon = al.fp(pr.Lat), al.fp(pr.Lon)

@@ -217,6 +217,11 @@ func (e *Engine) applyExt(prev, cur *effective) {
 	} else {
 		e.tr.SetTrajectory(nil, 0)
 	}
+	if c.Prediction.Enabled && c.Prediction.LearnedTurns && x.flow != nil {
+		e.tr.SetLearnedTurn(x.flow.Blend)
+	} else {
+		e.tr.SetLearnedTurn(nil)
+	}
 	if located(c.Receiver) {
 		x.tj.SetReceiver(c.Receiver.Lat, c.Receiver.Lon)
 	} else {
