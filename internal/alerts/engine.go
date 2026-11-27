@@ -322,9 +322,11 @@ func (e *Engine) Evaluate(aircraft []model.Aircraft, now time.Time) {
 	v := &e.view
 	*v = view{watch: ws}
 	if len(rs.aircraft) > 0 {
+		nowS := now.Unix()
 		for i := range aircraft {
 			a := &aircraft[i]
 			v.set(a)
+			v.nowS = nowS
 			v.newAF = false
 			if v.icaoOK && len(e.newAF) > 0 {
 				if t, ok := e.newAF[v.icao]; ok && nowMs-t <= e.opts.NewAirframeWindow.Milliseconds() {
@@ -739,6 +741,7 @@ func (e *Engine) TestRule(r Rule, aircraft []model.Aircraft, ev *SystemEvent, no
 		var v view
 		v.watch = ws
 		v.set(&aircraft[i])
+		v.nowS = now.Unix()
 		v.newAF = v.icaoOK && newAF[v.icao]
 		if c.skip(&v) || !c.root.eval(&v) {
 			continue

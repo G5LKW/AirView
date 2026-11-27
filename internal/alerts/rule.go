@@ -51,7 +51,24 @@ const (
 	CondWatchlist   = "watchlist"   // Values: list names - empty = any list
 	CondOnGround    = "onGround"    // Value (default true)
 	CondSystem      = "system"      // Values: system event kinds, optionally "kind:key" globs (e.g. "record:*")
+
+	// Route conditions (docs/ROUTES-DESIGN.md §6.7) read the live route of the aircraft (aircraft.route). Airport
+	// values are code globs matched against both the ICAO and the IATA code the route carries.
+	CondRouteFrom    = "routeFrom"    // Values: departure airport globs of the active leg
+	CondRouteTo      = "routeTo"      // Values: destination airport globs of the active leg
+	CondRouteVia     = "routeVia"     // Values: globs of an intermediate stop of a multi-stop route
+	CondRouteAirport = "routeAirport" // Values: globs of from, to or any stop
+	CondRoute        = "route"        // Values: "EGLL-KJFK" / "LHR-JFK" globs of from-to ("EGLL-*")
+	CondRouteState   = "routeState"   // Values: fits, uncertain, doubtful, reversed, unchecked
+	CondRouteKind    = "routeKind"    // Values: positioning, charter
+	CondETAWithin    = "etaWithin"    // Max: minutes to the estimated arrival (only routes with an ETA)
+	// CondACASRA matches an aircraft that reports an active TCAS resolution advisory (aircraft.acas).
+	// Values (optional): "up" / "down" (sense) or advisory globs ("Climb*"); empty = any RA. Value false = no RA.
+	CondACASRA = "acasRA"
 )
+
+var routeStates = map[string]bool{"fits": true, "uncertain": true, "doubtful": true, "reversed": true, "unchecked": true}
+var routeKinds = map[string]bool{"positioning": true, "charter": true}
 
 // System event kinds (SystemEvent.Kind).
 const (
@@ -322,8 +339,40 @@ func validateCond(c *Cond, depth int, nodes *int) error {
 				return err
 			}
 		}
-	case CondReg, CondCallsign, CondOperator, CondAircraft, CondCategory, CondCountry, CondSquawk:
+	case CondReg, CondCallsign, CondOperator, CondAircraft, CondCategory, CondCountry, CondSquawk,
+		CondRouteFrom, CondRouteTo, CondRouteVia, CondRouteAirport:
 		return needValues()
+	case CondRoute:
+		if err := needValues(); err != nil {
+			return err
+		}
+		for _, v := range c.Values {
+			if f, t, ok := strings.Cut(v, "-"); !ok || f == "" || t == "" || strings.Contains(t, "-") {
+				return invalid("route: %q must be FROM-TO, e.g. EGLL-KJFK or LHR-*", v)
+			}
+		}
+	case CondRouteState, CondRouteKind:
+		if err := needValues(); err != nil {
+			return err
+		}
+		set := routeStates
+		if c.Type == CondRouteKind {
+			set = routeKinds
+		}
+		for i, v := range c.Values {
+			c.Values[i] = strings.ToLower(v)
+			if !set[c.Values[i]] {
+				return invalid("%s: unknown value %q", c.Type, v)
+			}
+		}
+	case CondETAWithin:
+		if c.Max == nil || *c.Max <= 0 || *c.Max > 24*60 {
+			return invalid("etaWithin: max (minutes, 1..1440) is required")
+		}
+		if c.Min != nil {
+			return invalid("etaWithin: only max is used")
+		}
+	case CondACASRA:
 	case CondSource:
 		if err := needValues(); err != nil {
 			return err

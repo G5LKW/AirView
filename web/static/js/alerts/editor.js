@@ -182,6 +182,7 @@ export function openEditor(ctx, o) {
         const step = d.step ?? (conv ? 'any' : 1);
         const mn = ui.input({ type: 'number', value: show(c.min), placeholder: 'min', step, suffix: lab, size: 'sm', onInput: (v) => { c.min = back(v); changed(); } });
         const mx = ui.input({ type: 'number', value: show(c.max), placeholder: 'max', step, suffix: lab, size: 'sm', onInput: (v) => { c.max = back(v); changed(); } });
+        if (d.maxOnly) return h('div.col.gap-1', h('div.alx-range', h('span.alx-small.muted', 'within'), mx), d.hint ? h('div.alx-small.muted', d.hint) : null);
         return h('div.alx-range', h('span.alx-small.muted', 'from'), mn, h('span.alx-small.muted', 'to'), mx);
       }
       case 'bearing': {
