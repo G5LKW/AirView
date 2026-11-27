@@ -32,17 +32,28 @@ const BEAST_FORMATS = [
 const CONSENT_MLAT = 'MLAT needs your receiver position and timestamps: both, this UUID and the display name go to that network\'s mlat server (unencrypted) under their terms. "Hide on the public map" asks the network not to show the station. MLAT positions come back to this map; AirView never forwards them anywhere.';
 
 /**
- * Community networks that take Beast data and run an mlat server (feeder settings as the networks published
- * them; check the network's own feeder page if a connection fails). Each preset adds a Beast output and an MLAT
- * output sharing one UUID, so the network joins both links into one station.
+ * Community networks that take Beast data and run an mlat server. Hosts, ports and Beast formats were checked on
+ * 27 Nov 2026 against each network's own feed client (configure.sh / README on its GitHub: adsblol/feed,
+ * adsbfi/adsb-fi-scripts, airplanes-live/feed, adsbexchange/feedclient, TheAirTraffic/tat-feeder); check the
+ * network's feeder page if a connection fails. Each preset adds a Beast output and an MLAT output sharing one
+ * UUID, so the network joins both links into one station. `format` is the Beast format the network's own client
+ * sends. The fallback hosts some clients list (e.g. feed2.adsbexchange.com:64004) are not configured.
  */
 export const NETWORK_PRESETS = [
-  { name: 'adsb.lol', beast: ['feed.adsb.lol', 30004], mlat: ['feed.adsb.lol', 31090], url: 'https://adsb.lol/' },
-  { name: 'adsb.fi', beast: ['feed.adsb.fi', 30004], mlat: ['feed.adsb.fi', 31090], url: 'https://adsb.fi/' },
-  { name: 'airplanes.live', beast: ['feed.airplanes.live', 30004], mlat: ['feed.airplanes.live', 31090], url: 'https://airplanes.live/' },
-  { name: 'ADS-B Exchange', beast: ['feed1.adsbexchange.com', 30004], mlat: ['feed.adsbexchange.com', 31090], url: 'https://www.adsbexchange.com/' },
-  { name: 'The Air Traffic', beast: ['feed.theairtraffic.com', 30004], mlat: ['feed.theairtraffic.com', 31090], url: 'https://theairtraffic.com/' },
+  { name: 'adsb.lol', beast: ['feed.adsb.lol', 30004], format: 'beast_reduce_plus_out', mlat: ['feed.adsb.lol', 31090], url: 'https://adsb.lol/' },
+  { name: 'adsb.fi', beast: ['feed.adsb.fi', 30004], format: 'beast_reduce_plus_out', mlat: ['feed.adsb.fi', 31090], url: 'https://adsb.fi/' },
+  { name: 'airplanes.live', beast: ['feed.airplanes.live', 30004], format: 'beast_reduce_plus_out', mlat: ['feed.airplanes.live', 31090], url: 'https://airplanes.live/' },
+  { name: 'ADS-B Exchange', beast: ['feed1.adsbexchange.com', 30004], format: 'beast_reduce_out', mlat: ['feed.adsbexchange.com', 31090], url: 'https://www.adsbexchange.com/' },
+  { name: 'The Air Traffic', beast: ['feed.theairtraffic.com', 30004], format: 'beast_reduce_out', mlat: ['feed.theairtraffic.com', 31090], url: 'https://theairtraffic.com/' },
 ];
+
+/** The Beast output a preset adds (exported for the tests). */
+export function presetBeastUplink(existing, n, uuid) {
+  const b = newBeastUplink(existing);
+  b.host = n.beast[0]; b.port = n.beast[1]; b.uuid = uuid;
+  if (n.format) b.format = n.format;
+  return b;
+}
 
 function nextId(existing, base) {
   const ids = new Set((existing || []).map((u) => u.id));
@@ -253,9 +264,7 @@ export function renderUplinks(S, F) {
     const ok = await ui.confirm({ title: `Feed ${n.name}?`, message: `${CONSENT_C9} ${CONSENT_MLAT}`, confirmLabel: 'Add both outputs' });
     if (!ok) return;
     const uuid = globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : '';
-    const b = newBeastUplink(list());
-    b.host = n.beast[0]; b.port = n.beast[1]; b.uuid = uuid;
-    list().push(b);
+    list().push(presetBeastUplink(list(), n, uuid));
     list().push(newMLATUplink(list(), n.mlat[0], n.mlat[1], uuid));
     structural();
     ui.toast(`Added the ${n.name} outputs - save to connect.`);
@@ -338,7 +347,7 @@ export function renderUplinks(S, F) {
     ] }),
     ui.card({ title: 'Feed community networks', icon: 'users', body: [
       F.help('Adds a Beast output and an MLAT output with one shared UUID for a network. Feeding a network shares this station\'s receiver data with it under its terms; MLAT positions it sends back are shown here and never forwarded. Check the network\'s own feeder page if a connection fails: their addresses can change.'),
-      h('div.row-wrap', NETWORK_PRESETS.map((n) => ui.button({ label: n.name, icon: 'plus', size: 'sm', tip: `Beast ${n.beast.join(':')} + MLAT ${n.mlat.join(':')}`, onClick: () => addPreset(n) }))),
+      h('div.row-wrap', NETWORK_PRESETS.map((n) => ui.button({ label: n.name, icon: 'plus', size: 'sm', tip: `Beast ${n.beast.join(':')} (${n.format}) + MLAT ${n.mlat.join(':')}`, onClick: () => addPreset(n) }))),
     ] }),
     ...list().map((_, i) => item(i)),
   ];
