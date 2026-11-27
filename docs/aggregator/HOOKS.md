@@ -1789,3 +1789,6 @@ Power-cut check (TerminateProcess at random points, 1.1 build, demo traffic): a 
 In `go test -p 2 ./...` on a 4-core Linux container (27 Nov) it failed with "timeout waiting for frames" after 5 s while the MLAT suites ran; alone it passes in 0.09 s. Consider a longer wait (or polling with a deadline of ~30 s) like the other load-sensitive tests.
 ## v1.1-integrator -> cmd/airview dbcmd_test.go: the 1.0.0 fixture is not in the repository
 `cmd/airview/testdata/airview-1.0.0.db` matches `.gitignore`'s `*.db`, so `TestDBMigrateOldFormat` / `TestDBVacuum` fail in a fresh clone. Add `!cmd/airview/testdata/*.db` to `.gitignore` and commit the fixture, or skip when it is missing.
+## v1.1-integrator (27 Nov, second session): disposition of the two test-hygiene requests above
+- internal/ingest/mlatc TestUDPInterop: DONE. The frames / detach / unknown-key waits poll with a 30-s deadline (were 5 s / 3 s); passes alone in 0.26 s (3 runs).
+- cmd/airview 1.0.0 fixture: DONE as "skip when missing". `oldFormatDB` skips TestDBMigrateOldFormat / TestDBVacuum with a message when `testdata/airview-1.0.0.db` is absent (AIRVIEW_REQUIRE_FIXTURES=1 makes that a failure), and `.gitignore` now un-ignores `cmd/airview/testdata/*.db`, so the owner can commit the fixture recorded by the 1.0.0 build with a plain `git add`.

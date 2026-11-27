@@ -243,7 +243,9 @@ func TestUDPInterop(t *testing.T) {
 		t.Fatal(err)
 	}
 	const want = 10
-	waitFor(t, "frames", 5*time.Second, func() bool {
+	// Generous deadline: waitFor polls, so this only matters when the machine is loaded (a full
+	// parallel `go test ./...` with the MLAT suites took more than 5 s here).
+	waitFor(t, "frames", 30*time.Second, func() bool {
 		fr, _ := env.sink.snapshot()
 		return len(framesOf(fr, stA)) >= want && len(framesOf(fr, stB)) >= want
 	})
@@ -285,11 +287,11 @@ func TestUDPInterop(t *testing.T) {
 
 	// After the client leaves, its key is dead.
 	a.nc.Close()
-	waitFor(t, "detach", 3*time.Second, func() bool { return !env.srv.Online(stA) })
+	waitFor(t, "detach", 30*time.Second, func() bool { return !env.srv.Online(stA) })
 	if _, err := uc.Write(d1); err != nil {
 		t.Fatal(err)
 	}
-	waitFor(t, "unknown key", 3*time.Second, func() bool { return env.srv.Stats().UDPUnknownKey == 1 })
+	waitFor(t, "unknown key", 30*time.Second, func() bool { return env.srv.Stats().UDPUnknownKey == 1 })
 }
 
 // TestUDPOffer: when udp_transport is (not) offered in the reply.
