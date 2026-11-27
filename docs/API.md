@@ -17893,6 +17893,9 @@ aircraftInfo is the reference data of one address: allocation tables, aircraft d
 | `interesting` | boolean | *optional* - aircraft database flag |
 | `pia` | boolean | *optional* |
 | `ladd` | boolean | *optional* |
+| `regSource` | string | *optional* - RegSource says where Registration came from: "acdb" (the imported aircraft database), "derived" (calculated from the ICAO address), "callsign" (the aircraft flies under its registration) or "history" (stored with an earlier sighting); empty when there is none. |
+| `typeSource` | string | *optional* - TypeSource says where the type designator came from: "acdb" or "history"; empty when there is none. |
+| `acdbAttribution` | string | *optional* - ACDBAttribution is the installed aircraft database's attribution text, sent with the aircraft detail when a value came from it. |
 
 <a id="t-server-aircraftListReply"></a>
 

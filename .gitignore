@@ -16,6 +16,8 @@ docs/manual/*.pdf
 /data/
 **/data/airview.db*
 *.db
+# test fixture (a database written by AirView 1.0.0; must be committed)
+!cmd/airview/testdata/*.db
 *.db-wal
 *.db-shm
 *.log

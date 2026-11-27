@@ -122,7 +122,7 @@ export default {
         add('clk:' + clk.map((f) => f.key + f.level + f.text).join('/'), worst, 'alert',
           ntpOff ? 'Host clock not checked against NTP: latency includes the clock error' : 'The host clock limits the latency figures',
           h('span', clk.map((f) => f.text).join(' '), ' ',
-            ntpOff ? 'Enter a time server - ideally a GPS-locked one on your network, such as the Radarcape\'s own NTP service - under ' : 'Check the time server under ',
+            ntpOff ? 'Enter a time server - ideally a GPS-locked one on your network (some receivers, such as a Radarcape, serve one) - under ' : 'Check the time server under ',
             h('a', { href: '#/settings/time' }, 'Settings → Time (NTP)'), '.'),
           timeSettingsBtn());
       }

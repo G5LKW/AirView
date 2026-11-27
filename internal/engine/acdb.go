@@ -97,6 +97,31 @@ func (e *Engine) AircraftDBInfo(ctx context.Context) (info ACDBImportInfo, rows 
 	return info, rows, true, nil
 }
 
+// AircraftDBAttribution returns the attribution text of the installed
+// aircraft database (the licence of e.g. tar1090-db requires it next to the
+// data), falling back to the source's own text for a download; "" when no
+// database is installed. Unlike AircraftDBInfo it does not count the rows, so
+// it is cheap enough for every aircraft detail request.
+func (e *Engine) AircraftDBAttribution(ctx context.Context) (string, error) {
+	if e.st == nil {
+		return "", ErrNotRunning
+	}
+	v, found, err := e.st.KVGet(ctx, kvACDBImport)
+	if err != nil || !found {
+		return "", err
+	}
+	var info ACDBImportInfo
+	if json.Unmarshal([]byte(v), &info) != nil {
+		return "", nil
+	}
+	if info.Attribution == "" {
+		if src, ok := refdata.SourceByID(info.Source); ok {
+			return src.Attribution, nil
+		}
+	}
+	return info.Attribution, nil
+}
+
 // beginImport reserves the single import slot.
 func (e *Engine) beginImport(source string) (context.Context, context.CancelFunc, error) {
 	if e.st == nil {

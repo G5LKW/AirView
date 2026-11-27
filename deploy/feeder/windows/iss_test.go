@@ -136,7 +136,7 @@ func TestNamesMatchProgram(t *testing.T) {
 	if p := read(t, filepath.Join(feeder, "paths.go")); !strings.Contains(p, `"AirView Feeder"`) {
 		t.Error(`paths.go no longer uses %ProgramData%\AirView Feeder; update the installer`)
 	}
-	if !regexp.MustCompile(`(?m)^AppId=\{\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}$`).MatchString(iss) {
+	if !regexp.MustCompile(`(?m)^AppId=\{\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}\r?$`).MatchString(iss) {
 		t.Error("AppId must be a fixed GUID (upgrades find the old install by it)")
 	}
 	// Every file the script packs is staged by build.ps1, and the programs
