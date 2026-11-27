@@ -34,16 +34,19 @@ const CONSENT_MLAT = 'MLAT needs your receiver position and timestamps: both, th
 /**
  * Community networks that take Beast data and run an mlat server. Hosts, ports and Beast formats were checked on
  * 27 Nov 2026 against each network's own feed client (configure.sh / README on its GitHub: adsblol/feed,
- * adsbfi/adsb-fi-scripts, airplanes-live/feed, adsbexchange/feedclient, TheAirTraffic/tat-feeder); check the
+ * adsbfi/adsb-fi-scripts, airplanes-live/feed, adsbexchange/feedclient, TheAirTraffic/tat-feeder, and OARC's
+ * mpentler/oarc-adsb-scripts linked from wiki.oarc.uk); check the
  * network's feeder page if a connection fails. Each preset adds a Beast output and an MLAT output sharing one
  * UUID, so the network joins both links into one station. `format` is the Beast format the network's own client
- * sends. The fallback hosts some clients list (e.g. feed2.adsbexchange.com:64004) are not configured.
+ * sends; `note` is shown before the outputs are added. The fallback hosts some clients list (e.g. feed2.adsbexchange.com:64004) are not configured.
  */
 export const NETWORK_PRESETS = [
   { name: 'adsb.lol', beast: ['feed.adsb.lol', 30004], format: 'beast_reduce_plus_out', mlat: ['feed.adsb.lol', 31090], url: 'https://adsb.lol/' },
   { name: 'adsb.fi', beast: ['feed.adsb.fi', 30004], format: 'beast_reduce_plus_out', mlat: ['feed.adsb.fi', 31090], url: 'https://adsb.fi/' },
   { name: 'airplanes.live', beast: ['feed.airplanes.live', 30004], format: 'beast_reduce_plus_out', mlat: ['feed.airplanes.live', 31090], url: 'https://airplanes.live/' },
   { name: 'ADS-B Exchange', beast: ['feed1.adsbexchange.com', 30004], format: 'beast_reduce_out', mlat: ['feed.adsbexchange.com', 31090], url: 'https://www.adsbexchange.com/' },
+  { name: 'OARC', beast: ['adsb.oarc.uk', 30004], format: 'beast_reduce_plus_out', mlat: ['adsb.oarc.uk', 31090], url: 'https://adsb.oarc.uk/',
+    note: 'OARC (Online Amateur Radio Community) asks that only its members feed this network: see www.oarc.uk.' },
   { name: 'The Air Traffic', beast: ['feed.theairtraffic.com', 30004], format: 'beast_reduce_out', mlat: ['feed.theairtraffic.com', 31090], url: 'https://theairtraffic.com/' },
 ];
 
@@ -261,7 +264,7 @@ export function renderUplinks(S, F) {
   }
 
   async function addPreset(n) {
-    const ok = await ui.confirm({ title: `Feed ${n.name}?`, message: `${CONSENT_C9} ${CONSENT_MLAT}`, confirmLabel: 'Add both outputs' });
+    const ok = await ui.confirm({ title: `Feed ${n.name}?`, message: [n.note, CONSENT_C9, CONSENT_MLAT].filter(Boolean).join(' '), confirmLabel: 'Add both outputs' });
     if (!ok) return;
     const uuid = globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : '';
     list().push(presetBeastUplink(list(), n, uuid));

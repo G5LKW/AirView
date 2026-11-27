@@ -9,6 +9,7 @@ const WANT = {
   'adsb.fi': ['feed.adsb.fi', 'beast_reduce_plus_out', 'feed.adsb.fi'],
   'airplanes.live': ['feed.airplanes.live', 'beast_reduce_plus_out', 'feed.airplanes.live'],
   'ADS-B Exchange': ['feed1.adsbexchange.com', 'beast_reduce_out', 'feed.adsbexchange.com'],
+  OARC: ['adsb.oarc.uk', 'beast_reduce_plus_out', 'adsb.oarc.uk'],
   'The Air Traffic': ['feed.theairtraffic.com', 'beast_reduce_out', 'feed.theairtraffic.com'],
 };
 
@@ -20,6 +21,7 @@ test('presets match the networks\' published feeder settings', () => {
     assert.equal(n.format, fmt, n.name);
     assert.deepEqual(n.mlat, [mh, 31090], n.name);
   }
+  assert.match(NETWORK_PRESETS.find((x) => x.name === 'OARC').note, /members/);
 });
 
 test('a preset adds a Beast output with the network\'s format and an MLAT output sharing the UUID', () => {
