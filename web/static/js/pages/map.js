@@ -34,6 +34,7 @@ import { BASEMAPS, basemapById, styleFor, makeTransformRequest, LABEL_FONT, LABE
 import { receiverOverlays, nightOverlay, coverageCollection, bounds, EMPTY } from '../map/overlays.js';
 import { createList, isEmergency, isStale, hasPosition } from '../map/list.js';
 import { createDetail, download } from '../map/detail.js';
+import { routeColor, routeLineFeatures } from '../map/route-split.js';
 import { coastProps, SIGMA_RADIUS, deadReckonPath, pathFeatures, linkFeature, lastRealFeature, sameWorld } from '../map/predict.js';
 import { createExtras, AIRPORT_MIN_ZOOM } from '../map/extras.js';
 import { createMeasure } from '../map/measure.js';
@@ -190,7 +191,10 @@ function installLayers() {
   add({ id: 'winds-label', type: 'symbol', source: 'winds', minzoom: 6.5, filter: ['==', ['geometry-type'], 'Point'], layout: { 'text-field': ['get', 't'], 'text-font': LABEL_FONT_REGULAR, 'text-size': 9.5, 'text-offset': [0, 0.8], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': dark ? '#cffafe' : '#155e75', 'text-halo-color': halo, 'text-halo-width': 1.4 } });
 
   // route of the selected aircraft
-  add({ id: 'route-line', type: 'line', source: 'route', filter: ['==', ['get', 'kind'], 'line'], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': ['case', ['==', ['get', 'ok'], 0], '#fbbf24', '#e879f9'], 'line-width': 1.6, 'line-opacity': 0.75, 'line-dasharray': [1, 2.4] } });
+  // route of the selected aircraft (ROUTES-DESIGN §6.2): flown part faint and solid, remaining part dashed,
+  // coloured by the route state (map/route-split.js)
+  add({ id: 'route-flown', type: 'line', source: 'route', filter: ['all', ['==', ['get', 'kind'], 'line'], ['==', ['get', 'part'], 'flown']], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 1.4, 'line-opacity': 0.35 } });
+  add({ id: 'route-line', type: 'line', source: 'route', filter: ['all', ['==', ['get', 'kind'], 'line'], ['==', ['get', 'part'], 'remaining']], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 1.6, 'line-opacity': 0.8, 'line-dasharray': [1, 2.4] } });
   add({ id: 'route-ap', type: 'circle', source: 'route', filter: ['==', ['get', 'kind'], 'ap'], paint: { 'circle-radius': 5, 'circle-color': dark ? '#0b1430' : '#ffffff', 'circle-stroke-color': '#e879f9', 'circle-stroke-width': 2 } });
   add({ id: 'route-ap-label', type: 'symbol', source: 'route', filter: ['==', ['get', 'kind'], 'ap'], layout: { 'text-field': ['get', 'text'], 'text-font': LABEL_FONT, 'text-size': 11.5, 'text-offset': [0, 1], 'text-anchor': 'top', 'text-allow-overlap': true }, paint: { 'text-color': '#f5d0fe', 'text-halo-color': halo, 'text-halo-width': 1.6 } });
 
@@ -823,9 +827,26 @@ async function loadTrace(on) {
 
 function showRoute(info) {
   if (!S) return;
+  S.routeInfo = info || null;
+  S.routeSig = '';
+  drawRoute();
+}
+
+/** (Re)draws the selected aircraft's route, split at its current position; cheap no-op while nothing changed. */
+function drawRoute() {
+  const info = S.routeInfo;
   const p = S.selected && S.prepared.get(S.selected);
-  if (!info || !Array.isArray(info.path) || info.path.length < 2) { setData('route', EMPTY); return; }
-  const feats = [{ type: 'Feature', properties: { kind: 'line', ok: info.check && info.check.doubtful ? 0 : 1 }, geometry: { type: 'LineString', coordinates: info.path } }];
+  if (!info || !Array.isArray(info.path) || info.path.length < 2) {
+    if (S.routeSig !== 'empty') { S.routeSig = 'empty'; setData('route', EMPTY); }
+    return;
+  }
+  const live = S.selected && S.ctx.live.get(S.selected);
+  const color = routeColor(live?.route?.state, info.check);
+  const pos = p && !p.props.pred ? [p.cur[0], p.cur[1]] : null;
+  const sig = `${color}|${pos ? pos[0].toFixed(3) + ',' + pos[1].toFixed(3) : ''}`;
+  if (sig === S.routeSig) return;
+  S.routeSig = sig;
+  const feats = routeLineFeatures(info.path, pos, color);
   const aps = info.airports || [];
   for (const [i, ap] of aps.entries()) {
     const a = ap.airport;
@@ -853,6 +874,8 @@ function select(icao, opts = {}) {
   S.trace = null;
   S.traceSeq++;
   setData('trace', EMPTY);
+  S.routeInfo = null;
+  S.routeSig = 'empty';
   setData('route', EMPTY);
   S.root.classList.toggle('has-detail', !!icao);
   S.list.setSelected(icao);
@@ -1388,6 +1411,7 @@ function onSnapshot(snap) {
   extendTrails();
   S.list.update(snap);
   S.detail.update(snap.now);
+  if (S.routeInfo) drawRoute();
   const hl = snap.aircraft.some((a) => a.highlight);
   const ra = snap.aircraft.some((a) => a.acas);
   if (ra !== !!S.hasRA) { S.hasRA = ra; renderLegend(); }
