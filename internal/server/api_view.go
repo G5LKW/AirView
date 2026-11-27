@@ -389,6 +389,7 @@ func (s *Server) publicDetail(r *http.Request, key uint32) (*publicAircraftDetai
 		out.ACDB = &e
 	}
 	out.Info = buildInfo(key, live, nil, out.ACDB)
+	s.attributeACDB(r.Context(), &out.Info)
 	return out, nil
 }
 

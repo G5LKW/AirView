@@ -2436,5 +2436,29 @@
     // affected.
     // Environment: AIRVIEW_PROCESS_JOURNAL_LEVEL.
     "journalLevel": ""
+  },
+  // Configures the ACARS / VDL Mode 2 message input (top-level "acars" block;
+  // internal/acars). AirView does not demodulate VHF: a separate decoder
+  // (acarsdec or dumpvdl2 on its own SDR) sends its JSON output to these
+  // listeners. Off by default. The messages are kept in memory only and are
+  // shown to the station owner / admin, never in public views.
+  "acars": {
+    // enabled turns the ACARS input on (default false).
+    // Environment: AIRVIEW_ACARS_ENABLED.
+    "enabled": false,
+    // udpListen is the "host:port" for JSON datagrams from acarsdec (--output
+    // json:udp:...) or dumpvdl2 (--output decoded:json:udp:...). Default
+    // "127.0.0.1:5550"; ":5550" accepts decoders on other hosts of the
+    // network. "off" disables the UDP input.
+    // Environment: AIRVIEW_ACARS_UDP_LISTEN.
+    "udpListen": "",
+    // tcpListen is the "host:port" for newline-separated JSON over TCP
+    // (decoders in TCP client mode); "" = off (default).
+    // Environment: AIRVIEW_ACARS_TCP_LISTEN.
+    "tcpListen": "",
+    // keep is the number of messages kept in memory (default 2000,
+    // 100..20000; typically well under 1 kB each, at most about 4 kB).
+    // Environment: AIRVIEW_ACARS_KEEP.
+    "keep": 0
   }
 }

@@ -382,10 +382,20 @@ func TestPublicMLATAircraft(t *testing.T) {
 	f.withMLAT()
 	fx := f.publicFixture()
 	for _, u := range []string{"/api/public/aircraft", "/api/aircraft", "/data/aircraft.json"} {
-		rec := f.anon("GET", u, "192.0.2.30:4000", "")
-		must(t, rec, 200, u)
-		body := rec.Body.String()
-		i := strings.Index(strings.ToLower(body), "7c1a2b")
+		// The live picture is rebuilt about once a second and cached; under
+		// load the first request may still get the one from before the
+		// injection, so poll for up to 5 s.
+		var body string
+		i := -1
+		for try := 0; try < 50 && i < 0; try++ {
+			if try > 0 {
+				time.Sleep(100 * time.Millisecond)
+			}
+			rec := f.anon("GET", u, "192.0.2.30:4000", "")
+			must(t, rec, 200, u)
+			body = rec.Body.String()
+			i = strings.Index(strings.ToLower(body), "7c1a2b")
+		}
 		if i < 0 {
 			t.Errorf("%s: MLAT aircraft missing: %.300s", u, body)
 			continue
@@ -394,7 +404,7 @@ func TestPublicMLATAircraft(t *testing.T) {
 		if u != "/data/aircraft.json" && (!strings.Contains(obj, `"mlatGrade":"B"`) || !strings.Contains(obj, `"mlatSigmaM":85`)) {
 			t.Errorf("%s: no grade / σ: %s", u, obj)
 		}
-		scanOrFail(t, fx, "anonymous "+u, rec.Body.Bytes())
+		scanOrFail(t, fx, "anonymous "+u, []byte(body))
 	}
 }
 

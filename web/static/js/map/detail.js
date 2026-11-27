@@ -2,7 +2,8 @@
 //
 // Besides the live state it shows the route (offline standing data, plausibility-checked against the
 // position), an optional photo (config.navData.photos), prediction / terrain visibility / closest
-// approach, and offers the full stored trace of today and flight exports.
+// approach, ACARS / VDL2 messages of the aircraft (when the ACARS input runs), and offers the full stored
+// trace of today and flight exports.
 
 import { ui, h, setText } from '../ui.js';
 import { units } from '../units.js';
@@ -35,6 +36,8 @@ const PHASE = { ground: 'On the ground', climb: 'Climbing', cruise: 'Cruise', de
 const SIL_TEXT = ['unknown', '≤ 1e-3 /h', '≤ 1e-5 /h', '≤ 1e-7 /h'];
 const NACP_TEXT = ['unknown', '< 10 nm', '< 4 nm', '< 2 nm', '< 1 nm', '< 0.5 nm', '< 0.3 nm', '< 0.1 nm', '< 0.05 nm', '< 30 m', '< 10 m', '< 3 m'];
 const INTENT_REFRESH_MS = 15000;
+const ACARS_REFRESH_MS = 20000;
+const ACARS_SHOWN = 15;
 
 const n = (v) => typeof v === 'number' && Number.isFinite(v);
 const yesNo = (v) => (v === true ? 'Yes' : v === false ? 'No' : D);
@@ -60,6 +63,33 @@ export function download(href) {
   a.remove();
 }
 
+// Where a registration / type came from (aircraftInfo.regSource / typeSource): short suffix and tooltip.
+const REF_SOURCE = {
+  acdb: ['database', 'From the imported aircraft database'],
+  derived: ['from address', 'Calculated from the ICAO address; an imported aircraft database takes precedence'],
+  callsign: ['callsign', 'The aircraft transmits its registration as its callsign'],
+  history: ['history', 'Stored with an earlier sighting of this aircraft'],
+};
+const srcCache = new Map();
+
+/**
+ * Value with a muted source suffix. The suffix is shown only while the value the server classified (`classified`)
+ * still matches the shown one (`key`, default `text`); nodes are cached so live updates do not rebuild the row.
+ */
+function withSource(text, classified, src, key = text) {
+  if (!text) return D;
+  const meta = REF_SOURCE[src];
+  if (!meta || !key || key !== classified) return text;
+  const k = text + '|' + src;
+  let node = srcCache.get(k);
+  if (!node) {
+    if (srcCache.size > 64) srcCache.clear();
+    node = h('span', text, h('span.det-src', { tip: meta[1] }, ' · ' + meta[0]));
+    srcCache.set(k, node);
+  }
+  return node;
+}
+
 /**
  * @param {object} ctx page context
  * @param {{ onClose(): void, onFollow(on: boolean): void, onCenter(): void, colorOf(a): string,
@@ -82,6 +112,7 @@ export function createDetail(ctx, hooks) {
   let routeFor = ''; // callsign the route was fetched for
   let routeState = 'idle';
   let detailFlights = [];
+  let acarsTimer = 0;
 
   const el = h('section.mapv-detail.hidden', { 'aria-label': 'Aircraft details' });
 
@@ -116,6 +147,8 @@ export function createDetail(ctx, hooks) {
     const sRssi = sparkBox('Signal');
 
     rows = new Map();
+    const attribEl = h('p.det-attrib.muted.hidden');
+    const withAttrib = (g) => { g.append(attribEl); return g; };
     const group = (title, iconName, defs) => {
       const kv = ui.kv(defs.map(([label, , o]) => [label, D, o]));
       defs.forEach(([label, fn], i) => rows.set(title + '|' + label, { fn, set: (v) => kv.set(i, v) }));
@@ -126,6 +159,8 @@ export function createDetail(ctx, hooks) {
     const predBanner = h('div.det-pred.hidden', { role: 'note' }, h('span.det-pred-dot'), h('div.grow', h('b', 'Predicted position'), predText));
     const routeEl = h('div.det-route.hidden');
     const photoEl = h('div.det-photo.hidden');
+    const acarsList = h('div.det-acars-list');
+    const acarsEl = h('div.det-group.det-acars.hidden', ui.section('ACARS messages', 'list'), acarsList);
 
     const body = h('div.det-body',
       predBanner,
@@ -147,18 +182,18 @@ export function createDetail(ctx, hooks) {
         ['Terrain line of sight', (x) => (typeof x.terrainVisible !== 'boolean' ? D : `${x.terrainVisible ? 'Visible' : 'Hidden by terrain'}${n(x.losMarginDeg) ? ` (${x.losMarginDeg > 0 ? '+' : ''}${units.num(x.losMarginDeg, 2, 2)}°)` : ''}`), { text: true }],
         ['Terrain forecast', () => terrainForecast(), { text: true }],
       ]),
-      group('Identity', 'plane', [
+      withAttrib(group('Identity', 'plane', [
         ['ICAO address', () => icao],
         ['Callsign', (x) => x.callsign || D],
-        ['Registration', (x) => x.reg || info?.reg || D],
-        ['Type', (x) => [x.type || info?.type, x.typeDesc || info?.typeDesc].filter(Boolean).join(' · ') || D, { text: true }],
+        ['Registration', (x) => withSource(x.reg || info?.reg, info?.reg, info?.regSource)],
+        ['Type', (x) => withSource([x.type || info?.type, x.typeDesc || info?.typeDesc].filter(Boolean).join(' · '), x.type || info?.type, info?.typeSource, info?.type), { text: true }],
         ['Operator', (x) => x.operator || info?.operator || D, { text: true }],
         ['Country', (x) => x.country || info?.country || D, { text: true }],
         ['Category', (x) => (x.category ? `${x.category} · ${CATEGORY[x.category] || 'Reserved'}` : D), { text: true }],
         ['Squawk', (x) => (x.squawk ? x.squawk + (SQUAWK[x.squawk] ? ` · ${SQUAWK[x.squawk]}` : '') : D)],
         ['Address type', (x) => ADDR[x.addrType] || x.addrType || D, { text: true }],
         ['Alert rule', (x) => (x.highlight ? `${x.highlight.label || x.highlight.ruleId} (${x.highlight.severity || 'info'})` : 'None'), { text: true }],
-      ]),
+      ])),
       group('Position & geometry', 'pin', [
         ['Position', (x) => (hasPosition(x) ? units.latlon(x.lat, x.lon) : 'No position')],
         ['Distance', (x) => units.dist(x.distKm)],
@@ -210,6 +245,7 @@ export function createDetail(ctx, hooks) {
         ['First seen', (x) => (x.firstSeen ? `${units.clock(x.firstSeen)} · ${units.age((ctx.live.serverNow() - x.firstSeen) / 1000)}` : D)],
         ['Last seen', (x) => (x.lastSeen ? units.age(Math.max(0, (ctx.live.serverNow() - x.lastSeen) / 1000)) + ' ago' : D)],
       ]),
+      acarsEl,
       group('Derived weather aloft', 'wind', [
         ['Wind', (x) => (n(x.windDir) && n(x.windSpd) ? `${units.deg(x.windDir)} / ${units.speed(x.windSpd)}` : D)],
         ['Outside air temp', (x) => units.temp(x.oat)],
@@ -223,7 +259,7 @@ export function createDetail(ctx, hooks) {
         h('div.det-actions', traceBtn, exportBtn)),
       body);
 
-    el.__parts = { head, tiles, sAlt, sGs, sRssi, navEl, followBtn, traceBtn, predBanner, predText, routeEl, photoEl };
+    el.__parts = { attribEl, head, tiles, sAlt, sGs, sRssi, navEl, followBtn, traceBtn, predBanner, predText, routeEl, photoEl, acarsEl, acarsList };
     return a;
   }
 
@@ -354,6 +390,48 @@ export function createDetail(ctx, hooks) {
     if (my === seq) intentTimer = setTimeout(loadIntent, INTENT_REFRESH_MS);
   }
 
+  // ---- ACARS / VDL2 messages ----
+  function acarsItem(m) {
+    const dir = m.uplink ? '↓ ground to air' : '↑ air to ground';
+    const head = h('div.det-acars-head',
+      h('span.num', units.clock(m.t)),
+      ui.badge(m.label || '?', 'blue', { tip: m.labelName || 'Label not in the built-in list (often airline-defined)' }),
+      h('span.muted', { tip: `${m.link}${m.freqMHz ? ' · ' + m.freqMHz.toFixed(3) + ' MHz' : ''}${m.station ? ' · station ' + m.station : ''}` }, m.link),
+      h('span.muted', dir),
+      m.flight ? h('span.num', m.flight) : null,
+      m.station === 'DEMO' ? ui.badge('Demo', 'other', { tip: 'Synthetic message of the demo mode, not received' }) : null);
+    const desc = m.labelName ? h('div.det-acars-desc.muted', m.labelName) : null;
+    const text = m.text ? h('pre.det-acars-text', m.text) : h('div.det-acars-desc.muted', 'No text');
+    return h('div.det-acars-msg', { tip: m.icaoFrom === 'reg' ? `Linked by registration ${m.reg}` : undefined }, head, desc, text);
+  }
+
+  async function loadACARS() {
+    clearTimeout(acarsTimer);
+    const p = el.__parts;
+    if (!icao || !p || synthetic(icao)) return;
+    const my = seq;
+    let r;
+    try {
+      r = await ctx.api.get('/api/acars', { params: { icao, limit: ACARS_SHOWN }, signal: ctx.signal, timeout: 10000 });
+    } catch (e) {
+      if (e.aborted || my !== seq || !el.__parts) return;
+      // 401/403: not this viewer's data (aggregator mode); 404: an older server. Stay hidden, stop polling.
+      if (e.status === 401 || e.status === 403 || e.status === 404) { p.acarsEl.classList.add('hidden'); return; }
+      acarsTimer = setTimeout(loadACARS, ACARS_REFRESH_MS);
+      return;
+    }
+    if (my !== seq || !el.__parts) return;
+    if (!r || !r.enabled) { p.acarsEl.classList.add('hidden'); return; }
+    const msgs = Array.isArray(r.messages) ? r.messages : [];
+    const sig = msgs.map((m) => m.id).join(',') + '|' + units.system;
+    if (p.acarsList.__s !== sig) {
+      p.acarsList.__s = sig;
+      ui.mount(p.acarsList, msgs.length ? msgs.map(acarsItem) : h('div.det-acars-desc.muted', 'No ACARS messages from this aircraft yet'));
+    }
+    p.acarsEl.classList.remove('hidden');
+    acarsTimer = setTimeout(loadACARS, ACARS_REFRESH_MS);
+  }
+
   // ---- trace / export ----
   async function setTrace(on) {
     const p = el.__parts;
@@ -426,6 +504,8 @@ export function createDetail(ctx, hooks) {
     const rs = a.rssiAvg ?? a.rssi;
     setText(p.tiles.sig.v, n(rs) ? units.num(rs, 1, 1) : D); setText(p.tiles.sig.u, n(rs) ? 'dBFS' : '');
     setText(p.tiles.sig.s, n(a.msgRate) ? `${units.num(a.msgRate, 1, 1)} msg/s` : '');
+    const attrib = info?.acdbAttribution ? 'Aircraft database: ' + info.acdbAttribution : '';
+    if (p.attribEl.__s !== attrib) { p.attribEl.__s = attrib; setText(p.attribEl, attrib); p.attribEl.classList.toggle('hidden', !attrib); }
     // rows
     for (const r of rows.values()) {
       let v;
@@ -481,6 +561,7 @@ export function createDetail(ctx, hooks) {
 
   function resetExtras() {
     clearTimeout(intentTimer);
+    clearTimeout(acarsTimer);
     intent = null;
     path = null;
     routeInfo = null;
@@ -519,6 +600,7 @@ export function createDetail(ctx, hooks) {
     if (!last.callsign && detail.aircraft?.callsign) loadRoute(detail.aircraft);
     initSparks(detail.trail);
     loadPhoto(last);
+    loadACARS();
     return detail;
   }
 
@@ -560,6 +642,6 @@ export function createDetail(ctx, hooks) {
     },
     /** Re-render after a unit change. */
     refresh() { if (icao && last) { if (el.__parts) el.__parts.routeEl.__s = ''; render(last, !ctx.live.get(icao)); } },
-    destroy() { disposeSparks(); clearTimeout(intentTimer); },
+    destroy() { disposeSparks(); clearTimeout(intentTimer); clearTimeout(acarsTimer); },
   };
 }
