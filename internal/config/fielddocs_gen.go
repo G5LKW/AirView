@@ -5,6 +5,10 @@ package config
 // modelDocs holds the doc comments of the configuration structs in
 // internal/model, keyed "Type" and "Type.Field" (see package docgen).
 var modelDocs = map[string]string{
+	"ACASMark":                           "ACASMark is an active ACAS resolution advisory reported by the aircraft.",
+	"ACASMark.Advisory":                  "e.g. \"Climb\", \"Do not descend\"",
+	"ACASMark.Sense":                     "\"up\" | \"down\"",
+	"ACASMark.Since":                     "Unix ms of the first report",
 	"AggAuth":                            "AggAuth holds the aggregator account and session policy (DESIGN §7, §20.3).",
 	"AggAuth.AdminIdleMinutes":           "AdminIdleMinutes ends an admin session without activity (default 120, 5..1440 minutes).",
 	"AggAuth.AdminSessionHours":          "AdminSessionHours is the absolute lifetime of an admin session (default 12, 1..168 hours).",
@@ -435,6 +439,7 @@ var modelDocs = map[string]string{
 	"Aggregator.TrustedProxies":          "TrustedProxies are CIDRs whose X-Forwarded-For header is honoured.",
 	"Aggregator.TrustedRelays":           "TrustedRelays are the Beast relays whose 0xE3 receiver IDs are honoured (each becomes a sub-station): \"uuid@cidr\" binds the relay's station UUID to the addresses it connects from; a plain \"uuid\" is honoured only from limits.allowCidrs. The UUID alone is no secret.",
 	"Aircraft":                           "Aircraft is the live state DTO for one tracked aircraft (GET /api/aircraft, SSE \"aircraft\" event). Nil / omitted = unknown.",
+	"Aircraft.ACAS":                      "ACAS is set while the aircraft reports an active ACAS (TCAS) resolution advisory (internal/acas).",
 	"Aircraft.ADSBVersion":               "Integrity / status.",
 	"Aircraft.AddrType":                  "\"icao\" | \"non-icao\" | \"tisb-track\" | \"anon\" | \"modeac\" (Mode A/C MLAT target, ICAO \"#xxxxxx\")",
 	"Aircraft.AltBaro":                   "Vertical. ft",

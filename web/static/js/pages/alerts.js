@@ -4,12 +4,14 @@
 //   left   rules (enable toggles, plain-language summary, actions, last fired; the editor opens in a drawer with
 //          a condition builder, geofence map, actions, cooldowns and a dry run) and the watch-lists card
 //   right  the recent-alerts feed (live SSE alerts + /api/alerts/recent catch-up via live.followAlerts, links to #/map/<ICAO>, optional chime)
+//          and the TCAS resolution advisories card (alerts/acas.js)
 // Every admin call (POST / PUT / DELETE) offers the admin login on 401 and retries once (js/admin.js).
 
 import { createAdmin } from '../admin.js';
 import { SEVERITIES, severityBadge, describe } from '../alerts/model.js';
 import { openEditor } from '../alerts/editor.js';
 import { createWatchlists } from '../alerts/watchlists.js';
+import { createACASCard } from '../alerts/acas.js';
 import { play as playSound, unlock as unlockSound, isMuted, setMuted, onMuteChange } from '../alertsound.js';
 
 const CSS = new URL('../../css/alerts.css', import.meta.url);
@@ -78,7 +80,7 @@ export default {
       h('div.page-head', h('div', h('h2', 'Alerts'), h('div.sub', 'Rules, watch-lists and the alerts they fire')), h('div.actions', lockBadge, soundToggle, newBtn)),
       banner,
       h('div.alp-tiles', Object.values(tiles)),
-      h('div.alp-cols', h('div.alp-main', rulesCard, watch.el), h('div.alp-side', feedCard))));
+      h('div.alp-cols', h('div.alp-main', rulesCard, watch.el), h('div.alp-side', feedCard, createACASCard(ctx).el))));
 
     // ---- banners / lock ------------------------------------------------------------------------
     function renderBanners() {

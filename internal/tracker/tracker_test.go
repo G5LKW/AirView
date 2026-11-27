@@ -1,6 +1,7 @@
 package tracker
 
 import (
+	"airview/internal/acas"
 	"context"
 	"encoding/json"
 	"math"
@@ -1205,5 +1206,42 @@ func TestLatencyHook(t *testing.T) {
 	})
 	if allocs > 0.05 {
 		t.Errorf("HandleFrame with latency: %.3f allocs/frame", allocs)
+	}
+}
+
+// df16RA builds a DF16 air-air reply whose MV carries an RA (VDS 3,0).
+func df16RA(icao uint32, ac13 uint16) []byte {
+	f := make([]byte, 14)
+	f[0] = 16 << 3
+	f[2], f[3] = byte(ac13>>8), byte(ac13)
+	f[4] = 0x30
+	f[5] = 0xC2 // MV bits 9 (RA in force), 10 (corrective), 15 (positive); upward sense -> "Climb"
+	modes.SetParity(f, icao)
+	return f
+}
+
+func TestACASHook(t *testing.T) {
+	cfg := model.ExampleRadarcapeConfig()
+	tr := New(Options{Config: &cfg})
+	var got []acas.Report
+	tr.SetACASHook(func(r acas.Report) { got = append(got, r) })
+	send := func(dt time.Duration, data []byte) {
+		kind := model.FrameModeSShort
+		if len(data) == 14 {
+			kind = model.FrameModeSLong
+		}
+		tr.HandleFrame(model.RawFrame{Recv: simStart.Add(dt), GPSNs: -1, Signal: -20, Kind: kind, Data: data, FeedID: "x", Channel: -1})
+	}
+	const icao = 0x4840D6
+	alt, _ := modes.EncodeAC13(11000)
+	send(0, df11(icao))
+	send(time.Second, df11(icao))
+	send(1100*time.Millisecond, df16RA(icao, alt))
+	if len(got) != 1 || got[0].ICAO != icao || got[0].DF != 16 || !got[0].RA.Active() || !got[0].AltOK || got[0].AltFt != 11000 {
+		t.Fatalf("%+v", got)
+	}
+	text, sense, _ := acas.Describe(&got[0].RA)
+	if text != "Climb" || sense != "up" {
+		t.Fatalf("%q %q (ARA %014b)", text, sense, got[0].RA.ARA)
 	}
 }

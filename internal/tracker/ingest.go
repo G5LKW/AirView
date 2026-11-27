@@ -1,6 +1,7 @@
 package tracker
 
 import (
+	"airview/internal/acas"
 	"encoding/binary"
 	"math"
 	"math/bits"
@@ -399,6 +400,11 @@ func (t *Tracker) ingest(f *model.RawFrame, r *Result, unique bool) {
 	gotPos := t.apply(ac, m, tMs, mlat, rssi, slot)
 	if gotPos {
 		e.pos, e.psrc = true, ac.posSrc
+	}
+	if t.onACAS != nil {
+		if ra, ok := m.ACASRA(); ok {
+			t.onACAS(t.acasReport(ac, m.DF, ra, tMs))
+		}
 	}
 	if t.tj != nil {
 		var off time.Duration
@@ -1139,4 +1145,16 @@ func parseSquawk(s string) (uint16, bool) {
 		v = v<<4 | uint16(c-'0')
 	}
 	return v, true
+}
+
+// acasReport builds the ACAS hook's report from the aircraft state. Caller holds mu.
+func (t *Tracker) acasReport(ac *aircraft, df uint8, ra modes.ACASRA, tMs int64) acas.Report {
+	r := acas.Report{T: tMs, ICAO: ac.key, Callsign: ac.callsign, DF: df, RA: ra}
+	if ac.posValid && tMs-ac.posMs <= posTTLMs {
+		r.Lat, r.Lon, r.PosOK = ac.lat, ac.lon, true
+	}
+	if fresh(ac.altBaroMs, tMs, fieldTTLMs) {
+		r.AltFt, r.AltOK = ac.altBaro, true
+	}
+	return r
 }

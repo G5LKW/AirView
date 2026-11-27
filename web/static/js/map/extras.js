@@ -4,6 +4,7 @@
 //   airports- airports, runways, extended centrelines  /api/navdata/airports?bbox&format=geojson (by view)
 //   heat    - all-time position heat map  /api/antenna/heat
 //   prox    - proximity pairs             /api/prediction/proximity       (lines are drawn by map.js)
+//   acas    - TCAS resolution advisories  /api/acas/events?hours=24       (where each RA started)
 // Every loader keeps a status note { state: 'off'|'loading'|'ok'|'empty'|'error', text } that the
 // layers panel and the legend show, so each overlay has loading / empty / error states.
 
@@ -17,6 +18,7 @@ const RANGE_REFRESH_MS = 5 * 60000;
 const TERRAIN_REFRESH_MS = 10 * 60000;
 const HEAT_REFRESH_MS = 10 * 60000;
 const PROX_REFRESH_MS = 5000;
+const ACAS_REFRESH_MS = 60000;
 
 /** Airport size threshold for a zoom level (fewer, bigger airports when zoomed out). */
 export function airportMinSize(z) { return z < 6.5 ? 'large' : z < 8.5 ? 'medium' : 'small'; }
@@ -151,6 +153,27 @@ export function createExtras(ctx, host) {
     schedule('heat', HEAT_REFRESH_MS, loadHeat);
   }
 
+  // ---- TCAS resolution advisories ----
+  async function loadACAS() {
+    const s = nextSeq('acas');
+    if (!host.on('acas')) { host.setData('acas', EMPTY_FC); note('acas', 'off'); return; }
+    if (!notes.get('acas') || notes.get('acas').state === 'off') note('acas', 'loading', 'Loading…');
+    try {
+      const j = await ctx.api.get('/api/acas/events', { params: { hours: 24, limit: 2000 }, signal: ctx.signal, timeout: 20000 });
+      if (!current('acas', s)) return;
+      const feats = (j?.events || []).filter((e) => typeof e.lat === 'number' && typeof e.lon === 'number').map((e) => ({
+        type: 'Feature', geometry: { type: 'Point', coordinates: [e.lon, e.lat] },
+        properties: { icao: e.icao, t: `${e.callsign || e.icao} ${units.clock(e.start, { seconds: false })}\n${(e.advisories || []).join(' › ')}` },
+      }));
+      host.setData('acas', fc(feats));
+      note('acas', feats.length ? 'ok' : 'empty', feats.length ? `${feats.length} in 24 h` : 'No resolution advisories in the last 24 h');
+    } catch (e) {
+      if (e.aborted || !current('acas', s)) return;
+      note('acas', 'error', e.status === 401 || e.status === 403 ? 'Log in to see them' : errText(e));
+    }
+    schedule('acas', ACAS_REFRESH_MS, loadACAS);
+  }
+
   // ---- proximity pairs ----
   async function loadProx() {
     const s = nextSeq('prox');
@@ -180,10 +203,11 @@ export function createExtras(ctx, host) {
     airports: loadAirports,
     heat: loadHeat,
     prox: loadProx,
+    acas: loadACAS,
     /** Re-label unit-dependent data (terrain altitude labels). */
     relabel() { if (terrainRaw) host.setData('terrain', labelTerrain()); },
     /** Push every layer's last data again (after a base-map switch dropped the sources). */
-    reloadAll(kind) { loadRange(); loadTerrain(kind); loadAirports(); loadHeat(); loadProx(); },
+    reloadAll(kind) { loadRange(); loadTerrain(kind); loadAirports(); loadHeat(); loadProx(); loadACAS(); },
     stop() { stopped = true; for (const t of timers.values()) clearTimeout(t); timers.clear(); },
   };
 }

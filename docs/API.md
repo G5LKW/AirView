@@ -66,6 +66,8 @@ Base URL: the origin the UI was loaded from (`http://<host>[:port]`). In the web
 - `GET /api/feeds` - Feed connections, per-feed and per-antenna counters, and the data port (hub) with its clients
 - `GET /api/tilecache` - Tile cache size and counters
 - `POST /api/tilecache/clear` *(admin)* - Delete all cached map tiles
+- `GET /api/acas/events` - ACAS (TCAS II) resolution advisories reported by aircraft (DF16, BDS 3,0, TC28), newest first: when, where, which advisories ("Climb", "Do not descend", ...), the threat when reported, and whether the aircraft reported the RA as ended
+- `GET /api/acas/status` - Counters of the resolution advisory recorder (events since the start, open events, reports dropped by the flood guard)
 - `GET /tilecache/{host}/{path...}` - caching proxy for the whitelisted map tile hosts
 
 **Statistics**
@@ -439,10 +441,10 @@ Example: `GET /api/status`
   "version": "test",
   "platform": "linux/amd64",
   "gui": false,
-  "now": 1795792221561,
-  "started": 1795792193260,
+  "now": 1795792708553,
+  "started": 1795792680538,
   "mode": "standalone",
-  "httpPort": 34913,
+  "httpPort": 40521,
   "located": true,
   "demo": true,
   "tileCache": true,
@@ -454,7 +456,7 @@ Example: `GET /api/status`
       "addr": "localhost:30005",
       "enabled": false,
       "connected": false,
-      "since": 1795792193273,
+      "since": 1795792680545,
       "frames": 0,
       "bytes": 0,
       "msgRate": 0,
@@ -464,18 +466,18 @@ Example: `GET /api/status`
     /* … 1 more */
   ],
   "counts": {
-    "aircraft": 51,
-    "withPos": 40,
-    "adsb": 44,
+    "aircraft": 50,
+    "withPos": 39,
+    "adsb": 43,
     "mlat": 5,
     "tisb": 0,
     "modes": 2,
-    "msgRate": 205.9,
-    "posRate": 47.5,
-    "maxRangeKm": 419.4,
-    "predicted": 3
+    "msgRate": 212.3,
+    "posRate": 46.9,
+    "maxRangeKm": 396.4,
+    "predicted": 5
   },
-  "dbBytes": 28549120,
+  "dbBytes": 28692704,
   "dataDir": "/var/lib/airview",
   "ntp": {
     "enabled": false,
@@ -1706,7 +1708,7 @@ Example: `GET /api/aircraft`
 
 ```jsonc
 {
-  "now": 1795792221565,
+  "now": 1795792708557,
   "aircraft": [
     {
       "icao": "3007E2",
@@ -1717,10 +1719,10 @@ Example: `GET /api/aircraft`
       "operator": "ITA Airways",
       "country": "Italy",
       "countryCode": "IT",
-      "lat": 50.28570556640625,
-      "lon": 8.681006180612664,
+      "lat": 50.28474426269531,
+      "lon": 8.682451750102796,
       "source": "adsb",
-      "posAge": 0.1,
+      "posAge": 0.4,
       "onGround": false,
       "altBaro": 30000,
       "altGeom": 30325,
@@ -1746,23 +1748,23 @@ Example: `GET /api/aircraft`
       "sil": 3,
       "rcM": 185.2,
       "navModes": ["autopilot", "althold", "lnav", "tcas"],
-      "distKm": 26.84922457458911,
-      "bearing": 12.417121241431175,
-      "elevation": 18.481292773775497,
-      "slantKm": 28.34424957590535,
-      "rssi": -23.5,
-      "rssiAvg": -20.1,
-      "msgs": 229,
-      "msgRate": 7.9,
+      "distKm": 26.767370663183165,
+      "bearing": 12.68190271127307,
+      "elevation": 18.53444947260425,
+      "slantKm": 28.266612613190304,
+      "rssi": -22.7,
+      "rssiAvg": -18.8,
+      "msgs": 215,
+      "msgRate": 7.6,
       "antennas": ["vertical"],
       "feeds": ["demo"],
-      "firstSeen": 1795792193498,
-      "lastSeen": 1795792221512,
-      "flightId": 2131,
-      "cpaKm": 26.84,
+      "firstSeen": 1795792680778,
+      "lastSeen": 1795792708481,
+      "flightId": 2119,
+      "cpaKm": 26.44,
       "cpaInS": 0,
       "terrainVisible": true,
-      "losMarginDeg": 18.4,
+      "losMarginDeg": 18.44,
       "route": {
         "from": "EDDF",
         "to": "EGLL",
@@ -1777,23 +1779,23 @@ Example: `GET /api/aircraft`
         "conf": 0.43,
         "reason": "standing data · high over the origin",
         "along": 0.1,
-        "distRem": 654.4,
+        "distRem": 654.5,
         "lic": "open"
       }
     },
-    /* … 50 more */
+    /* … 49 more */
   ],
   "counts": {
-    "aircraft": 51,
-    "withPos": 40,
-    "adsb": 44,
+    "aircraft": 50,
+    "withPos": 39,
+    "adsb": 43,
     "mlat": 5,
     "tisb": 0,
     "modes": 2,
-    "msgRate": 205.9,
-    "posRate": 47.5,
-    "maxRangeKm": 419.4,
-    "predicted": 3
+    "msgRate": 212.3,
+    "posRate": 46.9,
+    "maxRangeKm": 396.4,
+    "predicted": 5
   }
 }
 ```
@@ -1810,10 +1812,10 @@ Example of an aircraft with a `route` from the offline standing data (`plausible
   "operator": "ITA Airways",
   "country": "Italy",
   "countryCode": "IT",
-  "lat": 50.28570556640625,
-  "lon": 8.681006180612664,
+  "lat": 50.28474426269531,
+  "lon": 8.682451750102796,
   "source": "adsb",
-  "posAge": 0.1,
+  "posAge": 0.4,
   "onGround": false,
   "altBaro": 30000,
   "altGeom": 30325,
@@ -1839,23 +1841,23 @@ Example of an aircraft with a `route` from the offline standing data (`plausible
   "sil": 3,
   "rcM": 185.2,
   "navModes": ["autopilot", "althold", "lnav", "tcas"],
-  "distKm": 26.84922457458911,
-  "bearing": 12.417121241431175,
-  "elevation": 18.481292773775497,
-  "slantKm": 28.34424957590535,
-  "rssi": -23.5,
-  "rssiAvg": -20.1,
-  "msgs": 229,
-  "msgRate": 7.9,
+  "distKm": 26.767370663183165,
+  "bearing": 12.68190271127307,
+  "elevation": 18.53444947260425,
+  "slantKm": 28.266612613190304,
+  "rssi": -22.7,
+  "rssiAvg": -18.8,
+  "msgs": 215,
+  "msgRate": 7.6,
   "antennas": ["vertical"],
   "feeds": ["demo"],
-  "firstSeen": 1795792193498,
-  "lastSeen": 1795792221512,
-  "flightId": 2131,
-  "cpaKm": 26.84,
+  "firstSeen": 1795792680778,
+  "lastSeen": 1795792708481,
+  "flightId": 2119,
+  "cpaKm": 26.44,
   "cpaInS": 0,
   "terrainVisible": true,
-  "losMarginDeg": 18.4,
+  "losMarginDeg": 18.44,
   "route": {
     "from": "EDDF",
     "to": "EGLL",
@@ -1870,7 +1872,7 @@ Example of an aircraft with a `route` from the offline standing data (`plausible
     "conf": 0.43,
     "reason": "standing data · high over the origin",
     "along": 0.1,
-    "distRem": 654.4,
+    "distRem": 654.5,
     "lic": "open"
   }
 }
@@ -1891,15 +1893,15 @@ Example of an aircraft highlighted by an alert rule (`highlight`; here the built
   "source": "modes",
   "onGround": false,
   "altBaro": 24000,
-  "rssi": -32.4,
-  "rssiAvg": -33.7,
-  "msgs": 11,
-  "msgRate": 0.8,
+  "rssi": -33.4,
+  "rssiAvg": -33,
+  "msgs": 27,
+  "msgRate": 1.4,
   "antennas": ["vertical"],
   "feeds": ["demo"],
-  "firstSeen": 1795792204682,
-  "lastSeen": 1795792221446,
-  "flightId": 2169,
+  "firstSeen": 1795792690075,
+  "lastSeen": 1795792708253,
+  "flightId": 2159,
   "highlight": {
     "ruleId": "builtin-military",
     "color": "#ffb020",
@@ -1913,37 +1915,30 @@ Example of a coasting aircraft (no position received for 10 s; `predicted:true`,
 
 ```jsonc
 {
-  "icao": "3C5DBA",
+  "icao": "39AE01",
   "addrType": "icao",
-  "callsign": "CFG3ZG",
-  "squawk": "2264",
-  "category": "A2",
-  "reg": "D-AGMZ",
-  "operator": "Condor",
-  "country": "Germany",
-  "countryCode": "DE",
-  "lat": 47.53735920136588,
-  "lon": 7.410573811542987,
+  "callsign": "AFR1018",
+  "category": "A3",
+  "reg": "F-HLQB",
+  "operator": "Air France",
+  "country": "France",
+  "countryCode": "FR",
+  "lat": 48.21336782007104,
+  "lon": 3.874868924147892,
   "source": "adsb",
   "posAge": 10,
   "onGround": false,
-  "altBaro": 39000,
-  "altGeom": 39425,
+  "altBaro": 32000,
+  "altGeom": 32350,
   "vertRate": 0,
-  "selAlt": 39008,
+  "selAlt": 32000,
   "qnh": 1013.6,
-  "gs": 444.5424614139801,
-  "track": 184.7743451801427,
-  "ias": 240,
-  "tas": 448,
-  "mach": 0.776,
-  "magHeading": 187.20703125,
+  "gs": 467.3842102596107,
+  "track": 299.19748604606445,
+  "tas": 494,
   "roll": 0,
   "trackRate": 0,
-  "selHeading": 187.03125,
-  "windDir": 278.4237791990396,
-  "windSpd": 45.05962116651638,
-  "oat": -53.65753311217793,
+  "selHeading": 294.609375,
   "adsbVersion": 2,
   "nic": 8,
   "nacp": 9,
@@ -1951,28 +1946,28 @@ Example of a coasting aircraft (no position received for 10 s; `predicted:true`,
   "sil": 3,
   "rcM": 185.2,
   "navModes": ["autopilot", "althold", "lnav", "tcas"],
-  "distKm": 292.75653259948336,
-  "bearing": 197.81696364518436,
-  "elevation": 1.3129680122137084,
-  "slantKm": 293.2427267558173,
-  "rssi": -35.4,
-  "rssiAvg": -33.9,
-  "msgs": 49,
-  "msgRate": 1.2,
+  "distKm": 400.6758886819795,
+  "bearing": 241.16294831715342,
+  "elevation": 0.025289492135233318,
+  "slantKm": 401.03588253284636,
+  "rssi": -33.7,
+  "rssiAvg": -32.5,
+  "msgs": 27,
+  "msgRate": 0.3,
   "antennas": ["vertical"],
   "feeds": ["demo"],
-  "firstSeen": 1795792194109,
-  "lastSeen": 1795792218779,
-  "flightId": 2156,
+  "firstSeen": 1795792681171,
+  "lastSeen": 1795792701337,
+  "flightId": 2137,
   "predicted": true,
   "coastS": 10,
-  "predSigmaM": 34,
-  "lastRealLat": 47.55790581137447,
-  "lastRealLon": 7.413095327524037,
-  "cpaKm": 292.65,
+  "predSigmaM": 257,
+  "lastRealLat": 48.20283508300781,
+  "lastRealLon": 3.9031747671274033,
+  "cpaKm": 399.76,
   "cpaInS": 0,
   "terrainVisible": true,
-  "losMarginDeg": 1.42
+  "losMarginDeg": 0.13
 }
 ```
 
@@ -2001,10 +1996,10 @@ Example: `GET /api/aircraft/3007E2`
     "operator": "ITA Airways",
     "country": "Italy",
     "countryCode": "IT",
-    "lat": 50.28570556640625,
-    "lon": 8.681006180612664,
+    "lat": 50.28474426269531,
+    "lon": 8.682451750102796,
     "source": "adsb",
-    "posAge": 0.1,
+    "posAge": 0.4,
     "onGround": false,
     "altBaro": 30000,
     "altGeom": 30325,
@@ -2030,23 +2025,23 @@ Example: `GET /api/aircraft/3007E2`
     "sil": 3,
     "rcM": 185.2,
     "navModes": ["autopilot", "althold", "lnav", "tcas"],
-    "distKm": 26.84922457458911,
-    "bearing": 12.417121241431175,
-    "elevation": 18.481292773775497,
-    "slantKm": 28.34424957590535,
-    "rssi": -23.5,
-    "rssiAvg": -20.1,
-    "msgs": 229,
-    "msgRate": 7.9,
+    "distKm": 26.767370663183165,
+    "bearing": 12.68190271127307,
+    "elevation": 18.53444947260425,
+    "slantKm": 28.266612613190304,
+    "rssi": -22.7,
+    "rssiAvg": -18.8,
+    "msgs": 215,
+    "msgRate": 7.6,
     "antennas": ["vertical"],
     "feeds": ["demo"],
-    "firstSeen": 1795792193498,
-    "lastSeen": 1795792221512,
-    "flightId": 2131
+    "firstSeen": 1795792680778,
+    "lastSeen": 1795792708481,
+    "flightId": 2119
   },
   "trail": [
-    [1795792194490, 50.24648, 8.74121, 30000, 439.8, -20.2, 0],
-    [1795792197951, 50.25146, 8.73346, 30000, 439.8, -19.3, 0],
+    [1795792681707, 50.24634, 8.74136, 30000, 439.8, -16.3, 0],
+    [1795792684740, 50.25078, 8.73456, 30000, 439.8, -15.9, 0],
     /* … 7 more */
   ],
   "info": {
@@ -2074,44 +2069,44 @@ Example: `GET /api/aircraft/3007E2`
   "acdb": null,
   "seen": {
     "icao": "3007E2",
-    "firstSeen": 1795792193000,
-    "lastSeen": 1795792219000,
+    "firstSeen": 1795792680000,
+    "lastSeen": 1795792706000,
     "callsign": "ITY1011",
     "operator": "ITA Airways",
     "country": "Italy",
     "category": "A3",
-    "msgs": 213,
+    "msgs": 206,
     "flights": 1,
-    "positions": 48,
-    "maxDistKm": 26.633018648802803,
+    "positions": 45,
+    "maxDistKm": 26.584873432627113,
     "maxAlt": 30000,
     "srcMask": 1,
     "flags": 0
   },
   "flights": [
     {
-      "id": 2131,
+      "id": 2119,
       "icao": "3007E2",
       "callsign": "ITY1011",
       "squawk": "2401",
-      "start": 1795792193000,
-      "end": 1795792219000,
-      "msgs": 213,
-      "positions": 48,
+      "start": 1795792680000,
+      "end": 1795792706000,
+      "msgs": 206,
+      "positions": 45,
       "srcMask": 1,
-      "maxDistKm": 26.633018648802803,
-      "maxDistBrg": 13.134014255318817,
-      "minDistKm": 24.072465652565565,
+      "maxDistKm": 26.584873432627113,
+      "maxDistBrg": 13.299878895472826,
+      "minDistKm": 24.062941029384234,
       "minAlt": 30000,
       "maxAlt": 30000,
       "maxGs": 439.84088031923545,
-      "rssiMin": -25.9,
-      "rssiMax": -12.4,
-      "rssiAvg": -18.421226415094353,
-      "firstLat": 50.24647521972656,
-      "firstLon": 8.741214149876644,
-      "lastLat": 50.28314208984375,
-      "lastLon": 8.684909218236019,
+      "rssiMin": -27.5,
+      "rssiMax": -12.6,
+      "rssiAvg": -18.76585365853659,
+      "firstLat": 50.246337890625,
+      "firstLon": 8.741358706825658,
+      "lastLat": 50.28256173861229,
+      "lastLon": 8.685805862014359,
       "operator": "ITA Airways",
       "country": "Italy"
     }
@@ -2139,20 +2134,20 @@ Example: `GET /api/trails?minutes=5`
 
 ```jsonc
 {
-  "now": 1795792221578,
+  "now": 1795792708563,
   "minutes": 5,
   "trails": {
     "3007E2": [
-      [1795792194490, 50.24648, 8.74121, 30000, 439.8, -20.2, 0],
-      [1795792197951, 50.25146, 8.73346, 30000, 439.8, -19.3, 0],
+      [1795792681707, 50.24634, 8.74136, 30000, 439.8, -16.3, 0],
+      [1795792684740, 50.25078, 8.73456, 30000, 439.8, -15.9, 0],
       /* … 7 more */
     ],
     "3833FE": [
-      [1795792194441, 50.64125, 7.73018, 2850, 103.8, -24.8, 0],
-      [1795792197729, 50.63980, 7.72925, 2850, 103.8, -27.3, 0],
+      [1795792681833, 50.64120, 7.73011, 2850, 103.8, -25.2, 0],
+      [1795792685419, 50.63962, 7.72918, 2850, 103.8, -25.0, 0],
       /* … 7 more */
     ],
-    /* … 41 more entries */
+    /* … 42 more entries */
   }
 }
 ```
@@ -2178,16 +2173,16 @@ Example stream (data shortened):
 retry: 2000
 
 event: status
-data: {"app":"AirView","version":"test","platform":"linux/amd64","gui":false,"now":1795792221580,"started":1795792193260,"mode":"standalone","httpPort":34913,"located":true,"demo":true,"tileCache":true,"feeds":[{"id":"beast","name":"Loc ...
+data: {"app":"AirView","version":"test","platform":"linux/amd64","gui":false,"now":1795792708565,"started":1795792680538,"mode":"standalone","httpPort":40521,"located":true,"demo":true,"tileCache":true,"feeds":[{"id":"beast","name":"Loc ...
 
 event: aircraft
-data: {"now":1795792221565,"aircraft":[{"icao":"3007E2","addrType":"icao","callsign":"ITY1011","squawk":"2401","category":"A3","operator":"ITA Airways","country":"Italy","countryCode":"IT","lat":50.28570556640625,"lon":8.681006180612664 ...
+data: {"now":1795792708557,"aircraft":[{"icao":"3007E2","addrType":"icao","callsign":"ITY1011","squawk":"2401","category":"A3","operator":"ITA Airways","country":"Italy","countryCode":"IT","lat":50.28474426269531,"lon":8.682451750102796 ...
 
 event: notice
-data: {"level":"alert","text":"Emergency: DLH4AB squawks 7700 (general emergency)","t":1795792222781}
+data: {"level":"alert","text":"Emergency: DLH4AB squawks 7700 (general emergency)","t":1795792709766}
 
 event: alert
-data: {"id":5,"t":1795792223271,"ruleId":"r-c6bb3cf5b90c","ruleName":"Example rule","severity":"warning","kind":"aircraft","icao":"3007E2","callsign":"ITY1011","operator":"ITA Airways","squawk":"2401","lat":50.28791524596133,"lon":8.677566115920609,"altFt":30000,"distKm":27.03782107273315,"gsKt":439.84088031923545,"vrFpm":0,"trackDeg":315.55267526494816,"brgDeg":11.797306873560697,"rssi":-13.5,"text":"Example rule: ITY1011 at 30000 ft, 27.0 km","notify":true,"sound":true,"highlight":"#ffd60a"}
+data: {"id":5,"t":1795792710107,"ruleId":"r-dd68f690c504","ruleName":"Example rule","severity":"warning","kind":"aircraft","icao":"3007E2","callsign":"ITY1011","operator":"ITA Airways","squawk":"2401","lat":50.287353515625,"lon":8.678476434004933,"altFt":30000,"distKm":26.99010872866031,"gsKt":439.84088031923545,"vrFpm":0,"trackDeg":315.55267526494816,"brgDeg":11.959344422661927,"rssi":-13.6,"text":"Example rule: ITY1011 at 30000 ft, 27.0 km","notify":true,"sound":true,"highlight":"#ffd60a"}
 
 : hb
 
@@ -2207,7 +2202,7 @@ Example: `GET /api/notices`
     {
       "level": "info",
       "text": "Military aircraft: 44F2CE, Belgium",
-      "t": 1795792193669,
+      "t": 1795792680952,
       "kind": "military",
       "icao": "44F2CE"
     },
@@ -2236,7 +2231,7 @@ Example: `GET /api/feeds`
       "addr": "localhost:30005",
       "enabled": false,
       "connected": false,
-      "since": 1795792193273,
+      "since": 1795792680545,
       "frames": 0,
       "bytes": 0,
       "msgRate": 0,
@@ -2259,9 +2254,9 @@ Example: `GET /api/feeds`
   "antennas": [
     {
       "id": "",
-      "frames": 6115,
-      "positions": 1263,
-      "msgRate": 209.7
+      "frames": 6178,
+      "positions": 1269,
+      "msgRate": 207.6
     },
     /* … 1 more */
   ],
@@ -2311,6 +2306,46 @@ Delete all cached map tiles.
 Response: `{"ok":true}`
 
 
+### `GET /api/acas/events`
+
+ACAS (TCAS II) resolution advisories reported by aircraft (DF16, BDS 3,0, TC28), newest first: when, where, which advisories ("Climb", "Do not descend", ...), the threat when reported, and whether the aircraft reported the RA as ended.
+
+| Parameter | Meaning |
+|---|---|
+| `from`, `to` | time range in Unix ms (`to` defaults to now) |
+| `hours` | alternative: the last N hours (ending at `to` or now); fractions allowed |
+| `days` | alternative: the last N days |
+| `icao` | only this aircraft (6 hex digits) |
+| `limit` | 1..5000 (default 500) |
+
+Default range: the last 7 days. Open events (`open:true`, `id` 0) are included. A report is the aircraft's own statement that its ACAS issued an advisory; it says nothing about the crew's response, and a missing report does not mean there was none (BDS 3,0 is only sent when a ground station asks for it).
+
+Response: { [key: string]: any JSON (see the example) }
+
+Example: `GET /api/acas/events?hours=24`
+
+```jsonc
+{
+  "events": []
+}
+```
+
+### `GET /api/acas/status`
+
+Counters of the resolution advisory recorder (events since the start, open events, reports dropped by the flood guard).
+
+Response: [acas.Stats](#t-acas-Stats)
+
+Example: `GET /api/acas/status`
+
+```jsonc
+{
+  "events": 0,
+  "open": 0,
+  "dropped": 0
+}
+```
+
 ### `GET /tilecache/{host}/{path...}`
 
 Caching proxy for map tiles, glyphs, sprites and style documents: fetches `https://{host}/{path}?{query}` once and
@@ -2357,71 +2392,71 @@ Example: `GET /api/stats/overview`
 
 ```jsonc
 {
-  "now": 1795792223276,
+  "now": 1795792710113,
   "ant": "",
   "last24h": {
-    "frames": 11618997,
-    "positions": 2588464,
-    "mlatPositions": 101807,
-    "crcBad": 742,
-    "decodePct": 99.9936,
-    "framesPerSec": 133.6933,
-    "peakAircraft": 51,
+    "frames": 11623795,
+    "positions": 2576774,
+    "mlatPositions": 79734,
+    "crcBad": 775,
+    "decodePct": 99.9933,
+    "framesPerSec": 132.9992,
+    "peakAircraft": 50,
     "peakAircraftT": 1795791600000,
-    "maxKm": 475.1628,
-    "rssiAvg": -26.7317,
-    "uptimePct": 100,
-    "uniqueAircraft": 882,
-    "flights": 883,
-    "minutesWithData": 1451
+    "maxKm": 475.1351,
+    "rssiAvg": -26.7381,
+    "uptimePct": 99.9315,
+    "uniqueAircraft": 893,
+    "flights": 897,
+    "minutesWithData": 1458
   },
   "sources": {
-    "adsbPct": 79.5535,
-    "mlatPct": 10.1058,
-    "modesPct": 10.3408,
-    "adsbPositions": 2486657,
-    "mlatPositions": 101807
+    "adsbPct": 81.0842,
+    "mlatPct": 9.1119,
+    "modesPct": 9.8039,
+    "adsbPositions": 2497040,
+    "mlatPositions": 79734
   },
   "df": [
     {
       "df": "DF0",
       "name": "Short air-air surveillance",
-      "count": 847351,
-      "pct": 7.2933
+      "count": 825986,
+      "pct": 7.1065
     },
     /* … 9 more */
   ],
   "allTime": {
-    "airframes": 2163,
-    "flights": 2171,
-    "msgs": 30238027,
-    "positions": 6698806,
-    "since": 1795576141000,
-    "maxKm": 475.346,
+    "airframes": 2149,
+    "flights": 2159,
+    "msgs": 30545841,
+    "positions": 6831076,
+    "since": 1795576631000,
+    "maxKm": 475.2497,
     "countries": 26
   },
   "today": {
     "t": 1795737600000,
     "date": "2026-11-27",
-    "frames": 7597846,
-    "positions": 1703661,
-    "peakAircraft": 51,
-    "uniqueAircraft": 584,
-    "flights": 584,
-    "newAirframes": 581,
-    "maxKm": 475.1202,
-    "uptimeMin": 911,
+    "frames": 7499385,
+    "positions": 1653097,
+    "peakAircraft": 50,
+    "uniqueAircraft": 587,
+    "flights": 589,
+    "newAirframes": 584,
+    "maxKm": 475.1351,
+    "uptimeMin": 918,
     "busiestHour": {
       "t": 1795791600000,
-      "aircraft": 51,
-      "frames": 92688
+      "aircraft": 50,
+      "frames": 179198
     },
     "farthest": {
-      "flightId": 1760,
-      "icao": "3C58E9",
-      "callsign": "DLH1757",
-      "km": 475.1202,
-      "t": 1795762580000
+      "flightId": 1719,
+      "icao": "4B893F",
+      "callsign": "THY1266",
+      "km": 475.1351,
+      "t": 1795760580000
     }
   },
   "busiest": {
@@ -2433,25 +2468,25 @@ Example: `GET /api/stats/overview`
       {
         "t": 1795564800000,
         "date": "2026-11-25",
-        "frames": 10963236,
-        "positions": 2417165,
-        "peakAircraft": 44,
-        "uniqueAircraft": 790,
-        "flights": 792,
-        "newAirframes": 790,
-        "maxKm": 475.346,
-        "uptimeMin": 1251,
+        "frames": 11055171,
+        "positions": 2480289,
+        "peakAircraft": 43,
+        "uniqueAircraft": 763,
+        "flights": 763,
+        "newAirframes": 763,
+        "maxKm": 475.2159,
+        "uptimeMin": 1243,
         "busiestHour": {
-          "t": 1795590000000,
-          "aircraft": 44,
-          "frames": 743551
+          "t": 1795593600000,
+          "aircraft": 43,
+          "frames": 688862
         },
         "farthest": {
-          "flightId": 69,
-          "icao": "3C7E8E",
-          "callsign": "DLH1125",
-          "km": 475.346,
-          "t": 1795583282000
+          "flightId": 59,
+          "icao": "4040CD",
+          "callsign": "BAW19NU",
+          "km": 475.2159,
+          "t": 1795582668000
         }
       },
       /* … 2 more */
@@ -2459,45 +2494,45 @@ Example: `GET /api/stats/overview`
     "busiestDay": {
       "t": 1795651200000,
       "date": "2026-11-26",
-      "frames": 11678877,
-      "positions": 2577980,
-      "peakAircraft": 45,
-      "uniqueAircraft": 793,
-      "flights": 795,
-      "newAirframes": 792,
-      "maxKm": 475.2989,
+      "frames": 11993274,
+      "positions": 2697690,
+      "peakAircraft": 46,
+      "uniqueAircraft": 805,
+      "flights": 807,
+      "newAirframes": 802,
+      "maxKm": 475.2497,
       "uptimeMin": 1440,
       "busiestHour": {
-        "t": 1795683600000,
-        "aircraft": 45,
-        "frames": 736232
+        "t": 1795680000000,
+        "aircraft": 46,
+        "frames": 729550
       },
       "farthest": {
-        "flightId": 1123,
-        "icao": "AAA2AE",
-        "callsign": "AAL1532",
-        "km": 475.2989,
-        "t": 1795688233000
+        "flightId": 993,
+        "icao": "4BBB4E",
+        "callsign": "THY565",
+        "km": 475.2497,
+        "t": 1795680773000
       }
     },
     "busiestHour": {
       "t": 1795791600000,
-      "aircraft": 51,
-      "frames": 92688
+      "aircraft": 50,
+      "frames": 179198
     }
   },
   "top": {
     "from": 1793199600000,
     "to": 1795795200000,
-    "flights": 2171,
-    "aircraft": 2163,
+    "flights": 2159,
+    "aircraft": 2149,
     "operators": [
       {
-        "key": "easyJet",
-        "flights": 147,
-        "aircraft": 146,
-        "msgs": 1982110,
-        "pct": 6.7711,
+        "key": "Ryanair",
+        "flights": 155,
+        "aircraft": 153,
+        "msgs": 2092451,
+        "pct": 7.1792,
         "maxKm": null
       },
       /* … 4 more */
@@ -2505,10 +2540,10 @@ Example: `GET /api/stats/overview`
     "countries": [
       {
         "key": "United Kingdom",
-        "flights": 466,
-        "aircraft": 464,
-        "msgs": 6802000,
-        "pct": 21.4648,
+        "flights": 423,
+        "aircraft": 419,
+        "msgs": 6258648,
+        "pct": 19.5924,
         "maxKm": null
       },
       /* … 4 more */
@@ -2516,14 +2551,14 @@ Example: `GET /api/stats/overview`
     "types": [],
     "airframes": [
       {
-        "key": "4032D8",
+        "key": "4053A1",
+        "label": "G-JHVN",
         "flights": 2,
         "aircraft": 1,
-        "msgs": 45695,
-        "pct": 0.0921,
-        "operator": "easyJet",
+        "msgs": 43852,
+        "pct": 0.0926,
         "country": "United Kingdom",
-        "maxKm": 439.9071
+        "maxKm": 78.1119
       },
       /* … 4 more */
     ]
@@ -2531,30 +2566,22 @@ Example: `GET /api/stats/overview`
   "records": [
     {
       "key": "max_aircraft",
-      "value": 51,
-      "t": 1795792214000
+      "value": 50,
+      "t": 1795792699000
     },
     /* … 6 more */
   ],
   "events": [
     {
-      "id": 257,
-      "t": 1795792216000,
-      "kind": "alert",
+      "id": 253,
+      "t": 1795792698000,
+      "kind": "military",
+      "icao": "3F5BCD",
       "detail": {
-        "id": 4,
-        "t": 1795792216003,
-        "ruleId": "builtin-record",
-        "ruleName": "New all-time record",
-        "severity": "info",
-        "kind": "system",
-        "event": "record",
-        "eventKey": "max_aircraft",
-        "value": 51,
-        "text": "New all-time record: most aircraft at once 51",
-        "auto": true,
-        "notify": true,
-        "sound": false
+        "squawk": "7006",
+        "country": "Germany",
+        "altFt": 24000,
+        "flightId": 2159
       }
     },
     /* … 19 more */
@@ -2588,54 +2615,54 @@ Example: `GET /api/stats/rates?hours=6`
 
 ```jsonc
 {
-  "from": 1795770600000,
-  "to": 1795792260000,
+  "from": 1795771080000,
+  "to": 1795792740000,
   "ant": "",
   "resolution": "minute",
   "stepSec": 60,
   "series": {
-    "t": [1795770600000, 1795770660000, 1795770720000, 1795770780000, 1795770840000, 1795770900000, 1795770960000, 1795771020000, /* … 353 more */],
-    "framesPerSec": [164.267, 168.017, 176.4, 182.883, 177.917, 187.017, 191.15, 183.433, /* … 353 more */],
-    "positionsPerSec": [34.8, 35.4, 37.317, 39.5, 38.483, 40.117, 40.067, 39.2, /* … 353 more */],
-    "aircraft": [36, 37, 39, 39, 41, 41, 40, 41, /* … 353 more */],
-    "aircraftPos": [29, 31, 34, 34, 36, 36, 35, 36, /* … 353 more */],
-    "adsb": [28, 29, 30, 30, 32, 32, 31, 32, /* … 353 more */],
-    "mlat": [3, 3, 4, 4, 4, 4, 4, 4, /* … 353 more */],
-    "modes": [5, 5, 5, 5, 5, 5, 5, 5, /* … 353 more */],
-    "maxKm": [404.332, 436.16, 443.699, 432.152, 442.872, 426.27, 417.12, 408.367, /* … 353 more */],
-    "rssiAvg": [-27.469, -27.479, -27.627, -27.598, -27.71, -27.569, -27.753, -27.78, /* … 353 more */]
+    "t": [1795771080000, 1795771140000, 1795771200000, 1795771260000, 1795771320000, 1795771380000, 1795771440000, 1795771500000, /* … 352 more */],
+    "framesPerSec": [180.2, 178.6, 173.8, 183.633, 179.717, 181.35, 186.5, 182.817, /* … 352 more */],
+    "positionsPerSec": [38.017, 37.917, 37.083, 38.05, 38.3, 38.9, 39.7, 38.233, /* … 352 more */],
+    "aircraft": [40, 41, 41, 39, 41, 41, 41, 41, /* … 352 more */],
+    "aircraftPos": [33, 33, 32, 32, 34, 35, 34, 34, /* … 352 more */],
+    "adsb": [32, 33, 33, 32, 34, 34, 34, 34, /* … 352 more */],
+    "mlat": [2, 2, 2, 1, 1, 1, 1, 1, /* … 352 more */],
+    "modes": [6, 6, 6, 6, 6, 6, 6, 6, /* … 352 more */],
+    "maxKm": [440.246, 419.505, 444.954, 444.337, 450.214, 444.666, 431.383, 422.229, /* … 352 more */],
+    "rssiAvg": [-26.393, -26.247, -26.293, -26.368, -26.643, -27.223, -27.54, -26.951, /* … 352 more */]
   },
   "totals": {
-    "frames": 3804748,
-    "positions": 879642,
-    "mlatPositions": 34213,
-    "crcBad": 200,
-    "decodePct": 99.9947,
-    "framesPerSec": 176.9003,
-    "peakAircraft": 51,
-    "peakAircraftT": 1795792200000,
-    "maxKm": 474.0038,
-    "rssiAvg": -26.4354,
-    "uptimePct": 100,
+    "frames": 3741594,
+    "positions": 843010,
+    "mlatPositions": 33981,
+    "crcBad": 283,
+    "decodePct": 99.9924,
+    "framesPerSec": 173.8864,
+    "peakAircraft": 50,
+    "peakAircraftT": 1795792680000,
+    "maxKm": 474.4608,
+    "rssiAvg": -26.7595,
+    "uptimePct": 99.723,
     "uniqueAircraft": 344,
     "flights": 344,
-    "minutesWithData": 361
+    "minutesWithData": 360
   },
   "df": [
     {
       "df": "DF0",
       "name": "Short air-air surveillance",
-      "count": 253387,
-      "pct": 6.6601
+      "count": 254056,
+      "pct": 6.7906
     },
     /* … 9 more */
   ],
   "sources": {
-    "adsbPct": 83.7871,
-    "mlatPct": 8.5229,
-    "modesPct": 7.6899,
-    "adsbPositions": 845429,
-    "mlatPositions": 34213
+    "adsbPct": 84.1463,
+    "mlatPct": 8.6065,
+    "modesPct": 7.2472,
+    "adsbPositions": 809029,
+    "mlatPositions": 33981
   }
 }
 ```
@@ -2666,37 +2693,37 @@ Example: `GET /api/stats/df`
     {
       "df": "DF0",
       "name": "Short air-air surveillance",
-      "count": 847351,
-      "pct": 7.2933
+      "count": 825986,
+      "pct": 7.1065
     },
     /* … 9 more */
   ],
   "sources": {
-    "adsbPct": 79.5535,
-    "mlatPct": 10.1058,
-    "modesPct": 10.3408,
-    "adsbPositions": 2486657,
-    "mlatPositions": 101807
+    "adsbPct": 81.0842,
+    "mlatPct": 9.1119,
+    "modesPct": 9.8039,
+    "adsbPositions": 2497040,
+    "mlatPositions": 79734
   },
-  "frames": 11618997,
-  "crcBad": 742,
+  "frames": 11623795,
+  "crcBad": 775,
   "liveDf": {
-    "df0": 414,
-    "df11": 874,
+    "df0": 438,
+    "df11": 869,
     "df16": 0,
-    "df17": 3515,
-    "df18": 108,
-    "df20": 408,
-    "df21": 115,
-    "df4": 512,
-    "df5": 153,
+    "df17": 3537,
+    "df18": 102,
+    "df20": 429,
+    "df21": 120,
+    "df4": 500,
+    "df5": 154,
     "df_other": 0
   },
   "liveBds": {
-    "4,0": 156,
+    "4,0": 158,
     "4,4": 2,
-    "5,0": 144,
-    "6,0": 161
+    "5,0": 182,
+    "6,0": 163
   }
 }
 ```
@@ -2742,9 +2769,9 @@ Example: `GET /api/stats/heatmap`
     /* … 5 more */
   ],
   "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-  "busiestDay": 4,
-  "busiestHour": 7,
-  "hourOfDay": [8.242, 8.767, 10.667, 15.035, 21.289, 28.95, 36.139, 41.206, /* … 16 more */]
+  "busiestDay": 3,
+  "busiestHour": 9,
+  "hourOfDay": [8.208, 8.525, 10.383, 14.963, 21.228, 29.067, 36.667, 40.556, /* … 16 more */]
 }
 ```
 
@@ -2777,25 +2804,25 @@ Example: `GET /api/stats/daily`
     {
       "t": 1795564800000,
       "date": "2026-11-25",
-      "frames": 10963236,
-      "positions": 2417165,
-      "peakAircraft": 44,
-      "uniqueAircraft": 790,
-      "flights": 792,
-      "newAirframes": 790,
-      "maxKm": 475.346,
-      "uptimeMin": 1251,
+      "frames": 11055171,
+      "positions": 2480289,
+      "peakAircraft": 43,
+      "uniqueAircraft": 763,
+      "flights": 763,
+      "newAirframes": 763,
+      "maxKm": 475.2159,
+      "uptimeMin": 1243,
       "busiestHour": {
-        "t": 1795590000000,
-        "aircraft": 44,
-        "frames": 743551
+        "t": 1795593600000,
+        "aircraft": 43,
+        "frames": 688862
       },
       "farthest": {
-        "flightId": 69,
-        "icao": "3C7E8E",
-        "callsign": "DLH1125",
-        "km": 475.346,
-        "t": 1795583282000
+        "flightId": 59,
+        "icao": "4040CD",
+        "callsign": "BAW19NU",
+        "km": 475.2159,
+        "t": 1795582668000
       }
     },
     /* … 2 more */
@@ -2803,31 +2830,31 @@ Example: `GET /api/stats/daily`
   "busiestDay": {
     "t": 1795651200000,
     "date": "2026-11-26",
-    "frames": 11678877,
-    "positions": 2577980,
-    "peakAircraft": 45,
-    "uniqueAircraft": 793,
-    "flights": 795,
-    "newAirframes": 792,
-    "maxKm": 475.2989,
+    "frames": 11993274,
+    "positions": 2697690,
+    "peakAircraft": 46,
+    "uniqueAircraft": 805,
+    "flights": 807,
+    "newAirframes": 802,
+    "maxKm": 475.2497,
     "uptimeMin": 1440,
     "busiestHour": {
-      "t": 1795683600000,
-      "aircraft": 45,
-      "frames": 736232
+      "t": 1795680000000,
+      "aircraft": 46,
+      "frames": 729550
     },
     "farthest": {
-      "flightId": 1123,
-      "icao": "AAA2AE",
-      "callsign": "AAL1532",
-      "km": 475.2989,
-      "t": 1795688233000
+      "flightId": 993,
+      "icao": "4BBB4E",
+      "callsign": "THY565",
+      "km": 475.2497,
+      "t": 1795680773000
     }
   },
   "busiestHour": {
     "t": 1795791600000,
-    "aircraft": 51,
-    "frames": 92688
+    "aircraft": 50,
+    "frames": 179198
   }
 }
 ```
@@ -2855,15 +2882,15 @@ Example: `GET /api/stats/top?limit=5`
 {
   "from": 1793199600000,
   "to": 1795795200000,
-  "flights": 2171,
-  "aircraft": 2163,
+  "flights": 2159,
+  "aircraft": 2149,
   "operators": [
     {
-      "key": "easyJet",
-      "flights": 147,
-      "aircraft": 146,
-      "msgs": 1982110,
-      "pct": 6.7711,
+      "key": "Ryanair",
+      "flights": 155,
+      "aircraft": 153,
+      "msgs": 2092451,
+      "pct": 7.1792,
       "maxKm": null
     },
     /* … 4 more */
@@ -2871,10 +2898,10 @@ Example: `GET /api/stats/top?limit=5`
   "countries": [
     {
       "key": "United Kingdom",
-      "flights": 466,
-      "aircraft": 464,
-      "msgs": 6802000,
-      "pct": 21.4648,
+      "flights": 423,
+      "aircraft": 419,
+      "msgs": 6258648,
+      "pct": 19.5924,
       "maxKm": null
     },
     /* … 4 more */
@@ -2882,14 +2909,14 @@ Example: `GET /api/stats/top?limit=5`
   "types": [],
   "airframes": [
     {
-      "key": "4032D8",
+      "key": "4053A1",
+      "label": "G-JHVN",
       "flights": 2,
       "aircraft": 1,
-      "msgs": 45695,
-      "pct": 0.0921,
-      "operator": "easyJet",
+      "msgs": 43852,
+      "pct": 0.0926,
       "country": "United Kingdom",
-      "maxKm": 439.9071
+      "maxKm": 78.1119
     },
     /* … 4 more */
   ]
@@ -2922,16 +2949,16 @@ Example: `GET /api/stats/altitudes`
     {
       "band": 0,
       "label": "\u003c1k",
-      "positions": 102525,
-      "pct": 1.5916,
-      "maxKm": 82.196
+      "positions": 142041,
+      "pct": 2.1463,
+      "maxKm": 84.0156
     },
     /* … 6 more */
   ],
   "binFt": 2000,
-  "flightAlt": [63, 114, 67, 33, 1, 0, 8, 8, /* … 22 more */],
-  "flightsN": 2171,
-  "medianFt": 34519.2308,
+  "flightAlt": [81, 114, 70, 33, 1, 0, 7, 7, /* … 22 more */],
+  "flightsN": 2159,
+  "medianFt": 34498.2079,
   "lowestFt": 350,
   "highestFt": 41000,
   "cruiseBand": "30-40k"
@@ -2955,8 +2982,8 @@ Example: `GET /api/stats/records`
   "records": [
     {
       "key": "max_aircraft",
-      "value": 51,
-      "t": 1795792214000
+      "value": 50,
+      "t": 1795792699000
     },
     /* … 6 more */
   ]
@@ -2983,23 +3010,15 @@ Example: `GET /api/stats/events?limit=5`
 {
   "events": [
     {
-      "id": 257,
-      "t": 1795792216000,
-      "kind": "alert",
+      "id": 253,
+      "t": 1795792698000,
+      "kind": "military",
+      "icao": "3F5BCD",
       "detail": {
-        "id": 4,
-        "t": 1795792216003,
-        "ruleId": "builtin-record",
-        "ruleName": "New all-time record",
-        "severity": "info",
-        "kind": "system",
-        "event": "record",
-        "eventKey": "max_aircraft",
-        "value": 51,
-        "text": "New all-time record: most aircraft at once 51",
-        "auto": true,
-        "notify": true,
-        "sound": false
+        "squawk": "7006",
+        "country": "Germany",
+        "altFt": 24000,
+        "flightId": 2159
       }
     },
     /* … 4 more */
@@ -3017,56 +3036,56 @@ Example: `GET /api/stats/counters`
 
 ```jsonc
 {
-  "now": 1795792223305,
-  "started": 1795792193268,
-  "uptimeS": 30,
-  "frames": 6121,
-  "accepted": 6102,
+  "now": 1795792710153,
+  "started": 1795792680543,
+  "uptimeS": 29.6,
+  "frames": 6188,
+  "accepted": 6151,
   "duplicates": 0,
   "crcBad": 0,
   "fixed": 0,
-  "rejected": 19,
+  "rejected": 37,
   "unsupported": 0,
   "badLength": 0,
   "modeAC": 0,
   "status": 30,
   "updates": 0,
   "updateMsgs": 0,
-  "positions": 1266,
-  "mlatPositions": 62,
+  "positions": 1272,
+  "mlatPositions": 58,
   "posRejected": 0,
-  "posPending": 46,
+  "posPending": 44,
   "posJumps": 0,
   "df": {
-    "df0": 415,
-    "df11": 874,
+    "df0": 438,
+    "df11": 869,
     "df16": 0,
-    "df17": 3517,
-    "df18": 108,
-    "df20": 408,
-    "df21": 115,
-    "df4": 512,
-    "df5": 153,
+    "df17": 3538,
+    "df18": 102,
+    "df20": 430,
+    "df21": 120,
+    "df4": 500,
+    "df5": 154,
     "df_other": 0
   },
   "bds": {
-    "4,0": 156,
+    "4,0": 158,
     "4,4": 2,
-    "5,0": 144,
-    "6,0": 161
+    "5,0": 182,
+    "6,0": 164
   },
-  "flights": 52,
+  "flights": 50,
   "emergencies": 0,
-  "msgRate": 209.7,
-  "posRate": 47.8,
-  "aircraft": 52,
-  "tracked": 53,
+  "msgRate": 207.6,
+  "posRate": 45.3,
+  "aircraft": 50,
+  "tracked": 52,
   "antennas": [
     {
       "id": "",
-      "frames": 6121,
-      "positions": 1266,
-      "msgRate": 209.7
+      "frames": 6188,
+      "positions": 1272,
+      "msgRate": 207.6
     },
     /* … 1 more */
   ],
@@ -3106,24 +3125,24 @@ Example: `GET /api/stats/range?hours=48`
 
 ```jsonc
 {
-  "from": 1795619423305,
-  "to": 1795792223305,
+  "from": 1795619910158,
+  "to": 1795792710158,
   "ant": "",
   "farKm": 300,
   "hours": [
     {
       "t": 1795622400000,
       "ant": "",
-      "maxKm": 434.63899875595985,
-      "p99Km": 400.3700228832952,
-      "p95Km": 371.1015549076773,
-      "p90Km": 335.0897832817338,
-      "p50Km": 152.15127701375246,
-      "positions": 119466,
-      "aircraft": 66,
-      "farCount": 18755,
-      "residDb": 14.530880972713211,
-      "residN": 119466
+      "maxKm": 441.6796349200433,
+      "p99Km": 407.36200396825393,
+      "p95Km": 377.54599999999994,
+      "p90Km": 351.22125256673513,
+      "p50Km": 175.98484848484847,
+      "positions": 132391,
+      "aircraft": 76,
+      "farCount": 25777,
+      "residDb": 15.071487625555445,
+      "residN": 132391
     },
     /* … 47 more */
   ]
@@ -3162,12 +3181,12 @@ Example: `GET /api/stats/daynight`
       "phase": "day",
       "hour": 0,
       "hours": 25,
-      "p95Km": 379.2446,
-      "maxKm": 466.9222,
-      "residDb": 14.1597,
-      "aircraft": 71.24,
-      "positions": 143431.56,
-      "p95NormKm": 379.897
+      "p95Km": 382.2256,
+      "maxKm": 467.4764,
+      "residDb": 14.3278,
+      "aircraft": 70.72,
+      "positions": 146702.68,
+      "p95NormKm": 384.98
     },
     /* … 2 more */
   ],
@@ -3175,32 +3194,32 @@ Example: `GET /api/stats/daynight`
     {
       "hour": 0,
       "hours": 2,
-      "p95Km": 378.0898,
-      "maxKm": 463.7119,
-      "residDb": 15.2619,
-      "aircraft": 15,
-      "positions": 30319.5,
-      "p95NormKm": 376.2413
+      "p95Km": 397.2562,
+      "maxKm": 467.1433,
+      "residDb": 16.5829,
+      "aircraft": 13.5,
+      "positions": 29334.5,
+      "p95NormKm": 388.3425
     },
     /* … 23 more */
   ],
   "trafficFit": {
     "n": 61,
-    "slopeKm": -1.6613,
-    "r2": 0.003,
-    "kmPerDoubling": -1.1515
+    "slopeKm": -7.3109,
+    "r2": 0.0573,
+    "kmPerDoubling": -5.0675
   },
   "nightVsDay": {
     "nA": 25,
     "nB": 26,
-    "diffKm": 5.959,
-    "rawDiffKm": 7.4064,
-    "diffResidDb": 1.2896,
-    "t": 1.2209,
-    "p": 0.2286,
+    "diffKm": -2.2662,
+    "rawDiffKm": 3.9078,
+    "diffResidDb": 1.0576,
+    "t": -0.4833,
+    "p": 0.6312,
     "significant": false
   },
-  "conclusions": ["Traffic volume explains 0 % of the hour-to-hour variation in range (-1 km per doubling of the aircraft count); the comparisons below are cor…", "No reliable day/night difference in range once traffic is accounted for (+6 km at night, 26 night vs 25 day hours, p = 0.23).", "Hourly values are correlated from one hour to the next, so the p-values are optimistic."]
+  "conclusions": ["Traffic volume explains 6 % of the hour-to-hour variation in range (-5 km per doubling of the aircraft count); the comparisons below are cor…", "No reliable day/night difference in range once traffic is accounted for (-2 km at night, 26 night vs 25 day hours, p = 0.63).", "Hourly values are correlated from one hour to the next, so the p-values are optimistic."]
 }
 ```
 
@@ -3232,7 +3251,7 @@ Example: `GET /api/antenna/coverage`
   "to": 1795824000000,
   "ant": "",
   "days": 3,
-  "positions": 6441467,
+  "positions": 6617949,
   "located": true,
   "receiver": {
     "lat": 50.05,
@@ -3245,45 +3264,45 @@ Example: `GET /api/antenna/coverage`
     "band": -1,
     "label": "all",
     "altFt": 43000,
-    "maxKm": [470.083, 467.502, 474.199, 474.265, 462.253, 474.285, 474.271, 472.282, /* … 172 more */],
-    "robustKm": [469.089, 467.189, 474.046, 474.26, 462.023, 474.233, 473.851, 471.032, /* … 172 more */],
-    "typicalKm": [460.146, 464.374, 472.662, 474.212, 459.952, 473.77, 470.074, 459.789, /* … 172 more */],
-    "count": [49141, 49791, 52429, 47893, 49109, 51977, 49642, 55483, /* … 172 more */],
-    "rssi": [-27.324, -27.421, -27.035, -27.074, -27.202, -27.276, -27.292, -27.363, /* … 172 more */],
-    "positions": 6441467,
+    "maxKm": [474.25, 473.858, 474.149, 474.172, 474.209, 474.219, 473.946, 474.205, /* … 172 more */],
+    "robustKm": [474.235, 473.776, 472.163, 472.759, 474.189, 472.802, 472.608, 474.195, /* … 172 more */],
+    "typicalKm": [474.106, 473.037, 454.286, 460.047, 474.002, 460.049, 460.56, 474.108, /* … 172 more */],
+    "count": [57814, 51554, 48068, 49054, 55533, 51786, 51260, 51384, /* … 172 more */],
+    "rssi": [-27.007, -26.858, -26.802, -27.119, -27.059, -27.252, -26.975, -27.114, /* … 172 more */],
+    "positions": 6617949,
     "bearings": 180,
-    "bestKm": 475.346,
-    "bestBrg": 273,
+    "bestKm": 475.2497,
+    "bestBrg": 255,
     "horizonKm": 516.3495,
     "horizonTypKm": 516.3495,
-    "pctOfHorizon": [90.847, 90.479, 91.807, 91.849, 89.479, 91.843, 91.77, 91.224, /* … 172 more */],
-    "meanPct": 90.7476
+    "pctOfHorizon": [91.844, 91.755, 91.442, 91.558, 91.835, 91.566, 91.529, 91.836, /* … 172 more */],
+    "meanPct": 90.7481
   },
   "bands": [
     {
       "band": 0,
       "label": "\u003c1k",
       "altFt": 500,
-      "maxKm": [64.168, 64.332, 63.836, 61.519, 61.007, 43.774, 60.481, 66.605, /* … 172 more */],
-      "robustKm": [63.713, 64.032, 61.282, 58.183, 60.669, 42.984, 57.75, 65.976, /* … 172 more */],
-      "typicalKm": [59.619, 61.33, 38.297, 28.159, 57.63, 35.871, 33.17, 60.313, /* … 172 more */],
-      "count": [166, 230, 401, 126, 543, 901, 408, 288, /* … 172 more */],
-      "rssi": [-22.953, -20.342, -20.278, -18.48, -24.308, -20.63, -19.31, -18.101, /* … 172 more */],
-      "positions": 102525,
+      "maxKm": [57.649, 34.776, 73.3, 54.315, 64.258, 78.183, 46.167, 59.136, /* … 172 more */],
+      "robustKm": [44.04, 33.177, 67.874, 51.927, 62.603, 74.313, 43.997, 56.298, /* … 172 more */],
+      "typicalKm": [47.881, 18.786, 49.033, 30.433, 47.7, 61.32, 24.465, 30.763, /* … 172 more */],
+      "count": [416, 449, 252, 711, 867, 577, 615, 736, /* … 172 more */],
+      "rssi": [-13.443, -14.564, -12.93, -10.729, -18.678, -17.074, -18.739, -20.729, /* … 172 more */],
+      "positions": 142041,
       "bearings": 180,
-      "bestKm": 82.196,
-      "bestBrg": 25,
+      "bestKm": 84.0156,
+      "bestBrg": 17,
       "horizonKm": 116.7338,
       "horizonTypKm": 95.6577,
-      "pctOfHorizon": [54.58, 54.853, 52.497, 49.843, 51.972, 36.822, 49.472, 56.518, /* … 172 more */],
-      "meanPct": 41.91
+      "pctOfHorizon": [37.727, 28.421, 58.145, 44.483, 53.628, 63.66, 37.69, 48.228, /* … 172 more */],
+      "meanPct": 44.2995
     },
     /* … 6 more */
   ],
   "skyline": {
     "source": "heat",
-    "elevDeg": [-0.203, -0.178, -0.165, -0.172, -0.205, -0.215, -0.241, -0.21, /* … 172 more */],
-    "medianDeg": -0.1483,
+    "elevDeg": [-0.224, -0.247, -0.244, -0.233, -0.236, -0.256, -0.258, -0.225, /* … 172 more */],
+    "medianDeg": -0.1404,
     "bearings": 180
   },
   "obstructions": []
@@ -3331,8 +3350,8 @@ Example: `GET /api/antenna/coverage.geojson`
         "type": "Polygon",
         "coordinates": [
           [
-            [8.47325, 54.29205],
-            [8.22351, 54.25031],
+            [8.4731, 54.29655],
+            [8.21783, 54.30786],
             /* … 179 more */
           ]
         ]
@@ -3396,9 +3415,9 @@ Example: `GET /api/antenna/horizon`
       "altFt": 500,
       "horizonKm": 116.7338,
       "horizonTypKm": 95.6577,
-      "bestKm": 82.196,
-      "bestBrg": 25,
-      "meanPct": 41.91
+      "bestKm": 84.0156,
+      "bestBrg": 17,
+      "meanPct": 44.2995
     },
     /* … 6 more */
   ]
@@ -3432,8 +3451,8 @@ Example: `GET /api/antenna/skyline`
   "bearingDeg": [1, 3, 5, 7, 9, 11, 13, 15, /* … 172 more */],
   "skyline": {
     "source": "heat",
-    "elevDeg": [-0.203, -0.178, -0.165, -0.172, -0.205, -0.215, -0.241, -0.21, /* … 172 more */],
-    "medianDeg": -0.1483,
+    "elevDeg": [-0.224, -0.247, -0.244, -0.233, -0.236, -0.256, -0.258, -0.225, /* … 172 more */],
+    "medianDeg": -0.1404,
     "bearings": 180
   },
   "obstructions": []
@@ -3464,16 +3483,16 @@ Example: `GET /api/antenna/heat?maxCells=2000`
   "ant": "",
   "cellDeg": 0.3,
   "step": 6,
-  "cells": 1030,
-  "totalCells": 33257,
-  "positions": 6441474,
-  "maxCount": 248914,
-  "lat": [45.75, 45.75, 45.75, 45.75, 46.05, 46.05, 46.05, 46.05, /* … 1022 more */],
-  "lon": [8.25, 8.55, 9.15, 9.45, 7.05, 7.65, 8.25, 8.55, /* … 1022 more */],
-  "count": [19, 33, 9, 29, 360, 225, 328, 559, /* … 1022 more */],
-  "rssi": [-33, -33.4, -34.2, -33.1, -32.2, -32.6, -32.3, -32.5, /* … 1022 more */],
-  "minAlt": [35000, 36000, 33000, 31000, 36000, 33000, 30000, 31000, /* … 1022 more */],
-  "maxAlt": [41000, 41000, 41000, 41000, 41000, 41000, 41000, 41000, /* … 1022 more */]
+  "cells": 1035,
+  "totalCells": 33285,
+  "positions": 6617958,
+  "maxCount": 310581,
+  "lat": [45.75, 45.75, 45.75, 45.75, 45.75, 45.75, 45.75, 46.05, /* … 1027 more */],
+  "lon": [8.55, 7.65, 7.95, 8.25, 9.15, 9.45, 7.35, 7.05, /* … 1027 more */],
+  "count": [29, 3, 39, 6, 15, 13, 1, 157, /* … 1027 more */],
+  "rssi": [-32.5, -34.4, -32.4, -34.2, -33.6, -33.3, -35.8, -32.6, /* … 1027 more */],
+  "minAlt": [36000, 38000, 38000, 36000, 38000, 39000, 41000, 32000, /* … 1027 more */],
+  "maxAlt": [36000, 41000, 41000, 36000, 39000, 39000, 41000, 41000, /* … 1027 more */]
 }
 ```
 
@@ -3503,33 +3522,33 @@ Example: `GET /api/antenna/signal`
   "signal": {
     "distBinKm": 10,
     "cells": [
-      [0, -36, 5],
       [0, -35, 2],
+      [0, -34, 16],
       /* … 1080 more */
     ],
-    "total": 6441476,
-    "maxCount": 39538,
+    "total": 6617958,
+    "maxCount": 47033,
     "distKm": [5, 15, 25, 35, 45, 55, 65, 75, /* … 40 more */],
-    "n": [139843, 351896, 327497, 347915, 321556, 273669, 240735, 225719, /* … 40 more */],
-    "median": [-7.686, -13.418, -18.035, -20.561, -22.636, -24.155, -25.091, -25.504, /* … 40 more */],
-    "p10": [-14.331, -19.376, -23.038, -25.21, -26.87, -28.428, -29.351, -29.836, /* … 40 more */],
-    "p90": [-1.928, -7.684, -13.36, -15.85, -17.764, -19.048, -19.742, -20.085, /* … 40 more */],
-    "rssiP01": -34.6545,
-    "rssiP50": -27.9929,
-    "rssiP99": -5.785,
-    "strongPct": 0.4021,
+    "n": [152374, 384496, 386230, 391320, 337653, 303933, 238874, 222364, /* … 40 more */],
+    "median": [-7.018, -13.092, -17.697, -20.323, -22.293, -23.895, -25.095, -25.621, /* … 40 more */],
+    "p10": [-13.01, -18.761, -22.518, -24.776, -26.581, -28.081, -29.221, -29.693, /* … 40 more */],
+    "p90": [-1.511, -7.537, -13.19, -15.911, -17.704, -19.012, -19.788, -20.305, /* … 40 more */],
+    "rssiP01": -34.6349,
+    "rssiP50": -27.7985,
+    "rssiP99": -5.1139,
+    "strongPct": 0.5298,
     "fit": {
-      "bins": 34,
+      "bins": 33,
       "minKm": 25,
-      "maxKm": 355,
-      "slopeDbPerDecade": 11.1914,
+      "maxKm": 345,
+      "slopeDbPerDecade": 11.4982,
       "freeSpaceSlope": 20,
-      "interceptDb": -3.9388,
-      "r2": 0.9802,
-      "systemOffsetDb": 14.8848,
-      "lineKm": [25, 27.922, 31.186, 34.832, 38.903, 43.451, 48.53, 54.203, /* … 17 more */],
-      "measuredDb": [-19.584, -20.121, -20.658, -21.196, -21.733, -22.27, -22.808, -23.345, /* … 17 more */],
-      "freeSpaceDb": [-13.074, -14.034, -14.994, -15.955, -16.915, -17.875, -18.835, -19.796, /* … 17 more */],
+      "interceptDb": -3.2335,
+      "r2": 0.9767,
+      "systemOffsetDb": 14.8246,
+      "lineKm": [25, 27.889, 31.112, 34.708, 38.719, 43.193, 48.185, 53.753, /* … 17 more */],
+      "measuredDb": [-19.307, -19.853, -20.4, -20.946, -21.492, -22.038, -22.584, -23.13, /* … 17 more */],
+      "freeSpaceDb": [-13.134, -14.084, -15.034, -15.984, -16.934, -17.884, -18.834, -19.783, /* … 17 more */],
       "text": "Signal falls by only 11 dB per decade of distance (free space: 20): weak distant signals are missing from the statistics, so the receiver is…"
     }
   }
@@ -3562,32 +3581,33 @@ Example: `GET /api/antenna/azimuth`
   "azimuth": {
     "method": "heat-residual",
     "bearingDeg": [1, 3, 5, 7, 9, 11, 13, 15, /* … 172 more */],
-    "relDb": [1.098, 1.137, 1.085, 0.975, 0.844, 0.762, 0.701, 0.564, /* … 172 more */],
-    "rawDb": [1.055, 1.222, 1.042, 1.027, 0.804, 0.74, 0.766, 0.506, /* … 172 more */],
+    "relDb": [1.019, 1.006, 0.904, 0.827, 0.795, 0.728, 0.685, 0.618, /* … 172 more */],
+    "rawDb": [1.024, 1.045, 0.903, 0.756, 0.889, 0.647, 0.733, 0.629, /* … 172 more */],
     "cells": [82, 82, 81, 81, 81, 83, 82, 77, /* … 172 more */],
     "bearings": 180,
-    "samples": 4492439,
-    "peakDb": 1.137,
-    "peakBrg": 3,
-    "minDb": -0.393,
-    "minBrg": 327,
-    "spreadDb": 1.0631,
-    "distSlopeDb": 9.5386
+    "samples": 4534464,
+    "peakDb": 1.0378,
+    "peakBrg": 357,
+    "minDb": -0.3334,
+    "minBrg": 325,
+    "spreadDb": 0.982,
+    "distSlopeDb": 9.4787
   },
   "yagi": {
-    "ok": true,
-    "azimuthDeg": 0.3849,
-    "beamwidthDeg": 72.2252,
-    "gainOverOmniDb": 1.1007,
-    "confidence": 0.2002,
+    "ok": false,
+    "reason": "no clear directional lobe in the measured azimuth pattern",
+    "azimuthDeg": 0.3319,
+    "beamwidthDeg": 72.7675,
+    "gainOverOmniDb": 1.0371,
+    "confidence": 0.179,
     "confidenceLabel": "low",
-    "explainedPct": 84.7103,
-    "rmsDb": 0.1196,
-    "fitDb": [1.077, 1.063, 1.032, 0.983, 0.917, 0.834, 0.733, 0.613, /* … 172 more */],
+    "explainedPct": 86.8815,
+    "rmsDb": 0.1016,
+    "fitDb": [1.01, 0.996, 0.965, 0.917, 0.852, 0.769, 0.669, 0.551, /* … 172 more */],
     "pointingErrorDeg": null,
     "beamwidthErrorDeg": null,
     "gainErrorDb": null,
-    "text": "The data shows a directional lobe towards 0° (N), about 72° wide and 1.1 dB above the all-round level, but no directional antenna is confi…"
+    "text": ""
   }
 }
 ```
@@ -3617,13 +3637,13 @@ Example: `GET /api/antenna/elevation`
   "located": true,
   "elevation": {
     "elevDeg": [-1.75, -1.25, -0.75, -0.25, 0.25, 0.75, 1.25, 1.75, /* … 176 more */],
-    "count": [0, 0, 13, 186266, 1044914, 1141667, 910294, 690341, /* … 176 more */],
-    "rssi": [null, null, -32.054, -24.136, -28.419, -27.458, -27.278, -26.718, /* … 176 more */],
-    "residDb": [null, null, 21.395, 15.612, 15.902, 15.059, 15.085, 14.895, /* … 176 more */],
-    "relDb": [null, null, null, 0, -0.221, -0.553, -0.784, -0.909, /* … 176 more */],
-    "total": 6441476,
+    "count": [0, 0, 25, 194674, 1113043, 1184703, 929636, 724281, /* … 176 more */],
+    "rssi": [null, null, -32.716, -24.144, -27.864, -27.229, -26.85, -26.583, /* … 176 more */],
+    "residDb": [null, null, 20.707, 15.651, 15.648, 15.158, 14.984, 14.886, /* … 176 more */],
+    "relDb": [null, null, null, 0, -0.162, -0.404, -0.629, -0.774, /* … 176 more */],
+    "total": 6617958,
     "peakDeg": -0.25,
-    "lowestDeg": -0.4136
+    "lowestDeg": -0.4151
   }
 }
 ```
@@ -3652,19 +3672,20 @@ Example: `GET /api/antenna/fit`
   "ant": "",
   "located": true,
   "yagi": {
-    "ok": true,
-    "azimuthDeg": 0.3849,
-    "beamwidthDeg": 72.2252,
-    "gainOverOmniDb": 1.1007,
-    "confidence": 0.2002,
+    "ok": false,
+    "reason": "no clear directional lobe in the measured azimuth pattern",
+    "azimuthDeg": 0.3319,
+    "beamwidthDeg": 72.7675,
+    "gainOverOmniDb": 1.0371,
+    "confidence": 0.179,
     "confidenceLabel": "low",
-    "explainedPct": 84.7103,
-    "rmsDb": 0.1196,
-    "fitDb": [1.077, 1.063, 1.032, 0.983, 0.917, 0.834, 0.733, 0.613, /* … 172 more */],
+    "explainedPct": 86.8815,
+    "rmsDb": 0.1016,
+    "fitDb": [1.01, 0.996, 0.965, 0.917, 0.852, 0.769, 0.669, 0.551, /* … 172 more */],
     "pointingErrorDeg": null,
     "beamwidthErrorDeg": null,
     "gainErrorDb": null,
-    "text": "The data shows a directional lobe towards 0° (N), about 72° wide and 1.1 dB above the all-round level, but no directional antenna is confi…"
+    "text": ""
   },
   "notes": []
 }
@@ -3703,10 +3724,10 @@ Example: `GET /api/antenna/linkbudget`
       "limit": "horizon",
       "marginDb": 21.1556,
       "antenna": "vertical",
-      "achievedMaxKm": 82.196,
-      "achievedRobustKm": 75.4888,
-      "achievedTypicalKm": 51.8407,
-      "pctOfPredicted": 78.9156
+      "achievedMaxKm": 84.0156,
+      "achievedRobustKm": 74.7978,
+      "achievedTypicalKm": 54.1219,
+      "pctOfPredicted": 78.1931
     },
     /* … 6 more */
   ]
@@ -3764,20 +3785,20 @@ Example: `GET /api/antenna/pattern`
       "measured": {
         "method": "heat-residual",
         "bearingDeg": [1, 3, 5, 7, 9, 11, 13, 15, /* … 172 more */],
-        "relDb": [0.124, 0.186, 0.156, 0.09, 0.011, 0.001, 0.031, -0.019, /* … 172 more */],
-        "rawDb": [0.078, 0.286, 0.089, 0.152, -0.039, -0.037, 0.116, -0.088, /* … 172 more */],
-        "cells": [82, 82, 81, 81, 81, 83, 82, 77, /* … 172 more */],
+        "relDb": [0.034, 0.039, -0.066, -0.095, -0.045, -0.037, 0.025, 0.081, /* … 172 more */],
+        "rawDb": [0.039, 0.102, -0.103, -0.181, 0.061, -0.143, 0.083, 0.104, /* … 172 more */],
+        "cells": [81, 82, 81, 81, 81, 83, 82, 77, /* … 172 more */],
         "bearings": 180,
-        "samples": 4220515,
-        "peakDb": 0.3286,
-        "peakBrg": 261,
-        "minDb": -0.2203,
-        "minBrg": 83,
-        "spreadDb": 0.3461,
-        "distSlopeDb": 9.2206
+        "samples": 4278984,
+        "peakDb": 0.2183,
+        "peakBrg": 273,
+        "minDb": -0.1944,
+        "minBrg": 341,
+        "spreadDb": 0.302,
+        "distSlopeDb": 9.1647
       },
       "compare": {
-        "rmsDb": 0.1062,
+        "rmsDb": 0.0958,
         "r": 0,
         "n": 180
       }
@@ -3786,17 +3807,17 @@ Example: `GET /api/antenna/pattern`
   "azimuth": {
     "method": "heat-residual",
     "bearingDeg": [1, 3, 5, 7, 9, 11, 13, 15, /* … 172 more */],
-    "relDb": [1.098, 1.137, 1.085, 0.975, 0.844, 0.762, 0.701, 0.564, /* … 172 more */],
-    "rawDb": [1.055, 1.222, 1.042, 1.027, 0.804, 0.74, 0.766, 0.506, /* … 172 more */],
+    "relDb": [1.019, 1.006, 0.904, 0.827, 0.795, 0.728, 0.685, 0.618, /* … 172 more */],
+    "rawDb": [1.024, 1.045, 0.903, 0.756, 0.889, 0.647, 0.733, 0.629, /* … 172 more */],
     "cells": [82, 82, 81, 81, 81, 83, 82, 77, /* … 172 more */],
     "bearings": 180,
-    "samples": 4492439,
-    "peakDb": 1.137,
-    "peakBrg": 3,
-    "minDb": -0.393,
-    "minBrg": 327,
-    "spreadDb": 1.0631,
-    "distSlopeDb": 9.5386
+    "samples": 4534464,
+    "peakDb": 1.0378,
+    "peakBrg": 357,
+    "minDb": -0.3334,
+    "minBrg": 325,
+    "spreadDb": 0.982,
+    "distSlopeDb": 9.4787
   }
 }
 ```
@@ -3823,13 +3844,13 @@ Example: `GET /api/antenna/score`
   "from": 1793145600000,
   "to": 1795824000000,
   "ant": "",
-  "score": 96.3,
+  "score": 96.9,
   "grade": "excellent",
   "subs": [
     {
       "key": "range",
       "label": "Range vs radio horizon",
-      "score": 93.0787,
+      "score": 93.0942,
       "weight": 35,
       "available": true,
       "detail": "on average 93 % of the 500 km radio horizon (30-40k ft) around the compass"
@@ -3842,7 +3863,7 @@ Example: `GET /api/antenna/score`
       "code": "range",
       "text": "Range is excellent: on average 93 % of the 500 km radio horizon (30-40k ft) around the compass."
     },
-    /* … 3 more */
+    /* … 2 more */
   ]
 }
 ```
@@ -3875,60 +3896,60 @@ Example: `GET /api/antenna/report`
   "signal": {
     "distBinKm": 10,
     "cells": [
-      [0, -36, 5],
       [0, -35, 2],
+      [0, -34, 16],
       /* … 1080 more */
     ],
-    "total": 6441476,
-    "maxCount": 39538,
+    "total": 6617958,
+    "maxCount": 47033,
     "distKm": [5, 15, 25, 35, 45, 55, 65, 75, /* … 40 more */],
-    "n": [139843, 351896, 327497, 347915, 321556, 273669, 240735, 225719, /* … 40 more */],
-    "median": [-7.686, -13.418, -18.035, -20.561, -22.636, -24.155, -25.091, -25.504, /* … 40 more */],
-    "p10": [-14.331, -19.376, -23.038, -25.21, -26.87, -28.428, -29.351, -29.836, /* … 40 more */],
-    "p90": [-1.928, -7.684, -13.36, -15.85, -17.764, -19.048, -19.742, -20.085, /* … 40 more */],
-    "rssiP01": -34.6545,
-    "rssiP50": -27.9929,
-    "rssiP99": -5.785,
-    "strongPct": 0.4021,
+    "n": [152374, 384496, 386230, 391320, 337653, 303933, 238874, 222364, /* … 40 more */],
+    "median": [-7.018, -13.092, -17.697, -20.323, -22.293, -23.895, -25.095, -25.621, /* … 40 more */],
+    "p10": [-13.01, -18.761, -22.518, -24.776, -26.581, -28.081, -29.221, -29.693, /* … 40 more */],
+    "p90": [-1.511, -7.537, -13.19, -15.911, -17.704, -19.012, -19.788, -20.305, /* … 40 more */],
+    "rssiP01": -34.6349,
+    "rssiP50": -27.7985,
+    "rssiP99": -5.1139,
+    "strongPct": 0.5298,
     "fit": {
-      "bins": 34,
+      "bins": 33,
       "minKm": 25,
-      "maxKm": 355,
-      "slopeDbPerDecade": 11.1914,
+      "maxKm": 345,
+      "slopeDbPerDecade": 11.4982,
       "freeSpaceSlope": 20,
-      "interceptDb": -3.9388,
-      "r2": 0.9802,
-      "systemOffsetDb": 14.8848,
-      "lineKm": [25, 27.922, 31.186, 34.832, 38.903, 43.451, 48.53, 54.203, /* … 17 more */],
-      "measuredDb": [-19.584, -20.121, -20.658, -21.196, -21.733, -22.27, -22.808, -23.345, /* … 17 more */],
-      "freeSpaceDb": [-13.074, -14.034, -14.994, -15.955, -16.915, -17.875, -18.835, -19.796, /* … 17 more */],
+      "interceptDb": -3.2335,
+      "r2": 0.9767,
+      "systemOffsetDb": 14.8246,
+      "lineKm": [25, 27.889, 31.112, 34.708, 38.719, 43.193, 48.185, 53.753, /* … 17 more */],
+      "measuredDb": [-19.307, -19.853, -20.4, -20.946, -21.492, -22.038, -22.584, -23.13, /* … 17 more */],
+      "freeSpaceDb": [-13.134, -14.084, -15.034, -15.984, -16.934, -17.884, -18.834, -19.783, /* … 17 more */],
       "text": "Signal falls by only 11 dB per decade of distance (free space: 20): weak distant signals are missing from the statistics, so the receiver is…"
     }
   },
   "azimuth": {
     "method": "heat-residual",
     "bearingDeg": [1, 3, 5, 7, 9, 11, 13, 15, /* … 172 more */],
-    "relDb": [1.098, 1.137, 1.085, 0.975, 0.844, 0.762, 0.701, 0.564, /* … 172 more */],
-    "rawDb": [1.055, 1.222, 1.042, 1.027, 0.804, 0.74, 0.766, 0.506, /* … 172 more */],
+    "relDb": [1.019, 1.006, 0.904, 0.827, 0.795, 0.728, 0.685, 0.618, /* … 172 more */],
+    "rawDb": [1.024, 1.045, 0.903, 0.756, 0.889, 0.647, 0.733, 0.629, /* … 172 more */],
     "cells": [82, 82, 81, 81, 81, 83, 82, 77, /* … 172 more */],
     "bearings": 180,
-    "samples": 4492439,
-    "peakDb": 1.137,
-    "peakBrg": 3,
-    "minDb": -0.393,
-    "minBrg": 327,
-    "spreadDb": 1.0631,
-    "distSlopeDb": 9.5386
+    "samples": 4534464,
+    "peakDb": 1.0378,
+    "peakBrg": 357,
+    "minDb": -0.3334,
+    "minBrg": 325,
+    "spreadDb": 0.982,
+    "distSlopeDb": 9.4787
   },
   "elevation": {
     "elevDeg": [-1.75, -1.25, -0.75, -0.25, 0.25, 0.75, 1.25, 1.75, /* … 176 more */],
-    "count": [0, 0, 13, 186266, 1044914, 1141667, 910294, 690341, /* … 176 more */],
-    "rssi": [null, null, -32.054, -24.136, -28.419, -27.458, -27.278, -26.718, /* … 176 more */],
-    "residDb": [null, null, 21.395, 15.612, 15.902, 15.059, 15.085, 14.895, /* … 176 more */],
-    "relDb": [null, null, null, 0, -0.221, -0.553, -0.784, -0.909, /* … 176 more */],
-    "total": 6441476,
+    "count": [0, 0, 25, 194674, 1113043, 1184703, 929636, 724281, /* … 176 more */],
+    "rssi": [null, null, -32.716, -24.144, -27.864, -27.229, -26.85, -26.583, /* … 176 more */],
+    "residDb": [null, null, 20.707, 15.651, 15.648, 15.158, 14.984, 14.886, /* … 176 more */],
+    "relDb": [null, null, null, 0, -0.162, -0.404, -0.629, -0.774, /* … 176 more */],
+    "total": 6617958,
     "peakDeg": -0.25,
-    "lowestDeg": -0.4136
+    "lowestDeg": -0.4151
   },
   "antennas": [
     {
@@ -3956,39 +3977,40 @@ Example: `GET /api/antenna/report`
       "measured": {
         "method": "heat-residual",
         "bearingDeg": [1, 3, 5, 7, 9, 11, 13, 15, /* … 172 more */],
-        "relDb": [0.124, 0.186, 0.156, 0.09, 0.011, 0.001, 0.031, -0.019, /* … 172 more */],
-        "rawDb": [0.078, 0.286, 0.089, 0.152, -0.039, -0.037, 0.116, -0.088, /* … 172 more */],
-        "cells": [82, 82, 81, 81, 81, 83, 82, 77, /* … 172 more */],
+        "relDb": [0.034, 0.039, -0.066, -0.095, -0.045, -0.037, 0.025, 0.081, /* … 172 more */],
+        "rawDb": [0.039, 0.102, -0.103, -0.181, 0.061, -0.143, 0.083, 0.104, /* … 172 more */],
+        "cells": [81, 82, 81, 81, 81, 83, 82, 77, /* … 172 more */],
         "bearings": 180,
-        "samples": 4220515,
-        "peakDb": 0.3286,
-        "peakBrg": 261,
-        "minDb": -0.2203,
-        "minBrg": 83,
-        "spreadDb": 0.3461,
-        "distSlopeDb": 9.2206
+        "samples": 4278984,
+        "peakDb": 0.2183,
+        "peakBrg": 273,
+        "minDb": -0.1944,
+        "minBrg": 341,
+        "spreadDb": 0.302,
+        "distSlopeDb": 9.1647
       },
       "compare": {
-        "rmsDb": 0.1062,
+        "rmsDb": 0.0958,
         "r": 0,
         "n": 180
       }
     }
   ],
   "yagi": {
-    "ok": true,
-    "azimuthDeg": 0.3849,
-    "beamwidthDeg": 72.2252,
-    "gainOverOmniDb": 1.1007,
-    "confidence": 0.2002,
+    "ok": false,
+    "reason": "no clear directional lobe in the measured azimuth pattern",
+    "azimuthDeg": 0.3319,
+    "beamwidthDeg": 72.7675,
+    "gainOverOmniDb": 1.0371,
+    "confidence": 0.179,
     "confidenceLabel": "low",
-    "explainedPct": 84.7103,
-    "rmsDb": 0.1196,
-    "fitDb": [1.077, 1.063, 1.032, 0.983, 0.917, 0.834, 0.733, 0.613, /* … 172 more */],
+    "explainedPct": 86.8815,
+    "rmsDb": 0.1016,
+    "fitDb": [1.01, 0.996, 0.965, 0.917, 0.852, 0.769, 0.669, 0.551, /* … 172 more */],
     "pointingErrorDeg": null,
     "beamwidthErrorDeg": null,
     "gainErrorDb": null,
-    "text": "The data shows a directional lobe towards 0° (N), about 72° wide and 1.1 dB above the all-round level, but no directional antenna is confi…"
+    "text": ""
   },
   "linkBudget": [
     {
@@ -4000,10 +4022,10 @@ Example: `GET /api/antenna/report`
       "limit": "horizon",
       "marginDb": 21.1556,
       "antenna": "vertical",
-      "achievedMaxKm": 82.196,
-      "achievedRobustKm": 75.4888,
-      "achievedTypicalKm": 51.8407,
-      "pctOfPredicted": 78.9156
+      "achievedMaxKm": 84.0156,
+      "achievedRobustKm": 74.7978,
+      "achievedTypicalKm": 54.1219,
+      "pctOfPredicted": 78.1931
     },
     /* … 6 more */
   ],
@@ -4041,12 +4063,12 @@ Example: `GET /api/antenna/daynight`
       "phase": "day",
       "hour": 0,
       "hours": 25,
-      "p95Km": 379.2446,
-      "maxKm": 466.9222,
-      "residDb": 14.1597,
-      "aircraft": 71.24,
-      "positions": 143431.56,
-      "p95NormKm": 379.897
+      "p95Km": 382.2256,
+      "maxKm": 467.4764,
+      "residDb": 14.3278,
+      "aircraft": 70.72,
+      "positions": 146702.68,
+      "p95NormKm": 384.98
     },
     /* … 2 more */
   ],
@@ -4054,32 +4076,32 @@ Example: `GET /api/antenna/daynight`
     {
       "hour": 0,
       "hours": 2,
-      "p95Km": 378.0898,
-      "maxKm": 463.7119,
-      "residDb": 15.2619,
-      "aircraft": 15,
-      "positions": 30319.5,
-      "p95NormKm": 376.2413
+      "p95Km": 397.2562,
+      "maxKm": 467.1433,
+      "residDb": 16.5829,
+      "aircraft": 13.5,
+      "positions": 29334.5,
+      "p95NormKm": 388.3425
     },
     /* … 23 more */
   ],
   "trafficFit": {
     "n": 61,
-    "slopeKm": -1.6613,
-    "r2": 0.003,
-    "kmPerDoubling": -1.1515
+    "slopeKm": -7.3109,
+    "r2": 0.0573,
+    "kmPerDoubling": -5.0675
   },
   "nightVsDay": {
     "nA": 25,
     "nB": 26,
-    "diffKm": 5.959,
-    "rawDiffKm": 7.4064,
-    "diffResidDb": 1.2896,
-    "t": 1.2209,
-    "p": 0.2286,
+    "diffKm": -2.2662,
+    "rawDiffKm": 3.9078,
+    "diffResidDb": 1.0576,
+    "t": -0.4833,
+    "p": 0.6312,
     "significant": false
   },
-  "conclusions": ["Traffic volume explains 0 % of the hour-to-hour variation in range (-1 km per doubling of the aircraft count); the comparisons below are cor…", "No reliable day/night difference in range once traffic is accounted for (+6 km at night, 26 night vs 25 day hours, p = 0.23).", "Hourly values are correlated from one hour to the next, so the p-values are optimistic."]
+  "conclusions": ["Traffic volume explains 6 % of the hour-to-hour variation in range (-5 km per doubling of the aircraft count); the comparisons below are cor…", "No reliable day/night difference in range once traffic is accounted for (-2 km at night, 26 night vs 25 day hours, p = 0.63).", "Hourly values are correlated from one hour to the next, so the p-values are optimistic."]
 }
 ```
 
@@ -4365,9 +4387,9 @@ Example: `GET /api/weather/hourly?hours=6&ahead=6`
 
 ```jsonc
 {
-  "from": 1795770623559,
-  "to": 1795813823559,
-  "now": 1795792223559,
+  "from": 1795771110402,
+  "to": 1795814310402,
+  "now": 1795792710402,
   "attribution": "Weather data by Open-Meteo.com (CC BY 4.0)",
   "attributionUrl": "https://open-meteo.com/",
   "obs": [
@@ -4603,14 +4625,14 @@ Example: `GET /api/weather/impact`
       "var": "temp_c",
       "metric": "p95_km",
       "n": 61,
-      "pearson": -0.3966,
-      "pearsonP": 0.0016,
-      "spearman": -0.4021,
-      "spearmanP": 0.0013,
-      "partial": -0.4321,
+      "pearson": -0.4818,
+      "pearsonP": 0.0001,
+      "spearman": -0.5165,
+      "spearmanP": 0,
+      "partial": -0.4313,
       "partialP": 0.0006,
       "bestLagH": 1,
-      "bestLagR": -0.4061,
+      "bestLagR": -0.4912,
       "significant": true
     },
     /* … 59 more */
@@ -4625,9 +4647,9 @@ Example: `GET /api/weather/impact`
           "hi": 5.204445042265591,
           "n": 7,
           "xMean": 5.11682573843748,
-          "yMean": 399.7383366045236,
-          "yStd": 19.24303849382183,
-          "yq": [382.24497145366706, 401.38302139037427, 415.7301452127919]
+          "yMean": 400.8802221464584,
+          "yStd": 9.040266842380237,
+          "yq": [391.55959968186636, 398.33918128654966, 411.68644253376976]
         },
         /* … 7 more */
       ]
@@ -4648,7 +4670,7 @@ Example: `GET /api/weather/impact`
     "factors": []
   },
   "episodes": [],
-  "conclusions": ["Based on 61 hours with both range and weather data.", "Range decreases strongly with visibility (partial r = -0.51 at constant traffic, n = 61).", "Range decreases moderately with temperature (partial r = -0.43 at constant traffic, n = 61).", "Range decreases moderately with dew point (partial r = -0.43 at constant traffic, n = 61).", "Range increases moderately with relative humidity (partial r = +0.43 at constant traffic, n = 61).", "Regression model: not enough data yet: 59 complete hours, 80 needed for the model.", "Less than two weeks of data: seasonal effects and rare conditions are not covered yet. Hourly values are also correlated in time, which make…"]
+  "conclusions": ["Based on 61 hours with both range and weather data.", "Range decreases strongly with visibility (partial r = -0.51 at constant traffic, n = 61).", "Range decreases moderately with dew point (partial r = -0.43 at constant traffic, n = 61).", "Range decreases moderately with temperature (partial r = -0.43 at constant traffic, n = 61).", "Range increases moderately with relative humidity (partial r = +0.43 at constant traffic, n = 61).", "Regression model: not enough data yet: 59 complete hours, 80 needed for the model.", "Less than two weeks of data: seasonal effects and rare conditions are not covered yet. Hourly values are also correlated in time, which make…"]
 }
 ```
 
@@ -4672,9 +4694,9 @@ Example: `GET /api/weather/ducting?hours=6&ahead=6`
 
 ```jsonc
 {
-  "from": 1795770623569,
-  "to": 1795813823569,
-  "now": 1795792223569,
+  "from": 1795771110410,
+  "to": 1795814310410,
+  "now": 1795792710410,
   "stationElevM": 110,
   "current": {
     "hasProfile": true,
@@ -4765,63 +4787,63 @@ Example: `GET /api/met/profile`
 
 ```jsonc
 {
-  "t": 1795792223338,
+  "t": 1795792710153,
   "from": 1795788000000,
-  "windowMin": 70.4,
-  "nWind": 1521,
-  "nTemp": 1191,
+  "windowMin": 78.5,
+  "nWind": 1678,
+  "nTemp": 1284,
   "levels": [
     {
       "level": 0,
-      "altFt": 663,
-      "hpa": 989.2,
-      "windDir": 250.9,
-      "windKt": 7.7,
-      "u": 7.24,
-      "v": 2.5,
-      "nWind": 4,
-      "nTemp": 0,
-      "windSpread": 4.9
+      "altFt": 645,
+      "hpa": 989.9,
+      "windDir": 265.6,
+      "windKt": 6.1,
+      "u": 6.03,
+      "v": 0.47,
+      "nWind": 5,
+      "nTemp": 2,
+      "windSpread": 2.4
     },
-    /* … 41 more */
+    /* … 39 more */
   ],
-  "freezingLevelFt": 6555,
+  "freezingLevelFt": 4115,
   "tropopause": {
-    "altFt": 37022,
-    "tempC": -59,
+    "altFt": 36019,
+    "tempC": -58.3,
     "confirmed": false,
-    "depthFt": 3978
+    "depthFt": 4981
   },
   "maxWind": {
-    "altFt": 40126,
-    "windKt": 59.1,
-    "windDir": 294.1,
+    "altFt": 37050,
+    "windKt": 54.7,
+    "windDir": 286.7,
     "jet": false
   },
   "maxShear": {
-    "baseFt": 37022,
-    "topFt": 38005,
-    "ktPer1000Ft": 8.2
+    "baseFt": 33095,
+    "topFt": 34027,
+    "ktPer1000Ft": 6.5
   },
   "lapse": [
     {
-      "baseFt": 2411,
-      "topFt": 3573,
-      "lapse": 16.05,
+      "baseFt": 2671,
+      "topFt": 3671,
+      "lapse": 15.51,
       "class": "unstable"
     },
-    /* … 38 more */
+    /* … 35 more */
   ],
   "inversions": [],
   "windsAloft": [
     {
       "fl": 30,
       "altFt": 3000,
-      "windDir": 258,
-      "windKt": 9.5,
-      "tempC": 3.9,
-      "isaDev": -5.1,
-      "coded": "2610+04"
+      "windDir": 260,
+      "windKt": 9.3,
+      "tempC": 7.9,
+      "isaDev": -1.2,
+      "coded": "2609+08"
     },
     /* … 8 more */
   ]
@@ -4848,20 +4870,22 @@ Example: `GET /api/met/history`
 
 ```jsonc
 {
-  "from": 1795705823571,
-  "to": 1795792223571,
+  "from": 1795706310413,
+  "to": 1795792710413,
   "hours": [1795705200000, 1795708800000, 1795712400000, 1795716000000, 1795719600000, 1795723200000, 1795726800000, 1795730400000, /* … 17 more */],
   "cells": [
     {
       "t": 1795705200000,
       "level": 0,
       "altFt": 500,
-      "windDir": 275.2,
-      "windKt": 6.5,
-      "nWind": 18,
-      "nTemp": 0
+      "windDir": 267.4,
+      "windKt": 7,
+      "tempC": 3.45,
+      "isaDev": -10.56,
+      "nWind": 39,
+      "nTemp": 3
     },
-    /* … 1031 more */
+    /* … 1039 more */
   ]
 }
 ```
@@ -4884,19 +4908,20 @@ Example: `GET /api/met/observations?limit=5`
 
 ```jsonc
 {
-  "now": 1795792223575,
+  "now": 1795792710419,
   "maxAgeS": 900,
   "count": 5,
   "observations": [
     {
-      "t": 1795792222570,
-      "icao": "4CA2AB",
-      "lat": 49.1664,
-      "lon": 13.1141,
-      "altFt": 32000,
-      "windDir": 301.8,
-      "windKt": 23.6,
-      "q": 0.35
+      "t": 1795792710153,
+      "icao": "479D66",
+      "lat": 48.6852,
+      "lon": 9.3485,
+      "altFt": 27200,
+      "windDir": 273,
+      "windKt": 18.5,
+      "oat": -33.9,
+      "q": 0.88
     },
     /* … 4 more */
   ]
@@ -4915,40 +4940,40 @@ Example: `GET /api/met/winds`
 
 ```jsonc
 {
-  "t": 1795792223338,
+  "t": 1795792710153,
   "from": 1795788000000,
-  "windowMin": 70.4,
-  "nWind": 1521,
-  "nTemp": 1191,
+  "windowMin": 78.5,
+  "nWind": 1678,
+  "nTemp": 1284,
   "windsAloft": [
     {
       "fl": 30,
       "altFt": 3000,
-      "windDir": 258,
-      "windKt": 9.5,
-      "tempC": 3.9,
-      "isaDev": -5.1,
-      "coded": "2610+04"
+      "windDir": 260,
+      "windKt": 9.3,
+      "tempC": 7.9,
+      "isaDev": -1.2,
+      "coded": "2609+08"
     },
     /* … 8 more */
   ],
   "maxWind": {
-    "altFt": 40126,
-    "windKt": 59.1,
-    "windDir": 294.1,
+    "altFt": 37050,
+    "windKt": 54.7,
+    "windDir": 286.7,
     "jet": false
   },
   "maxShear": {
-    "baseFt": 37022,
-    "topFt": 38005,
-    "ktPer1000Ft": 8.2
+    "baseFt": 33095,
+    "topFt": 34027,
+    "ktPer1000Ft": 6.5
   },
-  "freezingLevelFt": 6555,
+  "freezingLevelFt": 4115,
   "tropopause": {
-    "altFt": 37022,
-    "tempC": -59,
+    "altFt": 36019,
+    "tempC": -58.3,
     "confirmed": false,
-    "depthFt": 3978
+    "depthFt": 4981
   }
 }
 ```
@@ -4965,7 +4990,7 @@ Example: `GET /api/met/compare`
 
 ```jsonc
 {
-  "t": 1795792223575,
+  "t": 1795792710419,
   "modelAvailable": true,
   "modelT": 1795791600000,
   "attribution": "Weather data by Open-Meteo.com (CC BY 4.0)",
@@ -4974,25 +4999,25 @@ Example: `GET /api/met/compare`
       {
         "hpa": 1000,
         "altFt": 364,
-        "obsWindDir": 251,
-        "obsWindKt": 7.7,
+        "obsWindDir": 265.5,
+        "obsWindKt": 6,
         "modelWindDir": 240,
         "modelWindKt": 11.1,
-        "dSpeedKt": -3.4,
-        "vecDiffKt": 3.8
+        "dSpeedKt": -5,
+        "vecDiffKt": 6.2
       },
       /* … 13 more */
     ],
-    "nTemp": 12,
-    "tempBiasC": -4.36,
-    "tempRmsC": 4.88,
+    "nTemp": 11,
+    "tempBiasC": -3.74,
+    "tempRmsC": 4.46,
     "nWind": 14,
-    "speedBiasKt": -5,
-    "speedRmsKt": 5.5,
-    "dirBiasDeg": 2.4,
-    "uBiasKt": -3.9,
-    "vBiasKt": -1.1,
-    "rmsvdKt": 6.6
+    "speedBiasKt": -5.2,
+    "speedRmsKt": 5.6,
+    "dirBiasDeg": 0.7,
+    "uBiasKt": -4,
+    "vBiasKt": -0.9,
+    "rmsvdKt": 7.3
   },
   "radio": {
     "layers": [],
@@ -5019,31 +5044,31 @@ Example: `GET /api/met/stats`
 {
   "biases": [
     {
-      "icao": "402E18",
-      "meanDeg": -3.77,
-      "appliedDeg": -2.99,
+      "icao": "396D10",
+      "meanDeg": -3.62,
+      "appliedDeg": 0,
       "stdDeg": 0,
-      "n": 23,
-      "updated": 1795610677000
+      "n": 1,
+      "updated": 1795792694000
     },
     /* … 49 more */
   ],
   "stats": {
-    "calls": 148,
-    "derived": 98,
+    "calls": 167,
+    "derived": 102,
     "wind": 85,
-    "temp": 69,
-    "mrarWind": 4,
-    "mrarTemp": 4,
+    "temp": 71,
+    "mrarWind": 3,
+    "mrarTemp": 3,
     "lowQuality": 0,
     "rejected": {
-      "noAirspeed": 1,
-      "noHeading": 13
+      "noGround": 1,
+      "noHeading": 17
     },
-    "aircraft": 31,
-    "biases": 1754,
-    "biasesActive": 1254,
-    "lastObs": 1795792223338,
+    "aircraft": 28,
+    "biases": 1717,
+    "biasesActive": 1242,
+    "lastObs": 1795792710153,
     "dropped": 0
   }
 }
@@ -5064,7 +5089,7 @@ Example: `GET /api/forecast/traffic`
 ```jsonc
 {
   "product": "traffic",
-  "generated": 1795792220032,
+  "generated": 1795792707024,
   "method": "Hour-of-day profile (weighted median, 14-day half-life) plus the recent anomaly continued by an AR(3) model; intervals from the spread of th…",
   "level": "blend",
   "confidence": "low",
@@ -5076,15 +5101,15 @@ Example: `GET /api/forecast/traffic`
     {
       "t": 1795791600000,
       "aircraft": {
-        "value": 42,
-        "lo": 40.6,
-        "hi": 43.4,
+        "value": 42.2,
+        "lo": 40.5,
+        "hi": 43.9,
         "confidence": 0.15
       },
       "msgRate": {
-        "value": 192.8,
-        "lo": 189.4,
-        "hi": 196.2,
+        "value": 186.2,
+        "lo": 180.3,
+        "hi": 192.1,
         "confidence": 0.15
       }
     },
@@ -5092,24 +5117,24 @@ Example: `GET /api/forecast/traffic`
   ],
   "busiest": [
     {
-      "t": 1795795200000,
-      "aircraft": 44,
-      "msgRate": 191.2,
-      "inHours": 1
+      "t": 1795968000000,
+      "aircraft": 46,
+      "msgRate": 218.8,
+      "inHours": 49
     },
     /* … 4 more */
   ],
   "quietest": {
-    "t": 1795996800000,
-    "aircraft": 9,
-    "msgRate": 41.4,
-    "inHours": 57
+    "t": 1795824000000,
+    "aircraft": 8.9,
+    "msgRate": 35.7,
+    "inHours": 9
   },
   "recent": [
     {
       "t": 1795618800000,
       "aircraft": 43,
-      "msgRate": 177.8
+      "msgRate": 192.9
     },
     /* … 47 more */
   ]
@@ -5129,7 +5154,7 @@ Example: `GET /api/forecast/reception`
 ```jsonc
 {
   "product": "reception",
-  "generated": 1795792220032,
+  "generated": 1795792707024,
   "method": "Physics only: Open-Meteo forecast profile -\u003e refractivity N, gradient dN/dh, k-factor and ducts (ITU-R P.453/P.834); range = line of sight f…",
   "level": "physics",
   "confidence": "low",
@@ -5142,22 +5167,22 @@ Example: `GET /api/forecast/reception`
       "leadH": 0,
       "source": "forecast",
       "p95Km": {
-        "value": 385,
-        "lo": 296,
-        "hi": 473,
+        "value": 387,
+        "lo": 298,
+        "hi": 476,
         "confidence": 0.3
       },
       "maxKm": {
-        "value": 475,
-        "lo": 353,
-        "hi": 597,
+        "value": 473,
+        "lo": 352,
+        "hi": 595,
         "confidence": 0.3
       },
       "index": 50,
       "label": "normal",
       "farProbability": 0.009,
       "confidence": 0.3,
-      "aircraft": 42,
+      "aircraft": 42.2,
       "atmosphere": {
         "hasProfile": true,
         "nSurface": 313,
@@ -5176,13 +5201,13 @@ Example: `GET /api/forecast/reception`
         "inversionC": -1.9
       },
       "factors": [],
-      "summary": "Normal conditions: p95 range about 385 km."
+      "summary": "Normal conditions: p95 range about 387 km."
     },
     /* … 71 more */
   ],
-  "farKm": 545,
-  "typicalP95Km": 384,
-  "typicalMaxKm": 474,
+  "farKm": 543,
+  "typicalP95Km": 386,
+  "typicalMaxKm": 472,
   "antennaAmslM": 118,
   "bands": [
     {
@@ -5200,22 +5225,22 @@ Example: `GET /api/forecast/reception`
     "leadH": 61,
     "source": "forecast",
     "p95Km": {
-      "value": 388,
-      "lo": 268,
-      "hi": 508,
+      "value": 390,
+      "lo": 270,
+      "hi": 511,
       "confidence": 0.22
     },
     "maxKm": {
-      "value": 481,
-      "lo": 316,
-      "hi": 646,
+      "value": 479,
+      "lo": 315,
+      "hi": 643,
       "confidence": 0.22
     },
     "index": 55,
     "label": "normal",
     "farProbability": 0.02,
     "confidence": 0.22,
-    "aircraft": 26,
+    "aircraft": 25,
     "atmosphere": {
       "hasProfile": true,
       "nSurface": 318.2,
@@ -5240,13 +5265,13 @@ Example: `GET /api/forecast/reception`
         "effectKm": 4.4
       }
     ],
-    "summary": "Normal conditions: p95 range about 388 km; stronger downward bending of radio waves than usual (dN/dh -52 N/km, k = 1.50)."
+    "summary": "Normal conditions: p95 range about 390 km; stronger downward bending of radio waves than usual (dN/dh -52 N/km, k = 1.50)."
   },
   "recent": [
     {
       "t": 1795618800000,
-      "p95Km": 371.9,
-      "maxKm": 468.8,
+      "p95Km": 388.4,
+      "maxKm": 472.7,
       "index": 50
     },
     /* … 47 more */
@@ -5268,7 +5293,7 @@ Example: `GET /api/forecast/weather`
 ```jsonc
 {
   "product": "weather",
-  "generated": 1795792220032,
+  "generated": 1795792707024,
   "method": "Open-Meteo forecast as issued (no verified local bias yet), plus an independent Zambretti barometric forecast with a Kalman-filtered pressur…",
   "level": "physics",
   "confidence": "medium",
@@ -5368,14 +5393,14 @@ Example: `GET /api/forecast/outlook`
 
 ```jsonc
 {
-  "generated": 1795792223580,
+  "generated": 1795792710426,
   "status": {
-    "fitted": 1795792220000,
-    "built": 1795792220032,
+    "fitted": 1795792707000,
+    "built": 1795792707024,
     "dataHours": 60
   },
   "nowcast": {
-    "generated": 1795792220032,
+    "generated": 1795792707024,
     "t": 1795791600000,
     "index": 50,
     "label": "normal",
@@ -5390,14 +5415,14 @@ Example: `GET /api/forecast/outlook`
       /* … 6 more */
     ],
     "p95Km": {
-      "value": 385,
-      "lo": 296,
-      "hi": 473,
+      "value": 387,
+      "lo": 298,
+      "hi": 476,
       "confidence": 0.3
     },
     "farProbability": 0.009,
-    "aircraft": 42,
-    "sentence": "Reception normal (index 50), steady for the next 6 h; expected range about 385 km.",
+    "aircraft": 42.2,
+    "sentence": "Reception normal (index 50), steady for the next 6 h; expected range about 387 km.",
     "confidence": "low",
     "level": "physics"
   },
@@ -5406,32 +5431,32 @@ Example: `GET /api/forecast/outlook`
     "confidence": "low",
     "busiest": [
       {
-        "t": 1795795200000,
-        "aircraft": 44,
-        "msgRate": 191.2,
-        "inHours": 1
+        "t": 1795968000000,
+        "aircraft": 46,
+        "msgRate": 218.8,
+        "inHours": 49
       },
       /* … 4 more */
     ],
     "quietest": {
-      "t": 1795996800000,
-      "aircraft": 9,
-      "msgRate": 41.4,
-      "inHours": 57
+      "t": 1795824000000,
+      "aircraft": 8.9,
+      "msgRate": 35.7,
+      "inHours": 9
     },
     "next": [
       {
         "t": 1795791600000,
         "aircraft": {
-          "value": 42,
-          "lo": 40.6,
-          "hi": 43.4,
+          "value": 42.2,
+          "lo": 40.5,
+          "hi": 43.9,
           "confidence": 0.15
         },
         "msgRate": {
-          "value": 192.8,
-          "lo": 189.4,
-          "hi": 196.2,
+          "value": 186.2,
+          "lo": 180.3,
+          "hi": 192.1,
           "confidence": 0.15
         }
       },
@@ -5441,29 +5466,29 @@ Example: `GET /api/forecast/outlook`
   "reception": {
     "level": "physics",
     "confidence": "low",
-    "typicalP95Km": 384,
-    "farKm": 545,
+    "typicalP95Km": 386,
+    "farKm": 543,
     "best": {
       "t": 1796011200000,
       "leadH": 61,
       "source": "forecast",
       "p95Km": {
-        "value": 388,
-        "lo": 268,
-        "hi": 508,
+        "value": 390,
+        "lo": 270,
+        "hi": 511,
         "confidence": 0.22
       },
       "maxKm": {
-        "value": 481,
-        "lo": 316,
-        "hi": 646,
+        "value": 479,
+        "lo": 315,
+        "hi": 643,
         "confidence": 0.22
       },
       "index": 55,
       "label": "normal",
       "farProbability": 0.02,
       "confidence": 0.22,
-      "aircraft": 26,
+      "aircraft": 25,
       "atmosphere": {
         "hasProfile": true,
         "nSurface": 318.2,
@@ -5488,7 +5513,7 @@ Example: `GET /api/forecast/outlook`
           "effectKm": 4.4
         }
       ],
-      "summary": "Normal conditions: p95 range about 388 km; stronger downward bending of radio waves than usual (dN/dh -52 N/km, k = 1.50)."
+      "summary": "Normal conditions: p95 range about 390 km; stronger downward bending of radio waves than usual (dN/dh -52 N/km, k = 1.50)."
     },
     "bands": [
       {
@@ -5507,22 +5532,22 @@ Example: `GET /api/forecast/outlook`
         "leadH": 0,
         "source": "forecast",
         "p95Km": {
-          "value": 385,
-          "lo": 296,
-          "hi": 473,
+          "value": 387,
+          "lo": 298,
+          "hi": 476,
           "confidence": 0.3
         },
         "maxKm": {
-          "value": 475,
-          "lo": 353,
-          "hi": 597,
+          "value": 473,
+          "lo": 352,
+          "hi": 595,
           "confidence": 0.3
         },
         "index": 50,
         "label": "normal",
         "farProbability": 0.009,
         "confidence": 0.3,
-        "aircraft": 42,
+        "aircraft": 42.2,
         "atmosphere": {
           "hasProfile": true,
           "nSurface": 313,
@@ -5541,7 +5566,7 @@ Example: `GET /api/forecast/outlook`
           "inversionC": -1.9
         },
         "factors": [],
-        "summary": "Normal conditions: p95 range about 385 km."
+        "summary": "Normal conditions: p95 range about 387 km."
       },
       /* … 11 more */
     ]
@@ -5640,8 +5665,8 @@ Example: `GET /api/forecast/verification`
 
 ```jsonc
 {
-  "generated": 1795792220032,
-  "fitted": 1795792220000,
+  "generated": 1795792707024,
+  "fitted": 1795792707000,
   "summary": "0 of 6 models fully trained, 0 learning, 6 waiting for data.",
   "models": [
     {
@@ -5674,7 +5699,7 @@ Example: `GET /api/forecast/nowcast`
 
 ```jsonc
 {
-  "generated": 1795792220032,
+  "generated": 1795792707024,
   "t": 1795791600000,
   "index": 50,
   "label": "normal",
@@ -5689,14 +5714,14 @@ Example: `GET /api/forecast/nowcast`
     /* … 6 more */
   ],
   "p95Km": {
-    "value": 385,
-    "lo": 296,
-    "hi": 473,
+    "value": 387,
+    "lo": 298,
+    "hi": 476,
     "confidence": 0.3
   },
   "farProbability": 0.009,
-  "aircraft": 42,
-  "sentence": "Reception normal (index 50), steady for the next 6 h; expected range about 385 km.",
+  "aircraft": 42.2,
+  "sentence": "Reception normal (index 50), steady for the next 6 h; expected range about 387 km.",
   "confidence": "low",
   "level": "physics"
 }
@@ -5712,8 +5737,8 @@ Example: `GET /api/forecast/status`
 
 ```jsonc
 {
-  "fitted": 1795792220000,
-  "built": 1795792220032,
+  "fitted": 1795792707000,
+  "built": 1795792707024,
   "dataHours": 60
 }
 ```
@@ -5732,8 +5757,8 @@ Example: `POST /api/forecast/refit` -> `200`
 {
   "ok": true,
   "status": {
-    "fitted": 1795792223000,
-    "built": 1795792223581,
+    "fitted": 1795792710000,
+    "built": 1795792710427,
     "dataHours": 60
   }
 }
@@ -5770,16 +5795,16 @@ Example: `GET /api/timing/ntp`
   },
   "latest": null,
   "hour": {
-    "count": 54,
-    "spanSec": 3392,
-    "offsetMeanMs": 3.253705091700066,
+    "count": 55,
+    "spanSec": 3456,
+    "offsetMeanMs": 3.2645190468255,
     "offsetMinMs": 2.4814062525512335,
     "offsetMaxMs": 3.986369084308231,
-    "offsetStdMs": 0.4196363799252475,
-    "delayMeanMs": 20.4453841094778,
+    "offsetStdMs": 0.42339752946124265,
+    "delayMeanMs": 20.464551866700393,
     "delayMinMs": 18.27972027715973,
     "delayMaxMs": 21.98835035104505,
-    "driftPpm": -0.3910614939360421,
+    "driftPpm": -0.3882154905646366,
     "polls": 0,
     "failures": 0,
     "steps": 0
@@ -5838,13 +5863,13 @@ Example: `GET /api/timing/history`
 
 ```jsonc
 {
-  "from": 1795705823593,
-  "to": 1795792223593,
+  "from": 1795706310439,
+  "to": 1795792710439,
   "source": "memory",
   "total": 1348,
   "samples": [
     {
-      "t": 1795705869000,
+      "t": 1795706359000,
       "server": "pool.ntp.org",
       "offsetMs": 1.6980673543500509,
       "delayMs": 20.092238106600732,
@@ -5874,45 +5899,44 @@ Example: `GET /api/timing/latency`
 
 ```jsonc
 {
-  "now": 1795792223601,
+  "now": 1795792710446,
   "clockOffsetMs": 0,
   "clockSynced": false,
   "feeds": [
     {
       "feedId": "demo",
-      "total": 6075,
-      "samples": 678,
-      "windowS": 30.3,
-      "lastMs": 1.798,
-      "meanMs": 2.9,
-      "stdMs": 3.047,
-      "minMs": 1.664,
+      "total": 6142,
+      "samples": 671,
+      "windowS": 29.9,
+      "lastMs": 2.215,
+      "meanMs": 3.027,
+      "stdMs": 3.372,
+      "minMs": 1.666,
       "maxMs": 27.915,
-      "p01Ms": 1.692,
-      "p05Ms": 1.75,
-      "p25Ms": 1.944,
-      "p50Ms": 2.279,
-      "p75Ms": 2.878,
-      "p95Ms": 4.183,
-      "p99Ms": 23.507,
+      "p01Ms": 1.705,
+      "p05Ms": 1.739,
+      "p25Ms": 1.955,
+      "p50Ms": 2.299,
+      "p75Ms": 2.863,
+      "p95Ms": 4.673,
+      "p99Ms": 25.167,
       "hist": [
         {
-          "loMs": 1.676,
-          "hiMs": 2.294,
-          "count": 343
+          "loMs": 1.681,
+          "hiMs": 2.307,
+          "count": 341
         },
         /* … 39 more */
       ],
       "history": [
         {
-          "t": 1795792140000,
-          "samples": 150,
-          "minMs": 1.677,
-          "p05Ms": 1.73,
-          "p50Ms": 2.356,
-          "p95Ms": 3.994
-        },
-        /* … 1 more */
+          "t": 1795792680000,
+          "samples": 593,
+          "minMs": 1.666,
+          "p05Ms": 1.735,
+          "p50Ms": 2.299,
+          "p95Ms": 4.685
+        }
       ],
       "clockOffsetMs": 0,
       "clockSynced": false,
@@ -5920,53 +5944,53 @@ Example: `GET /api/timing/latency`
     }
   ],
   "chain": {
-    "now": 1795792223599,
+    "now": 1795792710439,
     "windowSec": 900,
     "receiverSet": true,
     "clockSynced": false,
     "clockOffsetMs": 0,
     "hostOffsetMs": 1.6641,
     "hostOffsetCorrected": false,
-    "aircraft": 44,
+    "aircraft": 42,
     "aircraftT1": 4,
-    "shareT1": 0.0909,
-    "msgShareT1": 0.0957,
+    "shareT1": 0.0952,
+    "msgShareT1": 0.1013,
     "stages": [
       {
         "key": "propagation",
         "label": "Propagation",
         "description": "Slant range from the antenna to the aircraft divided by the radio speed (c / (1+N·1e-6), tropospheric refractivity included).",
-        "count": 1217,
+        "count": 1226,
         "minMs": 0.0208,
-        "p50Ms": 0.3858,
-        "p95Ms": 1.1636,
-        "p99Ms": 1.3591,
-        "maxMs": 1.4077,
-        "meanMs": 0.4645,
+        "p50Ms": 0.3821,
+        "p95Ms": 1.1232,
+        "p99Ms": 1.307,
+        "maxMs": 1.403,
+        "meanMs": 0.468,
         "uncertaintyMs": 0.002,
         "exact": true
       },
       /* … 6 more */
     ],
     "counts": {
-      "frames": 6164,
-      "gpsFrames": 6056,
+      "frames": 6210,
+      "gpsFrames": 6105,
       "noGps": 0,
-      "mlatExcluded": 108,
-      "positions": 1327,
-      "positionsRanged": 1217,
-      "positionsT1": 127,
-      "positionsT0": 1200,
+      "mlatExcluded": 105,
+      "positions": 1323,
+      "positionsRanged": 1226,
+      "positionsT1": 134,
+      "positionsT0": 1189,
       "negativeDelay": 0,
       "absurdDelay": 0,
       "oneSecondAhead": 0,
       "gpsTimeNotUtc": 0,
       "legacyRange": 0,
-      "processingGated": 236,
+      "processingGated": 302,
       "rangeGated": 0,
       "t1OutOfSpec": 0,
       "t1UnexpectedTc": 0,
-      "agePairs": 1156,
+      "agePairs": 1162,
       "ageTurnsSkipped": 0,
       "ageStaleRepeats": 0,
       "agePairsGated": 0,
@@ -5977,12 +6001,12 @@ Example: `GET /api/timing/latency`
     "feeds": [
       {
         "feedId": "demo",
-        "samples": 6037,
+        "samples": 6086,
         "negative": 0,
         "absurd": 0,
-        "lastMs": 2.5081,
+        "lastMs": 1.6785,
         "floorMs": 1.6641,
-        "jitterMs": 0.0007,
+        "jitterMs": 0.0039,
         "driftUsPerMin": null,
         "intervals": 4,
         "status": "ok",
@@ -5995,7 +6019,7 @@ Example: `GET /api/timing/latency`
       {
         "level": "info",
         "key": "propagation",
-        "text": "Radio propagation takes 386 µs at the median (21–1408 µs): light needs 3.34 µs per km."
+        "text": "Radio propagation takes 382 µs at the median (21–1403 µs): light needs 3.34 µs per km."
       },
       /* … 7 more */
     ]
@@ -6006,12 +6030,12 @@ Example: `GET /api/timing/latency`
       "label": "Propagation",
       "unit": "ms",
       "scale": "log",
-      "count": 1217,
+      "count": 1226,
       "bins": [
         {
           "lo": 0.02,
           "hi": 0.0211,
-          "n": 39
+          "n": 41
         },
         /* … 73 more */
       ]
@@ -6035,10 +6059,10 @@ Example: `GET /api/timing/latency/aircraft`
 {
   "aircraft": [
     {
-      "icao": "406BD7",
-      "firstSeen": 1795792193319,
-      "lastSeen": 1795792223417,
-      "n": 164,
+      "icao": "44F2CE",
+      "firstSeen": 1795792680585,
+      "lastSeen": 1795792710435,
+      "n": 123,
       "positions": 60,
       "t1": 0,
       "t0": 60,
@@ -6050,17 +6074,17 @@ Example: `GET /api/timing/latency/aircraft`
       "xpdrMinMs": null,
       "xpdrMaxMs": null,
       "agePairs": 57,
-      "ageJitterMs": 0,
-      "ageModelMs": 0,
+      "ageJitterMs": 12.2142,
+      "ageModelMs": 21.1557,
       "ageCheckMs": null,
-      "positionAgeMs": 0,
+      "positionAgeMs": 21.1557,
       "ageExact": false,
-      "propMeanUs": 81.0244,
-      "propLastUs": 78.5966,
-      "slantKm": 23.5556,
+      "propMeanUs": 21.0243,
+      "propLastUs": 21.6627,
+      "slantKm": 6.4924,
       "flags": []
     },
-    /* … 43 more */
+    /* … 41 more */
   ]
 }
 ```
@@ -6079,12 +6103,12 @@ Example: `GET /api/timing/latency/aircraft/3007E2`
 {
   "row": {
     "icao": "3007E2",
-    "firstSeen": 1795792193498,
-    "lastSeen": 1795792223227,
-    "n": 159,
-    "positions": 57,
+    "firstSeen": 1795792680778,
+    "lastSeen": 1795792710338,
+    "n": 158,
+    "positions": 55,
     "t1": 0,
-    "t0": 57,
+    "t0": 55,
     "tFlag": false,
     "lastTc": 11,
     "xpdrN": 0,
@@ -6092,35 +6116,35 @@ Example: `GET /api/timing/latency/aircraft/3007E2`
     "xpdrStdMs": null,
     "xpdrMinMs": null,
     "xpdrMaxMs": null,
-    "agePairs": 54,
-    "ageJitterMs": 0,
-    "ageModelMs": 0,
+    "agePairs": 52,
+    "ageJitterMs": 5.2666,
+    "ageModelMs": 9.1221,
     "ageCheckMs": null,
-    "positionAgeMs": 0,
+    "positionAgeMs": 9.1221,
     "ageExact": false,
-    "propMeanUs": 90.211,
-    "propLastUs": 95.1599,
-    "slantKm": 28.5232,
+    "propMeanUs": 90.1899,
+    "propLastUs": 95.1759,
+    "slantKm": 28.5281,
     "flags": []
   },
   "waterfall": {
     "icao": "3007E2",
-    "t": 1795792223035,
+    "t": 1795792710338,
     "df": 17,
     "tc": 11,
     "tFlag": false,
     "cprOdd": true,
     "feed": "demo",
     "exact": false,
-    "slantKm": 28.5232,
-    "elevDeg": 18.3264,
+    "slantKm": 28.5281,
+    "elevDeg": 18.3232,
     "events": [
       {
         "key": "applicability",
         "label": "Time of applicability",
-        "utc": "2026-11-27T15:10:23.032739943Z",
+        "utc": "2026-11-27T15:18:30.325738107Z",
         "atMs": 0,
-        "uncMs": 0
+        "uncMs": 7.0056
       },
       /* … 4 more */
     ],
@@ -6128,14 +6152,14 @@ Example: `GET /api/timing/latency/aircraft/3007E2`
       {
         "key": "positionAge",
         "label": "Position age at transmit",
-        "ns": 0,
-        "ms": 0,
-        "uncMs": 0,
+        "ns": 10046923,
+        "ms": 10.0469,
+        "uncMs": 7.0056,
         "method": "estimated"
       },
       /* … 3 more */
     ],
-    "totalMs": 3.9775,
+    "totalMs": 13.4742,
     "totalUncMs": null,
     "notes": ["host clock not NTP-corrected: receiver→host delay contains the host clock error", "T=0: time of applicability estimated from the kinematic position-age model (constant latency is not observable without T=1); uncertainty inc…"]
   }
@@ -6160,21 +6184,7 @@ Example: `GET /api/timing/latency/feeds/demo`
 {
   "feed": "demo",
   "feeds": ["demo"],
-  "series": [
-    {
-      "t": 1795792140000,
-      "n": 1279,
-      "minMs": 1.6643,
-      "p50Ms": 2.2337,
-      "p95Ms": 4.0866,
-      "maxMs": 27.5411,
-      "meanMs": 2.6101,
-      "floorMs": 1.6643,
-      "jitterMs": null,
-      "neg": 0,
-      "absurd": 0
-    }
-  ]
+  "series": []
 }
 ```
 
@@ -6210,19 +6220,19 @@ Example: `GET /api/timing/ntpcheck`
   "feeds": [
     {
       "feedId": "demo",
-      "samples": 6038,
+      "samples": 6088,
       "negative": 0,
       "absurd": 0,
-      "lastMs": 2.786,
+      "lastMs": 2.5337,
       "floorMs": 1.6641,
-      "jitterMs": 0.0007,
+      "jitterMs": 0.0039,
       "driftUsPerMin": null,
       "intervals": 4,
       "status": "ok",
       "issues": [],
       "minima": [
         {
-          "t": 1795792190000,
+          "t": 1795792680000,
           "ms": 1.6643
         },
         /* … 3 more */
@@ -6248,7 +6258,7 @@ Example: `GET /api/timing/receiver`
 
 ```jsonc
 {
-  "now": 1795792223606,
+  "now": 1795792710449,
   "model": "",
   "feeds": [
     {
@@ -6266,9 +6276,9 @@ Example: `GET /api/timing/receiver`
   "statusFrames": 30,
   "history": [
     {
-      "t": 1795792194000,
+      "t": 1795792681000,
       "feed": "demo",
-      "status": [17, 0, 159, 0, 0, 0, 0, 0, /* … 6 more */]
+      "status": [17, 2, 159, 0, 0, 0, 0, 0, /* … 6 more */]
     },
     /* … 19 more */
   ]
@@ -6322,20 +6332,20 @@ Example: `GET /api/guess`
 ```jsonc
 {
   "ant": "",
-  "cells": 33257,
-  "positions": 6441474,
+  "cells": 33285,
+  "positions": 6617958,
   "ok": true,
   "estimates": [
     {
       "method": "centroid",
       "label": "Centroid of all positions",
       "ok": true,
-      "lat": 50.20498,
-      "lon": 8.58302,
-      "uncertaintyKm": 94.7534,
-      "errorKm": 17.2755,
-      "weight": 0.0004,
-      "detail": "2267 cells, r.m.s. radius 316 km; biased towards busy airways and away from blocked sectors"
+      "lat": 50.19182,
+      "lon": 8.62199,
+      "uncertaintyKm": 94.9121,
+      "errorKm": 15.8474,
+      "weight": 0.0005,
+      "detail": "2275 cells, r.m.s. radius 316 km; biased towards busy airways and away from blocked sectors"
     },
     /* … 4 more */
   ],
@@ -6343,56 +6353,56 @@ Example: `GET /api/guess`
     "method": "fused",
     "label": "Best estimate (Locate Me v2)",
     "ok": true,
-    "lat": 50.05487,
-    "lon": 8.56403,
-    "uncertaintyKm": 2.005,
-    "errorKm": 2.625,
+    "lat": 50.04611,
+    "lon": 8.57665,
+    "uncertaintyKm": 2.101,
+    "errorKm": 1.722,
     "weight": 1,
-    "r95Km": 5.027,
-    "detail": "Locate Me v2: 399969 stored trail positions of 1861 aircraft (1906 passes); terms: horizon, endpoints, signal; smooth earth; 95 % radius 4.9…"
+    "r95Km": 5.298,
+    "detail": "Locate Me v2: 399828 stored trail positions of 1870 aircraft (1910 passes); terms: horizon, endpoints, signal; smooth earth; 95 % radius 5.2…"
   },
   "located": true,
   "configured": {
     "lat": 50.05,
     "lon": 8.6
   },
-  "formatted": "50.0549, 8.5640",
+  "formatted": "50.0461, 8.5767",
   "maidenhead": "JO40gb",
   "surface": {
     "method": "locate2",
-    "south": 49.87772,
-    "west": 8.28869,
-    "dLat": 0.01101,
-    "dLon": 0.017148,
+    "south": 49.85904,
+    "west": 8.2863,
+    "dLat": 0.011626,
+    "dLon": 0.018104,
     "rows": 33,
     "cols": 33,
     "cost": [1, 1, 1, 1, 1, 1, 1, 1, /* … 1081 more */],
-    "minLat": 50.05388,
-    "minLon": 8.56305
+    "minLat": 50.05669,
+    "minLon": 8.66648
   },
-  "notes": ["Uncertainty radii are heuristic: they describe how sharply each method pins the position down, not a guaranteed error bound.", "Weights: Locate Me v2 97.8 %, classic methods 2.2 %. The weights follow the uncertainties (1/σ²): v2's σ of 2.0 km is much smaller than t…", "The accuracy circle (radius 5.0 km) holds the station with about 95 % probability; it includes an allowance for model errors on a real site …"],
+  "notes": ["Uncertainty radii are heuristic: they describe how sharply each method pins the position down, not a guaranteed error bound.", "Weights: Locate Me v2 97.7 %, classic methods 2.3 %. The weights follow the uncertainties (1/σ²): v2's σ of 2.1 km is much smaller than t…", "The accuracy circle (radius 5.3 km) holds the station with about 95 % probability; it includes an allowance for model errors on a real site …"],
   "locate2": {
     "ok": true,
-    "lat": 50.05388,
-    "lon": 8.56305,
-    "mapLat": 50.05388,
-    "mapLon": 8.56305,
-    "sigmaKm": 2.001,
-    "r95Km": 4.897,
-    "majorKm": 2.001,
-    "minorKm": 2.001,
-    "axisDeg": 135,
+    "lat": 50.04506,
+    "lon": 8.57596,
+    "mapLat": 50.04146,
+    "mapLon": 8.58015,
+    "sigmaKm": 2.097,
+    "r95Km": 5.171,
+    "majorKm": 2.113,
+    "minorKm": 2.082,
+    "axisDeg": 63.5,
     "antennaM": 200,
-    "samples": 399969,
-    "sessions": 1906,
-    "aircraft": 1861,
+    "samples": 399828,
+    "sessions": 1910,
+    "aircraft": 1870,
     "terrain": false,
     "source": "positions",
     "terms": [
       {
         "name": "horizon",
         "used": true,
-        "n": 27187,
+        "n": 31864,
         "detail": "aircraft must be above the radio horizon / terrain panorama; surface positions draw airport line-of-sight discs",
         "deltaLL": 0
       },
@@ -6404,27 +6414,27 @@ Example: `GET /api/guess`
         "nodes": 1961,
         "halfKm": 200,
         "horizon": 60000,
-        "signal": 9466,
-        "endpoints": 1163
+        "signal": 9499,
+        "endpoints": 1171
       },
       /* … 3 more */
     ],
     "surface": {
       "method": "locate2",
-      "south": 49.87772,
-      "west": 8.28869,
-      "dLat": 0.01101,
-      "dLon": 0.017148,
+      "south": 49.85904,
+      "west": 8.2863,
+      "dLat": 0.011626,
+      "dLon": 0.018104,
       "rows": 33,
       "cols": 33,
       "cost": [1, 1, 1, 1, 1, 1, 1, 1, /* … 1081 more */],
-      "minLat": 50.05388,
-      "minLon": 8.56305
+      "minLat": 50.05669,
+      "minLon": 8.66648
     },
-    "elapsedMs": 7000,
+    "elapsedMs": 6572,
     "notes": [],
-    "errorKm": 2.673,
-    "skylineRaised": 0.139,
+    "errorKm": 1.802,
+    "skylineRaised": 0.167,
     "refSource": "configured"
   }
 }
@@ -6447,20 +6457,20 @@ Example: `POST /api/guess` -> `200`
 ```jsonc
 {
   "ant": "",
-  "cells": 33257,
-  "positions": 6441866,
+  "cells": 33285,
+  "positions": 6618348,
   "ok": true,
   "estimates": [
     {
       "method": "centroid",
       "label": "Centroid of all positions",
       "ok": true,
-      "lat": 50.20497,
-      "lon": 8.58302,
-      "uncertaintyKm": 94.7533,
-      "errorKm": 17.2744,
+      "lat": 50.19182,
+      "lon": 8.62199,
+      "uncertaintyKm": 94.912,
+      "errorKm": 15.8474,
       "weight": 0.0004,
-      "detail": "2267 cells, r.m.s. radius 316 km; biased towards busy airways and away from blocked sectors"
+      "detail": "2275 cells, r.m.s. radius 316 km; biased towards busy airways and away from blocked sectors"
     },
     /* … 4 more */
   ],
@@ -6468,56 +6478,56 @@ Example: `POST /api/guess` -> `200`
     "method": "fused",
     "label": "Best estimate (Locate Me v2)",
     "ok": true,
-    "lat": 50.05211,
-    "lon": 8.60828,
-    "uncertaintyKm": 2.035,
-    "errorKm": 0.636,
+    "lat": 50.05924,
+    "lon": 8.59712,
+    "uncertaintyKm": 2.008,
+    "errorKm": 1.048,
     "weight": 1,
-    "r95Km": 5.164,
-    "detail": "Locate Me v2: 399987 stored trail positions of 1866 aircraft (1911 passes); terms: horizon, endpoints, signal; smooth earth; 95 % radius 5.0…"
+    "r95Km": 4.99,
+    "detail": "Locate Me v2: 399846 stored trail positions of 1873 aircraft (1913 passes); terms: horizon, endpoints, signal; smooth earth; 95 % radius 4.9…"
   },
   "located": true,
   "configured": {
     "lat": 50.05,
     "lon": 8.6
   },
-  "formatted": "50.0521, 8.6083",
+  "formatted": "50.0592, 8.5971",
   "maidenhead": "JO40hb",
   "surface": {
     "method": "locate2",
-    "south": 49.86961,
-    "west": 8.32575,
-    "dLat": 0.011338,
-    "dLon": 0.017658,
+    "south": 49.88185,
+    "west": 8.3217,
+    "dLat": 0.011044,
+    "dLon": 0.017202,
     "rows": 33,
     "cols": 33,
     "cost": [1, 1, 1, 1, 1, 1, 1, 1, /* … 1081 more */],
-    "minLat": 50.05102,
-    "minLon": 8.60828
+    "minLat": 50.08064,
+    "minLon": 8.59693
   },
-  "notes": ["Uncertainty radii are heuristic: they describe how sharply each method pins the position down, not a guaranteed error bound.", "Weights: Locate Me v2 97.8 %, classic methods 2.2 %. The weights follow the uncertainties (1/σ²): v2's σ of 2.0 km is much smaller than t…", "The accuracy circle (radius 5.2 km) holds the station with about 95 % probability; it includes an allowance for model errors on a real site …"],
+  "notes": ["Uncertainty radii are heuristic: they describe how sharply each method pins the position down, not a guaranteed error bound.", "Weights: Locate Me v2 97.9 %, classic methods 2.1 %. The weights follow the uncertainties (1/σ²): v2's σ of 2.0 km is much smaller than t…", "The accuracy circle (radius 5.0 km) holds the station with about 95 % probability; it includes an allowance for model errors on a real site …"],
   "locate2": {
     "ok": true,
-    "lat": 50.05102,
-    "lon": 8.60828,
-    "mapLat": 50.0512,
-    "mapLon": 8.60857,
-    "sigmaKm": 2.031,
-    "r95Km": 5.043,
-    "majorKm": 2.06,
-    "minorKm": 2.001,
-    "axisDeg": 45,
+    "lat": 50.05855,
+    "lon": 8.59693,
+    "mapLat": 50.04325,
+    "mapLon": 8.57735,
+    "sigmaKm": 2.006,
+    "r95Km": 4.912,
+    "majorKm": 2.007,
+    "minorKm": 2.006,
+    "axisDeg": 13.3,
     "antennaM": 200,
-    "samples": 399987,
-    "sessions": 1911,
-    "aircraft": 1866,
+    "samples": 399846,
+    "sessions": 1913,
+    "aircraft": 1873,
     "terrain": false,
     "source": "positions",
     "terms": [
       {
         "name": "horizon",
         "used": true,
-        "n": 33635,
+        "n": 30595,
         "detail": "aircraft must be above the radio horizon / terrain panorama; surface positions draw airport line-of-sight discs",
         "deltaLL": 0
       },
@@ -6529,27 +6539,27 @@ Example: `POST /api/guess` -> `200`
         "nodes": 1961,
         "halfKm": 200,
         "horizon": 60000,
-        "signal": 9475,
-        "endpoints": 1163
+        "signal": 9481,
+        "endpoints": 1171
       },
       /* … 3 more */
     ],
     "surface": {
       "method": "locate2",
-      "south": 49.86961,
-      "west": 8.32575,
-      "dLat": 0.011338,
-      "dLon": 0.017658,
+      "south": 49.88185,
+      "west": 8.3217,
+      "dLat": 0.011044,
+      "dLon": 0.017202,
       "rows": 33,
       "cols": 33,
       "cost": [1, 1, 1, 1, 1, 1, 1, 1, /* … 1081 more */],
-      "minLat": 50.05102,
-      "minLon": 8.60828
+      "minLat": 50.08064,
+      "minLon": 8.59693
     },
-    "elapsedMs": 10656,
+    "elapsedMs": 6105,
     "notes": [],
-    "errorKm": 0.602,
-    "skylineRaised": 0.139,
+    "errorKm": 0.976,
+    "skylineRaised": 0.167,
     "refSource": "configured"
   }
 }
@@ -6576,25 +6586,25 @@ Example: `GET /api/history/aircraft?limit=3&sort=msgs`
 
 ```jsonc
 {
-  "total": 2165,
+  "total": 2151,
   "limit": 3,
   "offset": 0,
   "sort": "msgs",
   "desc": true,
   "rows": [
     {
-      "icao": "3DB8D5",
-      "firstSeen": 1795631415000,
-      "lastSeen": 1795638318000,
-      "callsign": "DMHCX",
-      "reg": "D-GQGB",
-      "country": "Germany",
-      "category": "A1",
-      "msgs": 51093,
+      "icao": "4071B5",
+      "firstSeen": 1795713309000,
+      "lastSeen": 1795720210000,
+      "callsign": "HLE87",
+      "operator": "UK Helicopter Emergency Medical Services",
+      "country": "United Kingdom",
+      "category": "A7",
+      "msgs": 49312,
       "flights": 1,
-      "positions": 13267,
-      "maxDistKm": 91.57393816704364,
-      "maxAlt": 2450,
+      "positions": 13605,
+      "maxDistKm": 61.46567384645876,
+      "maxAlt": 2150,
       "srcMask": 1,
       "flags": 0
     },
@@ -6615,142 +6625,132 @@ Same document as `/api/aircraft/{icao}` plus `events`. `404` when the address wa
 
 Response: [server.historyAircraftReply](#t-server-historyAircraftReply)
 
-Example: `GET /api/history/aircraft/47023A`
+Example: `GET /api/history/aircraft/C07B17`
 
 ```jsonc
 {
   "aircraft": {
-    "icao": "47023A",
+    "icao": "C07B17",
     "addrType": "icao",
-    "callsign": "WZZ8806",
-    "squawk": "1000",
-    "category": "A3",
-    "reg": "HA-AVY",
-    "operator": "Wizz Air",
-    "country": "Hungary",
-    "countryCode": "HU",
-    "lat": 50.852174920550844,
-    "lon": 12.09442138671875,
+    "callsign": "ACA1692",
+    "squawk": "0127",
+    "category": "A5",
+    "reg": "C-GUPY",
+    "operator": "Air Canada",
+    "country": "Canada",
+    "countryCode": "CA",
+    "lat": 50.44921875,
+    "lon": 4.180965939083615,
     "source": "adsb",
-    "posAge": 3.9,
+    "posAge": 0.3,
     "onGround": false,
-    "altBaro": 38000,
-    "altGeom": 38425,
+    "altBaro": 34000,
+    "altGeom": 34375,
     "vertRate": 0,
-    "selAlt": 38016,
-    "qnh": 1013.6,
-    "gs": 406.03078701004927,
-    "track": 256.6140391292226,
-    "ias": 243,
-    "tas": 444,
-    "mach": 0.768,
-    "magHeading": 255.05859375,
+    "selAlt": 34000,
+    "qnh": 1013.2,
+    "gs": 469.2557937841578,
+    "track": 219.89937037465526,
+    "ias": 296,
+    "tas": 494,
+    "mach": 0.844,
+    "magHeading": 220.25390625,
     "roll": 0,
     "trackRate": 0,
-    "selHeading": 255.234375,
-    "windDir": 289.81318173146354,
-    "windSpd": 44.5735370526442,
-    "oat": -53.044682741970774,
-    "adsbVersion": 2,
-    "nic": 8,
-    "nacp": 9,
+    "windDir": 266.3798162843274,
+    "windSpd": 34.987243883462675,
+    "oat": -47.54119835899226,
+    "nic": 7,
     "nacv": 2,
-    "sil": 3,
-    "rcM": 185.2,
-    "navModes": ["autopilot", "althold", "lnav", "tcas"],
-    "distKm": 263.70523429156356,
-    "bearing": 68.88274255022924,
-    "elevation": 1.598082659979899,
-    "slantKm": 264.1773095468714,
-    "rssi": -31.6,
-    "rssiAvg": -31.9,
-    "msgs": 204,
-    "msgRate": 4.4,
+    "rcM": 370.4,
+    "navModes": ["althold"],
+    "distKm": 318.2463636998003,
+    "bearing": 279.71489346236245,
+    "elevation": 0.7692454737153374,
+    "slantKm": 318.63967641344055,
+    "rssi": -34.9,
+    "rssiAvg": -32.1,
+    "msgs": 139,
+    "msgRate": 2.9,
     "antennas": ["vertical"],
     "feeds": ["demo"],
-    "firstSeen": 1795792194489,
-    "lastSeen": 1795792244122,
-    "flightId": 2161
+    "firstSeen": 1795792681411,
+    "lastSeen": 1795792725867,
+    "flightId": 2144
   },
   "trail": [
-    [1795792202928, 50.86851, 12.20299, 38000, 406.0, -32.4, 0],
-    [1795792208234, 50.86619, 12.18758, 38000, 406.0, -31.4, 0],
-    /* … 8 more */
+    [1795792686835, 50.51422, 4.26653, 34000, 469.3, -32.4, 0],
+    [1795792691814, 50.50594, 4.25561, 34000, 469.3, -31.4, 0],
+    /* … 9 more */
   ],
   "info": {
-    "icao": "47023A",
-    "country": "Hungary",
-    "countryCode": "HU",
-    "state": "Hungary",
-    "stateCode": "HU",
+    "icao": "C07B17",
+    "country": "Canada",
+    "countryCode": "CA",
+    "state": "Canada",
+    "stateCode": "CA",
     "alloc": "state",
-    "reg": "HA-AVY",
-    "operator": "Wizz Air",
-    "categoryDesc": "Large (75,000 to 300,000 lb / 34 to 136 t)",
+    "reg": "C-GUPY",
+    "operator": "Air Canada",
+    "categoryDesc": "Heavy (above 300,000 lb / 136 t)",
     "callsign": {
-      "callsign": "WZZ8806",
+      "callsign": "ACA1692",
       "kind": "flight",
-      "designator": "WZZ",
-      "flightNumber": "8806",
-      "operator": "Wizz Air",
+      "designator": "ACA",
+      "flightNumber": "1692",
+      "operator": "Air Canada",
       "operatorType": "airline",
-      "telephony": "WIZZ AIR",
-      "country": "Hungary",
-      "countryCode": "HU"
+      "telephony": "AIR CANADA",
+      "country": "Canada",
+      "countryCode": "CA"
     },
-    "spoken": "WIZZ AIR 8806",
-    "squawk": {
-      "code": "1000",
-      "meaning": "IFR conspicuity: Mode S / ADS-B flight identified by its flight ID instead of a discrete code",
-      "region": "Worldwide (ICAO); Canada: IFR below 18,000 ft without assigned code",
-      "kind": "conspicuity"
-    }
+    "spoken": "AIR CANADA 1692"
   },
   "acdb": null,
   "seen": {
-    "icao": "47023A",
-    "firstSeen": 1795792194000,
-    "lastSeen": 1795792231000,
-    "callsign": "WZZ8806",
-    "reg": "HA-AVY",
-    "operator": "Wizz Air",
-    "country": "Hungary",
-    "category": "A3",
-    "msgs": 146,
+    "icao": "C07B17",
+    "firstSeen": 1795792681000,
+    "lastSeen": 1795792718000,
+    "callsign": "ACA1692",
+    "reg": "C-GUPY",
+    "operator": "Air Canada",
+    "country": "Canada",
+    "category": "A5",
+    "msgs": 118,
     "flights": 1,
-    "positions": 24,
-    "maxDistKm": 271.5332668084317,
-    "maxAlt": 38000,
-    "srcMask": 17,
+    "positions": 30,
+    "maxDistKm": 317.2222276658001,
+    "maxAlt": 34000,
+    "srcMask": 1,
     "flags": 0
   },
   "flights": [
     {
-      "id": 2161,
-      "icao": "47023A",
-      "callsign": "WZZ8806",
-      "squawk": "1000",
-      "start": 1795792194000,
-      "end": 1795792231000,
-      "msgs": 146,
-      "positions": 24,
+      "id": 2144,
+      "icao": "C07B17",
+      "callsign": "ACA1692",
+      "squawk": "0127",
+      "start": 1795792681000,
+      "end": 1795792718000,
+      "msgs": 118,
+      "positions": 30,
       "srcMask": 1,
-      "maxDistKm": 271.5332668084317,
-      "maxDistBrg": 69.02739166697205,
-      "minDistKm": 265.49443051821964,
-      "minAlt": 38000,
-      "maxAlt": 38000,
-      "maxGs": 406.03078701004927,
-      "rssiMin": -35.8,
-      "rssiMax": -27.9,
-      "rssiAvg": -31.76758620689656,
-      "firstLat": 50.868514756024894,
-      "firstLon": 12.202987670898438,
-      "lastLat": 50.85594565181409,
-      "lastLon": 12.119216918945312,
-      "reg": "HA-AVY",
-      "operator": "Wizz Air",
-      "country": "Hungary"
+      "maxDistKm": 317.2222276658001,
+      "maxDistBrg": 279.99342286454345,
+      "minDistKm": 313.1090568926653,
+      "minAlt": 34000,
+      "maxAlt": 34000,
+      "maxGs": 469.2557937841578,
+      "rssiMin": -35.5,
+      "rssiMax": -26.6,
+      "rssiAvg": -31.75128205128205,
+      "firstLat": 50.51422119140625,
+      "firstLon": 4.2665260716488485,
+      "lastLat": 50.461974063162074,
+      "lastLon": 4.197742359058277,
+      "reg": "C-GUPY",
+      "operator": "Air Canada",
+      "country": "Canada"
     }
   ],
   "watch": null,
@@ -6783,19 +6783,19 @@ Example: `GET /api/history/flights?limit=3`
   "offset": 0,
   "flights": [
     {
-      "id": 2173,
+      "id": 2161,
       "icao": "39FED3",
-      "squawk": "1123",
-      "start": 1795792218000,
-      "end": 1795792230000,
-      "msgs": 5,
+      "start": 1795792713000,
+      "end": 1795792716000,
+      "msgs": 2,
       "positions": 0,
       "srcMask": 16,
       "minAlt": 31000,
       "maxAlt": 31000,
-      "rssiMin": -34.4,
-      "rssiMax": -33.9,
-      "rssiAvg": -34.1,
+      "maxGs": 487.48333304842333,
+      "rssiMin": -34.5,
+      "rssiMax": -34.5,
+      "rssiAvg": -34.5,
       "country": "France"
     },
     /* … 2 more */
@@ -6811,70 +6811,64 @@ One flight with its stored trail.
 
 Response: [server.flightReply](#t-server-flightReply)
 
-Example: `GET /api/history/flights/2161`
+Example: `GET /api/history/flights/2144`
 
 ```jsonc
 {
   "flight": {
-    "id": 2161,
-    "icao": "47023A",
-    "callsign": "WZZ8806",
-    "squawk": "1000",
-    "start": 1795792194000,
-    "end": 1795792231000,
-    "msgs": 146,
-    "positions": 24,
+    "id": 2144,
+    "icao": "C07B17",
+    "callsign": "ACA1692",
+    "squawk": "0127",
+    "start": 1795792681000,
+    "end": 1795792718000,
+    "msgs": 118,
+    "positions": 30,
     "srcMask": 1,
-    "maxDistKm": 271.5332668084317,
-    "maxDistBrg": 69.02739166697205,
-    "minDistKm": 265.49443051821964,
-    "minAlt": 38000,
-    "maxAlt": 38000,
-    "maxGs": 406.03078701004927,
-    "rssiMin": -35.8,
-    "rssiMax": -27.9,
-    "rssiAvg": -31.76758620689656,
-    "firstLat": 50.868514756024894,
-    "firstLon": 12.202987670898438,
-    "lastLat": 50.85594565181409,
-    "lastLon": 12.119216918945312,
-    "reg": "HA-AVY",
-    "operator": "Wizz Air",
-    "country": "Hungary"
+    "maxDistKm": 317.2222276658001,
+    "maxDistBrg": 279.99342286454345,
+    "minDistKm": 313.1090568926653,
+    "minAlt": 34000,
+    "maxAlt": 34000,
+    "maxGs": 469.2557937841578,
+    "rssiMin": -35.5,
+    "rssiMax": -26.6,
+    "rssiAvg": -31.75128205128205,
+    "firstLat": 50.51422119140625,
+    "firstLon": 4.2665260716488485,
+    "lastLat": 50.461974063162074,
+    "lastLon": 4.197742359058277,
+    "reg": "C-GUPY",
+    "operator": "Air Canada",
+    "country": "Canada"
   },
   "trail": [
-    [1795792202000, 50.86851, 12.20299, 38000, 406.0, -32.4, 0],
-    [1795792208000, 50.86619, 12.18758, 38000, 406.0, -31.4, 0],
+    [1795792686000, 50.51422, 4.26653, 34000, 469.0, -32.4, 0],
+    [1795792691000, 50.50594, 4.25561, 34000, 469.0, -31.4, 0],
     /* … 4 more */
   ],
   "info": {
-    "icao": "47023A",
-    "country": "Hungary",
-    "countryCode": "HU",
-    "state": "Hungary",
-    "stateCode": "HU",
+    "icao": "C07B17",
+    "country": "Canada",
+    "countryCode": "CA",
+    "state": "Canada",
+    "stateCode": "CA",
     "alloc": "state",
-    "reg": "HA-AVY",
-    "operator": "Wizz Air",
-    "categoryDesc": "Large (75,000 to 300,000 lb / 34 to 136 t)",
+    "reg": "C-GUPY",
+    "operator": "Air Canada",
+    "categoryDesc": "Heavy (above 300,000 lb / 136 t)",
     "callsign": {
-      "callsign": "WZZ8806",
+      "callsign": "ACA1692",
       "kind": "flight",
-      "designator": "WZZ",
-      "flightNumber": "8806",
-      "operator": "Wizz Air",
+      "designator": "ACA",
+      "flightNumber": "1692",
+      "operator": "Air Canada",
       "operatorType": "airline",
-      "telephony": "WIZZ AIR",
-      "country": "Hungary",
-      "countryCode": "HU"
+      "telephony": "AIR CANADA",
+      "country": "Canada",
+      "countryCode": "CA"
     },
-    "spoken": "WIZZ AIR 8806",
-    "squawk": {
-      "code": "1000",
-      "meaning": "IFR conspicuity: Mode S / ADS-B flight identified by its flight ID instead of a discrete code",
-      "region": "Worldwide (ICAO); Canada: IFR below 18,000 ft without assigned code",
-      "kind": "conspicuity"
-    }
+    "spoken": "AIR CANADA 1692"
   },
   "live": true,
   "airports": {
@@ -6898,52 +6892,53 @@ Example: `GET /api/db/stats`
 {
   "stats": {
     "path": "/var/lib/airview/airview.db",
-    "dbBytes": 28549120,
-    "walBytes": 807552,
+    "dbBytes": 28659712,
+    "walBytes": 675712,
     "pageSize": 4096,
-    "pageCount": 6970,
-    "freelistPages": 3146,
-    "queuedRows": 3,
-    "queuedOps": 1,
-    "flushes": 19,
-    "flushedRows": 2182,
+    "pageCount": 6997,
+    "freelistPages": 3170,
+    "queuedRows": 29,
+    "queuedOps": 6,
+    "flushes": 17,
+    "flushedRows": 2113,
     "flushErrors": 0,
     "failedOps": 0,
     "combinedCommits": 12,
     "droppedLow": 0,
     "droppedMid": 0,
     "droppedHigh": 0,
-    "lastFlush": 1795792243263,
-    "lastFlushMs": 0.541506,
+    "lastFlush": 1795792721979,
+    "lastFlushMs": 0.407278,
     "checkpoints": 0,
     "checkpointRestarts": 0,
     "checkpointTruncates": 2,
     "checkpointsIncomplete": 0,
-    "lastCheckpoint": 1795792223406,
+    "lastCheckpoint": 1795792710640,
     "lastCheckpointMs": 0,
-    "walPendingBytes": 802816,
+    "walPendingBytes": 671744,
     "vacuumedPages": 0
   },
   "tables": {
+    "acas_event": 0,
     "acdb": 0,
-    "aircraft": 2165,
+    "aircraft": 2151,
     "alerts_rule": 11,
     "alerts_watch": 0,
-    "coverage": 11139,
-    "elev_hist": 1593,
-    "events": 257,
+    "coverage": 11168,
+    "elev_hist": 1572,
+    "events": 253,
     "flight_station": 0,
-    "flights": 2173,
+    "flights": 2161,
     "flights_hour": 58,
-    "guess_samples": 173,
-    "heat": 82568,
+    "guess_samples": 138,
+    "heat": 82821,
     "hist_day": 0,
     "kv": 12,
     "latency_minute": 0,
-    "met_bias": 1735,
-    "met_obs": 66045,
-    "met_profile": 2542,
-    "met_sample": 66045,
+    "met_bias": 1700,
+    "met_obs": 64676,
+    "met_profile": 2548,
+    "met_sample": 64676,
     "mlat_minute": 0,
     "mlat_quality_hour": 0,
     "navdata_airport": 6,
@@ -6960,26 +6955,26 @@ Example: `GET /api/db/stats`
     "navdata_runway": 2,
     "navdata_runway_stage": 0,
     "ntp_samples": 3375,
-    "positions": 959181,
+    "positions": 968834,
     "predict_forecast_log": 28,
     "range_hour": 183,
-    "receiver_status": 3577,
+    "receiver_status": 3576,
     "records": 7,
     "rfstat_hour": 0,
     "rfstat_iid_hour": 0,
     "routes_learned": 0,
-    "routes_leg": 25,
+    "routes_leg": 11,
     "routes_meta": 0,
     "routes_obs": 0,
     "routes_override": 0,
     "routes_override_log": 0,
     "schema_data_migrations": 6,
-    "schema_migrations": 19,
-    "signal_hist": 9122,
+    "schema_migrations": 20,
+    "signal_hist": 9104,
     "stats_day": 0,
     "stats_hour": 183,
-    "stats_minute": 10804,
-    "trail_chunk": 4797,
+    "stats_minute": 10802,
+    "trail_chunk": 4852,
     "trail_tail": 43,
     "weather_fc": 73,
     "weather_fc_log": 0,
@@ -7043,10 +7038,10 @@ Example: `GET /api/db/stats`
         "version": 1,
         "state": "done",
         "rowsLeft": 0,
-        "rowsDone": 8,
+        "rowsDone": 9,
         "steps": 0,
-        "started": 1795792156000,
-        "updated": 1795792156000,
+        "started": 1795792646000,
+        "updated": 1795792646000,
         "eta": 0
       },
       /* … 5 more */
@@ -7070,9 +7065,9 @@ Example: `POST /api/db/vacuum` -> `200`
 ```jsonc
 {
   "ok": true,
-  "elapsedMs": 189,
-  "beforeBytes": 29356672,
-  "afterBytes": 14872576
+  "elapsedMs": 195,
+  "beforeBytes": 29335424,
+  "afterBytes": 14876672
 }
 ```
 
@@ -7090,8 +7085,8 @@ Example: `POST /api/db/prune` -> `200`
 {
   "ok": true,
   "elapsedMs": 3,
-  "beforeBytes": 14872576,
-  "afterBytes": 14905568,
+  "beforeBytes": 14876672,
+  "afterBytes": 14909664,
   "pruned": {
     "flights": 0,
     "positions": 0,
@@ -7121,9 +7116,9 @@ Example: `POST /api/db/checkpoint` -> `200`
 ```jsonc
 {
   "ok": true,
-  "elapsedMs": 13,
-  "beforeBytes": 14905568,
-  "afterBytes": 14876672
+  "elapsedMs": 10,
+  "beforeBytes": 14909664,
+  "afterBytes": 14880768
 }
 ```
 
@@ -7140,9 +7135,9 @@ Example: `POST /api/db/rollup` -> `200`
 ```jsonc
 {
   "ok": true,
-  "elapsedMs": 1,
-  "beforeBytes": 14876672,
-  "afterBytes": 14880824,
+  "elapsedMs": 0,
+  "beforeBytes": 14880768,
+  "afterBytes": 14884920,
   "hours": 3
 }
 ```
@@ -7218,8 +7213,8 @@ Example: `POST /api/db/acdb/upload?name=sample.csv` with a two-line tar1090-db f
   "running": false,
   "stage": "done",
   "source": "sample.csv",
-  "started": 1795792244550,
-  "finished": 1795792244551,
+  "started": 1795792726357,
+  "finished": 1795792726357,
   "progress": {
     "source": "",
     "url": "",
@@ -7249,8 +7244,8 @@ Example: `POST /api/db/acdb/cancel` -> `200`
   "running": false,
   "stage": "done",
   "source": "sample.csv",
-  "started": 1795792244550,
-  "finished": 1795792244551,
+  "started": 1795792726357,
+  "finished": 1795792726357,
   "progress": {
     "source": "",
     "url": "",
@@ -7280,8 +7275,8 @@ Example: `GET /api/db/acdb/progress`
   "running": false,
   "stage": "done",
   "source": "sample.csv",
-  "started": 1795792244550,
-  "finished": 1795792244551,
+  "started": 1795792726357,
+  "finished": 1795792726357,
   "progress": {
     "source": "",
     "url": "",
@@ -7388,8 +7383,8 @@ Example: `GET /api/db/export/records.csv`
 
 ```
 key,value,icao,t,detail_json
-max_aircraft,53,,1795792227,
-max_alt_ft,41000,3961749,1795577513,"{""altFt"":41000,""gsKt"":445,""rssi"":-35.7}"
+max_aircraft,52,,1795792717,
+max_alt_ft,41000,4597692,1795579447,"{""callsign"":""FIN52DC"",""reg"":""OH-PBG"",""lat"":48.08539,""lon"":11.39663,""altFt"":41000,""distKm"":299.12,""bearing"":135.9,""gsKt"":497,""rssi"":-33.5}"
 ...
 ```
 
@@ -7498,7 +7493,7 @@ Example: `GET /api/geo/magvar?lat=50.05&lon=8.6`
   "lat": 50.05,
   "lon": 8.6,
   "altKm": 0,
-  "t": 1795792244568,
+  "t": 1795792726372,
   "magVarDeg": 3.778,
   "inclDeg": 65.859,
   "totalNt": 49171.5,
@@ -7526,20 +7521,20 @@ Example: `GET /api/astro/now`
 
 ```jsonc
 {
-  "t": 1795792230000,
+  "t": 1795792710000,
   "located": true,
   "receiver": {
     "lat": 50.05,
     "lon": 8.6
   },
   "position": {
-    "azimuth": 233.3299304100106,
-    "elevation": 1.9335150161976302,
-    "trueElevation": 1.6233815625046089,
-    "declination": -21.198851820425286,
-    "hourAngle": 59.31189799026163,
-    "eqOfTimeMin": 12.347591961046549,
-    "distanceAu": 0.9867413682280367
+    "azimuth": 234.8767855807552,
+    "elevation": 0.9896443892169038,
+    "trueElevation": 0.5824790173020307,
+    "declination": -21.1998509817628,
+    "hourAngle": 61.31143502792153,
+    "eqOfTimeMin": 12.345740111686201,
+    "distanceAu": 0.9867403854503316
   },
   "phase": "day",
   "isDay": true,
@@ -7560,34 +7555,34 @@ Example: `GET /api/astro/now`
     "polarNight": false
   },
   "nightSide": {
-    "t": 1795792230000,
-    "subsolarLat": -21.198851820425286,
-    "subsolarLon": -50.71189799026163,
+    "t": 1795792710000,
+    "subsolarLat": -21.1998509817628,
+    "subsolarLon": -52.71143502792155,
     "sunset": [
-      [-180, -57.309005253449655],
-      [-178, -56.130294660816176],
+      [-180, -56.12924460930408],
+      [-178, -54.83800012967155],
       /* … 182 more */
     ],
     "civil": [
-      [-180, -49.82827994921404],
-      [-178, -48.405821851715935],
+      [-180, -48.40489501098343],
+      [-178, -46.84982930675905],
       /* … 182 more */
     ],
     "nautical": [
-      [-180, -41.035752045997015],
-      [-178, -39.31262592445312],
+      [-180, -39.31185142819178],
+      [-178, -37.42972151694298],
       /* … 182 more */
     ],
     "astronomical": [
-      [-180, -32.002213101130565],
-      [-178, -29.936032459791523],
+      [-180, -29.935432754381083],
+      [-178, -27.675697545084546],
       /* … 182 more */
     ]
   },
   "moon": {
-    "illumination": 0.8731817484238773,
-    "phase": 0.6158990360187292,
-    "ageDays": 18.18786120762813,
+    "illumination": 0.8727355151548588,
+    "phase": 0.616112297695468,
+    "ageDays": 18.194158950522006,
     "waxing": false,
     "name": "Waning Gibbous"
   }
@@ -7616,8 +7611,8 @@ Example: `GET /api/astro/terminator.geojson?step=10`
       "geometry": {
         "coordinates": [
           [
-            [-180, -57.27474410683588],
-            [-170, -50.106014319525805],
+            [-180, -56.08708213247274],
+            [-170, -48.213236555914214],
             /* … 38 more */
           ]
         ],
@@ -7781,44 +7776,44 @@ Example: `GET /api/system`
   "platform": "linux/amd64",
   "goVersion": "go1.27.3",
   "hostname": "airview",
-  "pid": 8354,
+  "pid": 11273,
   "cpus": 4,
-  "goroutines": 36,
+  "goroutines": 38,
   "memory": {
-    "allocBytes": 22374528,
-    "heapInuseBytes": 25714688,
-    "sysBytes": 398801256,
-    "stackBytes": 1671168,
-    "numGc": 545,
-    "gcPauseMs": 0.063136
+    "allocBytes": 22561632,
+    "heapInuseBytes": 25886720,
+    "sysBytes": 335747400,
+    "stackBytes": 1900544,
+    "numGc": 546,
+    "gcPauseMs": 0.042761
   },
-  "now": 1795792244570,
-  "started": 1795792193260,
-  "uptimeS": 51,
+  "now": 1795792726374,
+  "started": 1795792680538,
+  "uptimeS": 45,
   "timeZone": "UTC",
   "utcOffsetSec": 0,
   "dataDir": "/var/lib/airview",
-  "dbBytes": 15008544,
+  "dbBytes": 14996160,
   "gui": false,
   "mode": "standalone",
   "demo": true,
   "located": true,
-  "httpAddr": "0.0.0.0:34913",
-  "httpPort": 34913,
+  "httpAddr": "0.0.0.0:40521",
+  "httpPort": 40521,
   "restartRequired": false,
   "liveClients": 0,
   "sessions": 0,
   "cacheEntries": 3,
   "forecaster": {
-    "fitted": 1795792223000,
-    "built": 1795792223581,
+    "fitted": 1795792710000,
+    "built": 1795792710427,
     "dataHours": 60
   },
   "tracker": {
-    "frames": 10768,
-    "msgRate": 224.8,
-    "aircraft": 53,
-    "tracked": 53
+    "frames": 9641,
+    "msgRate": 210.2,
+    "aircraft": 52,
+    "tracked": 54
   }
 }
 ```
@@ -7956,7 +7951,7 @@ Example: `GET /healthz`
   "status": "ok",
   "mode": "standalone",
   "version": "test",
-  "uptimeS": 51,
+  "uptimeS": 45,
   "checks": {
     "engine": "ok"
   }
@@ -7978,19 +7973,19 @@ Example: `GET /api/public/status`
   "app": "AirView",
   "version": "test",
   "mode": "standalone",
-  "now": 1795792244570,
-  "started": 1795792193260,
+  "now": 1795792726374,
+  "started": 1795792680538,
   "tileCache": true,
   "counts": {
-    "aircraft": 53,
-    "withPos": 40,
-    "adsb": 46,
+    "aircraft": 52,
+    "withPos": 41,
+    "adsb": 45,
     "mlat": 5,
     "tisb": 0,
     "modes": 2,
-    "msgRate": 224.8,
-    "posRate": 50.1,
-    "predicted": 5
+    "msgRate": 210.2,
+    "posRate": 48.4,
+    "predicted": 3
   },
   "adminLocked": true,
   "located": false,
@@ -8015,7 +8010,7 @@ Example: `GET /api/public/aircraft`
 
 ```jsonc
 {
-  "now": 1795792244568,
+  "now": 1795792726361,
   "aircraft": [
     {
       "icao": "3007E2",
@@ -8026,10 +8021,10 @@ Example: `GET /api/public/aircraft`
       "operator": "ITA Airways",
       "country": "Italy",
       "countryCode": "IT",
-      "lat": 50.319105245299255,
-      "lon": 8.62961227829392,
+      "lat": 50.310958603681144,
+      "lon": 8.64215747730152,
       "source": "adsb",
-      "posAge": 0,
+      "posAge": 0.2,
       "onGround": false,
       "altBaro": 30000,
       "altGeom": 30325,
@@ -8055,8 +8050,8 @@ Example: `GET /api/public/aircraft`
       "sil": 3,
       "rcM": 185.2,
       "navModes": ["autopilot", "althold", "lnav", "tcas"],
-      "firstSeen": 1795792193498,
-      "lastSeen": 1795792244568,
+      "firstSeen": 1795792680778,
+      "lastSeen": 1795792726180,
       "route": {
         "from": "EDDF",
         "to": "EGLL",
@@ -8070,23 +8065,23 @@ Example: `GET /api/public/aircraft`
         "state": "doubtful",
         "conf": 0.43,
         "reason": "standing data · high over the origin",
-        "along": 0.7,
-        "distRem": 650.2,
+        "along": 0.6,
+        "distRem": 651.2,
         "lic": "open"
       }
     },
-    /* … 52 more */
+    /* … 51 more */
   ],
   "counts": {
-    "aircraft": 53,
-    "withPos": 40,
-    "adsb": 46,
+    "aircraft": 52,
+    "withPos": 41,
+    "adsb": 45,
     "mlat": 5,
     "tisb": 0,
     "modes": 2,
-    "msgRate": 224.8,
-    "posRate": 50.1,
-    "predicted": 5
+    "msgRate": 210.2,
+    "posRate": 48.4,
+    "predicted": 3
   }
 }
 ```
@@ -8116,10 +8111,10 @@ Example: `GET /api/public/aircraft/3007E2`
     "operator": "ITA Airways",
     "country": "Italy",
     "countryCode": "IT",
-    "lat": 50.319105245299255,
-    "lon": 8.62961227829392,
+    "lat": 50.310958603681144,
+    "lon": 8.64215747730152,
     "source": "adsb",
-    "posAge": 0,
+    "posAge": 0.2,
     "onGround": false,
     "altBaro": 30000,
     "altGeom": 30325,
@@ -8145,13 +8140,13 @@ Example: `GET /api/public/aircraft/3007E2`
     "sil": 3,
     "rcM": 185.2,
     "navModes": ["autopilot", "althold", "lnav", "tcas"],
-    "firstSeen": 1795792193498,
-    "lastSeen": 1795792244568
+    "firstSeen": 1795792680778,
+    "lastSeen": 1795792726180
   },
   "trail": [
-    [1795792194490, 50.24648, 8.74121, 30000, 440, null, 0],
-    [1795792197951, 50.25146, 8.73346, 30000, 440, null, 0],
-    /* … 14 more */
+    [1795792681707, 50.24634, 8.74136, 30000, 440, null, 0],
+    [1795792684740, 50.25078, 8.73456, 30000, 440, null, 0],
+    /* … 12 more */
   ],
   "info": {
     "icao": "3007E2",
@@ -8198,20 +8193,20 @@ Example: `GET /api/public/trails?minutes=5`
 
 ```jsonc
 {
-  "now": 1795792244573,
+  "now": 1795792726376,
   "minutes": 5,
   "trails": {
     "3007E2": [
-      [1795792194490, 50.24648, 8.74121, 30000, 440, null, 0],
-      [1795792197951, 50.25146, 8.73346, 30000, 440, null, 0],
-      /* … 14 more */
+      [1795792681707, 50.24634, 8.74136, 30000, 440, null, 0],
+      [1795792684740, 50.25078, 8.73456, 30000, 440, null, 0],
+      /* … 12 more */
     ],
     "3833FE": [
-      [1795792194441, 50.64125, 7.73018, 2850, 104, null, 0],
-      [1795792197729, 50.63980, 7.72925, 2850, 104, null, 0],
-      /* … 14 more */
+      [1795792681833, 50.64120, 7.73011, 2850, 104, null, 0],
+      [1795792685419, 50.63962, 7.72918, 2850, 104, null, 0],
+      /* … 12 more */
     ],
-    /* … 43 more entries */
+    /* … 42 more entries */
   }
 }
 ```
@@ -8283,11 +8278,11 @@ Example: `GET /api/public/summary`
     "online": 0,
     "public": 0
   },
-  "aircraft": 53,
+  "aircraft": 52,
   "mlatAircraft": 5,
-  "messagesPerSec": 224.8,
+  "messagesPerSec": 210.2,
   "mlat": null,
-  "updated": 1795792244568
+  "updated": 1795792726361
 }
 ```
 
@@ -8305,19 +8300,19 @@ Example: `GET /api/public/stats`
 
 ```jsonc
 {
-  "now": 1795792244574,
+  "now": 1795792726378,
   "approved": 0,
   "online": 0,
   "counts": {
-    "aircraft": 53,
-    "withPos": 40,
-    "adsb": 46,
+    "aircraft": 52,
+    "withPos": 41,
+    "adsb": 45,
     "mlat": 5,
     "tisb": 0,
     "modes": 2,
-    "msgRate": 224.8,
-    "posRate": 50.1,
-    "predicted": 5
+    "msgRate": 210.2,
+    "posRate": 48.4,
+    "predicted": 3
   }
 }
 ```
@@ -8339,7 +8334,7 @@ Example: `GET /api/public/mlat`
   "quality": null,
   "samples": 0,
   "cells": [],
-  "updated": 1795792244574
+  "updated": 1795792726378
 }
 ```
 
@@ -8384,8 +8379,8 @@ Example: `GET /data/aircraft.json`
 
 ```jsonc
 {
-  "now": 1795792244.6,
-  "messages": 10768,
+  "now": 1795792726.4,
+  "messages": 9641,
   "aircraft": [
     {
       "hex": "3007e2",
@@ -8409,11 +8404,11 @@ Example: `GET /data/aircraft.json`
       "nav_altitude_mcp": 30016,
       "nav_heading": 310.08,
       "nav_modes": ["autopilot", "althold", "lnav", "tcas"],
-      "lat": 50.319105,
-      "lon": 8.629612,
+      "lat": 50.310959,
+      "lon": 8.642157,
       "nic": 8,
       "rc": 185,
-      "seen_pos": 0,
+      "seen_pos": 0.2,
       "version": 2,
       "nac_p": 9,
       "nac_v": 2,
@@ -8422,9 +8417,9 @@ Example: `GET /data/aircraft.json`
       "spi": 0,
       "mlat": [],
       "tisb": [],
-      "seen": 0
+      "seen": 0.2
     },
-    /* … 52 more */
+    /* … 51 more */
   ]
 }
 ```
@@ -9077,20 +9072,19 @@ Example: `GET /api/routes/status`
 ```jsonc
 {
   "stats": {
-    "entries": 38,
-    "resolved": 39,
-    "onlineQueries": 2,
+    "entries": 35,
+    "resolved": 36,
+    "onlineQueries": 1,
     "onlineFound": 0,
-    "onlineErrors": 2,
-    "lastOnlineError": "navdata: online lookup rate limit reached, try again later",
-    "legsRecorded": 25,
+    "onlineErrors": 0,
+    "legsRecorded": 11,
     "obsAdded": 0,
     "learnedUpdates": 0
   },
   "online": true,
   "onlineUsed": 1,
   "onlineDaily": 1000,
-  "backoffUntil": 1795792269,
+  "backoffUntil": 1795792728,
   "attribution": ["Routes: Virtual Radar Server standing data (CC0)", "Learned routes: AirView (CC0)", "Online routes: adsbdb.com (shown to this station's users only)"],
   "config": {
     "enabled": true,
@@ -9276,23 +9270,23 @@ Example: `GET /api/prediction/live`
 
 ```jsonc
 {
-  "now": 1795792244577,
+  "now": 1795792726381,
   "coastSec": 60,
   "aircraft": [
     {
       "icao": "3007E2",
-      "lat": 50.31918747324877,
-      "lon": 8.629549216365785,
+      "lat": 50.31123688855181,
+      "lon": 8.641770286162524,
       "alt": 30000,
-      "track": 315.54039662331195,
-      "gs": 440.03104093482307,
+      "track": 315.5344314647497,
+      "gs": 440.0517689347765,
       "vr": 0,
-      "sigH": 4.732083376302968,
-      "age": 0.05652976036071777,
+      "sigH": 4.861783318476685,
+      "age": 0.20212578773498535,
       "coast": false,
-      "conf": 0.9957614386143737
+      "conf": 0.9908768503617124
     },
-    /* … 44 more */
+    /* … 43 more */
   ]
 }
 ```
@@ -9311,21 +9305,21 @@ Example: `GET /api/prediction/stats`
 
 ```jsonc
 {
-  "now": 1795792244578,
-  "tracks": 53,
-  "ready": 45,
-  "coasting": 5,
+  "now": 1795792726382,
+  "tracks": 54,
+  "ready": 44,
+  "coasting": 3,
   "counters": {
-    "observations": 6667,
-    "positions": 2312,
+    "observations": 6006,
+    "positions": 2090,
     "rejected": 0,
-    "velRejected": 0,
+    "velRejected": 1,
     "altRejected": 0,
     "outOfOrder": 0,
     "oooDropped": 0,
-    "duplicates": 6,
+    "duplicates": 2,
     "resets": 0,
-    "inits": 45,
+    "inits": 44,
     "overflow": 0
   },
   "horizons": [
@@ -9333,21 +9327,21 @@ Example: `GET /api/prediction/stats`
       "horizon": 5,
       "predictor": "imm",
       "phase": "all",
-      "n": 237,
-      "total": 237,
-      "medianKm": 0.006616396427154541,
-      "p90Km": 0.015006659507751466,
-      "p95Km": 0.02052500915527343,
-      "meanKm": 0.007880218231413938,
-      "rmsKm": 0.009847040043974714,
-      "alongBiasKm": 0.0037755087770576655,
-      "alongMedAbsKm": 0.0056362624168396,
-      "crossBiasKm": 0.00008465524160849394,
-      "crossMedAbsKm": 0.0023571875095367433,
-      "vertN": 232,
+      "n": 221,
+      "total": 221,
+      "medianKm": 0.005705755233764648,
+      "p90Km": 0.015321776390075684,
+      "p95Km": 0.019715299606323244,
+      "meanKm": 0.007665986583243667,
+      "rmsKm": 0.00981492716597996,
+      "alongBiasKm": 0.004168765872851756,
+      "alongMedAbsKm": 0.004883190155029297,
+      "crossBiasKm": 0.00020303065938310385,
+      "crossMedAbsKm": 0.0021162993907928467,
+      "vertN": 215,
       "vertMedAbsFt": 0,
-      "vertP90Ft": 3.852148437500001,
-      "vertBiasFt": -5.572231950431035,
+      "vertP90Ft": 4.53339843749999,
+      "vertBiasFt": -3.964348655523256,
       "calib95": 1
     },
     /* … 26 more */
@@ -9356,10 +9350,10 @@ Example: `GET /api/prediction/stats`
     {
       "horizon": 5,
       "phase": "all",
-      "n": 237,
-      "immMedianKm": 0.006616396427154541,
-      "drMedianKm": 0.003917201042175293,
-      "skillPct": -68.90622554006917
+      "n": 221,
+      "immMedianKm": 0.005705755233764648,
+      "drMedianKm": 0.0039173922538757325,
+      "skillPct": -45.65187410373752
     },
     /* … 8 more */
   ]
@@ -9384,22 +9378,22 @@ Example: `GET /api/prediction/path/3007E2?horizon=60&step=10`
 ```jsonc
 {
   "icao": "3007E2",
-  "t0": 1795792244579,
+  "t0": 1795792726384,
   "altOk": true,
   "plan": "decay",
   "points": [
     {
       "dt": 0,
-      "lat": 50.31919024070506,
-      "lon": 8.629544962091767,
+      "lat": 50.311240002826885,
+      "lon": 8.641765500095719,
       "alt": 30000,
-      "sh": 4.732722663569488,
-      "shf": 4.732716222443143,
-      "sv": 3.4043243349610393,
+      "sh": 4.8627544718264275,
+      "shf": 4.861818425753117,
+      "sv": 3.5924688374183256,
       "ell": {
-        "a": 3.3473051219549155,
-        "b": 3.345775280977289,
-        "dir": 43.22410991736672
+        "a": 3.440302416439376,
+        "b": 3.4366699487598904,
+        "dir": 44.13094642458043
       }
     },
     /* … 6 more */
@@ -9407,7 +9401,7 @@ Example: `GET /api/prediction/path/3007E2?horizon=60&step=10`
   "terrain": {
     "known": true,
     "visibleNow": true,
-    "marginDeg": 16.60484022276019,
+    "marginDeg": 16.98557674630931,
     "lostAtMs": 0,
     "acquiredAtMs": 0
   }
@@ -9427,16 +9421,16 @@ Example: `GET /api/prediction/intent/3007E2`
 ```jsonc
 {
   "icao": "3007E2",
-  "t": 1795792244579,
+  "t": 1795792726384,
   "phase": "cruise",
   "plan": "decay",
-  "selTrack": 315.72254401456746,
+  "selTrack": 315.7239455076068,
   "cpa": {
     "inSec": 0,
-    "t": 1795792244579,
-    "distKm": 30.00648197265857,
-    "lat": 50.31919048276671,
-    "lon": 8.62954458998231,
+    "t": 1795792726384,
+    "distKm": 29.200463219024652,
+    "lat": 50.31124024456793,
+    "lon": 8.641765128584233,
     "alt": 30000
   }
 }
@@ -9464,22 +9458,22 @@ Example: `GET /api/prediction/proximity`
 
 ```jsonc
 {
-  "now": 1795792244579,
+  "now": 1795792726384,
   "note": "Predicted from received data only; informational, not an ATC or collision-avoidance function.",
   "pairs": [
     {
       "a": "44F2CE",
       "b": "406872",
-      "tcpa": 22.81912022410517,
-      "hDistKm": 4.550670471331139,
+      "tcpa": 28.29149734396758,
+      "hDistKm": 4.521852941905914,
       "vSepFt": 400,
-      "nowHDistKm": 5.653940883852421,
+      "nowHDistKm": 6.149181851854993,
       "nowVSepFt": 400,
-      "lat": 49.99609645437135,
-      "lon": 8.714746750066592,
+      "lat": 49.99618109871142,
+      "lon": 8.714541805308508,
       "altA": 2050,
       "altB": 2450,
-      "severity": 0.4914330962560626
+      "severity": 0.4883210520416754
     },
     /* … 1 more */
   ]
@@ -9519,13 +9513,13 @@ Example: `GET /api/terrain/status`
     "message": "terrain analysis complete",
     "error": "",
     "key": "ac29bd2a6be9fff2",
-    "startedMs": 1795792193275,
-    "finishedMs": 1795792193880,
+    "startedMs": 1795792680546,
+    "finishedMs": 1795792681107,
     "fromCache": false
   },
   "available": true,
   "key": "ac29bd2a6be9fff2",
-  "computedMs": 1795792193880,
+  "computedMs": 1795792681107,
   "dataComplete": true,
   "provider": null,
   "attribution": "Terrain: Mapzen Terrain Tiles on AWS Open Data (SRTM, GMTED2010, 3DEP courtesy USGS; ETOPO1 NOAA; EU-DEM Copernicus; and others)",
@@ -9571,8 +9565,8 @@ Example: `POST /api/terrain/prefetch` -> `200`
     "message": "terrain analysis complete",
     "error": "",
     "key": "ac29bd2a6be9fff2",
-    "startedMs": 1795792193275,
-    "finishedMs": 1795792193880,
+    "startedMs": 1795792680546,
+    "finishedMs": 1795792681107,
     "fromCache": false
   },
   "started": false
@@ -9610,8 +9604,8 @@ Example: `POST /api/terrain/recompute` -> `202`
     "message": "terrain analysis complete",
     "error": "",
     "key": "ac29bd2a6be9fff2",
-    "startedMs": 1795792193275,
-    "finishedMs": 1795792193880,
+    "startedMs": 1795792680546,
+    "finishedMs": 1795792681107,
     "fromCache": false
   },
   "started": true
@@ -9648,8 +9642,8 @@ Example: `POST /api/terrain/cancel` -> `200`
   "message": "terrain analysis complete",
   "error": "",
   "key": "ac29bd2a6be9fff2",
-  "startedMs": 1795792193275,
-  "finishedMs": 1795792193880,
+  "startedMs": 1795792680546,
+  "finishedMs": 1795792681107,
   "fromCache": false
 }
 ```
@@ -9669,8 +9663,8 @@ Example: `GET /api/terrain/coverage`
 ```jsonc
 {
   "key": "ac29bd2a6be9fff2",
-  "computedMs": 1795792193880,
-  "computeMs": 604,
+  "computedMs": 1795792681107,
+  "computeMs": 561,
   "lat": 50.05,
   "lon": 8.6,
   "groundM": 110,
@@ -10236,34 +10230,37 @@ Example: `GET /api/rf/summary`
 
 ```jsonc
 {
-  "t": 1795792244000,
-  "windowSec": 51,
-  "health": 91,
+  "t": 1795792726000,
+  "windowSec": 46,
+  "health": 82,
   "healthStatus": "ok",
-  "advice": ["RF chain looks healthy."],
+  "advice": ["Gain slightly high: consider reducing it by 2-3 dB."],
   "adviceItems": [
     {
-      "code": "advice.healthy",
-      "text": "RF chain looks healthy.",
-      "data": {}
+      "code": "advice.gain-slightly-high",
+      "text": "Gain slightly high: consider reducing it by 2-3 dB.",
+      "data": {
+        "stepMaxDb": 3,
+        "stepMinDb": 2
+      }
     }
   ],
-  "fps": 207.3922,
-  "occupancyPct": 2.1113,
-  "peakOccupancyPct": 2.368,
+  "fps": 205.913,
+  "occupancyPct": 2.0961,
+  "peakOccupancyPct": 2.3648,
   "crcBadFrac": 0,
-  "failFrac": 0.0018,
-  "decodeFloorDbfs": -34.8427,
-  "noiseFloorEstDbfs": -44.8427,
-  "p50Dbfs": -28.0925,
-  "strongFrac": 0.0045,
-  "snrMarginDb": 6.7502,
-  "pdPos": 0.5713,
-  "range50Km": 269.3568,
-  "range90Km": 145,
+  "failFrac": 0.0039,
+  "decodeFloorDbfs": -34.5798,
+  "noiseFloorEstDbfs": -44.5798,
+  "p50Dbfs": -28.4665,
+  "strongFrac": 0.0181,
+  "snrMarginDb": 6.1133,
+  "pdPos": 0.5952,
+  "range50Km": 320,
+  "range90Km": 95,
   "activeRadars": 0,
-  "adsbAircraft": 46,
-  "gnssIndexNow": 0,
+  "adsbAircraft": 47,
+  "gnssIndexNow": null,
   "timingAvailable": true
 }
 ```
@@ -10278,26 +10275,26 @@ Example: `GET /api/rf/report`
 
 ```jsonc
 {
-  "t": 1795792244000,
-  "windowSec": 51,
-  "since": 1795792193000,
+  "t": 1795792726000,
+  "windowSec": 46,
+  "since": 1795792680000,
   "live": true,
   "signal": {
-    "frames": 10558,
+    "frames": 9435,
     "all": {
       "label": "all",
       "lo": null,
       "hi": null,
-      "n": 10558,
-      "p05": -33.6387,
-      "p50": -28.0925,
-      "p95": -15.2769,
-      "mean": -26.4355,
-      "strongFrac": 0.0045,
+      "n": 9435,
+      "p05": -33.4761,
+      "p50": -28.4665,
+      "p95": -15.3586,
+      "mean": -26.4722,
+      "strongFrac": 0.0181,
       "hist": {
         "lo": -36.5,
         "step": 0.5,
-        "counts": [6, 25, 45, 94, /* … 67 more */]
+        "counts": [7, 7, 19, 73, /* … 68 more */]
       }
     },
     "perAntenna": [
@@ -10305,16 +10302,16 @@ Example: `GET /api/rf/report`
         "label": "vertical",
         "lo": null,
         "hi": null,
-        "n": 10558,
-        "p05": -33.6387,
-        "p50": -28.0925,
-        "p95": -15.2769,
-        "mean": -26.4355,
-        "strongFrac": 0.0045,
+        "n": 9435,
+        "p05": -33.4761,
+        "p50": -28.4665,
+        "p95": -15.3586,
+        "mean": -26.4722,
+        "strongFrac": 0.0181,
         "hist": {
           "lo": -36.5,
           "step": 0.5,
-          "counts": [6, 25, 45, 94, /* … 67 more */]
+          "counts": [7, 7, 19, 73, /* … 68 more */]
         }
       }
     ],
@@ -10323,12 +10320,12 @@ Example: `GET /api/rf/report`
         "label": "0 km",
         "lo": 0,
         "hi": 25,
-        "n": 1079,
-        "p05": -21.9181,
-        "p50": -17.004,
-        "p95": -3.3729,
-        "mean": -14.5883,
-        "strongFrac": 0.0417
+        "n": 960,
+        "p05": -22.0625,
+        "p50": -16.3375,
+        "p95": -1.2895,
+        "mean": -13.5266,
+        "strongFrac": 0.176
       },
       /* … 15 more */
     ],
@@ -10337,29 +10334,29 @@ Example: `GET /api/rf/report`
         "label": "0–0.5°",
         "lo": 0,
         "hi": 0.5,
-        "n": 1285,
-        "p05": -33.8719,
-        "p50": -27.1284,
-        "p95": -21.8259,
-        "mean": -27.7286,
+        "n": 1015,
+        "p05": -33.8321,
+        "p50": -26.133,
+        "p95": -20.4886,
+        "mean": -26.9382,
         "strongFrac": 0
       },
       /* … 7 more */
     ],
-    "decodeFloorDbfs": -34.8427,
-    "noiseFloorEstDbfs": -44.8427,
+    "decodeFloorDbfs": -34.5798,
+    "noiseFloorEstDbfs": -44.5798,
     "assumedDecodeSnrDb": 10,
-    "p50Dbfs": -28.0925,
-    "p999Dbfs": -1.5215,
-    "dynamicRangeDb": 34.3874,
-    "snrMarginDb": 6.7502,
-    "snrEstDb": 16.7502,
-    "strongFrac": 0.0045,
-    "nearClipFrac": 0,
+    "p50Dbfs": -28.4665,
+    "p999Dbfs": -0.8145,
+    "dynamicRangeDb": 35.0116,
+    "snrMarginDb": 6.1133,
+    "snrEstDb": 16.1133,
+    "strongFrac": 0.0181,
+    "nearClipFrac": 0.0016,
     "fading": {
-      "windows": 156,
-      "kMedianDb": 12.1613,
-      "stdMedianDb": 1.5083,
+      "windows": 145,
+      "kMedianDb": 11.5625,
+      "stdMedianDb": 1.5875,
       "kHist": {
         "lo": -10,
         "step": 1,
@@ -10368,47 +10365,47 @@ Example: `GET /api/rf/report`
       "stdHist": {
         "lo": 0,
         "step": 0.25,
-        "counts": [0, 0, 2, 16, /* … 36 more */]
+        "counts": [0, 0, 3, 10, /* … 36 more */]
       },
       "kByElev": [
         {
           "label": "0–0.5°",
-          "kDb": 13.3195,
-          "n": 28
+          "kDb": 13.3113,
+          "n": 24
         },
         /* … 6 more */
       ],
       "worst": [
         {
           "icao": "3007E2",
-          "kDb": 4.0771,
-          "stdDb": 3.624,
+          "kDb": 3.5474,
+          "stdDb": 3.8495,
           "windows": 4,
-          "distKm": 30.0079,
-          "elevDeg": 16.6308
+          "distKm": 29.1828,
+          "elevDeg": 17.0792
         },
         /* … 9 more */
       ]
     },
     "multipath": {
-      "elevDeg": [0.025, 0.075, 0.175, 0.275, /* … 70 more */],
-      "devDb": [-0.4737, -0.654, -0.4084, -0.0348, /* … 70 more */],
-      "rippleDb": 0.5423,
-      "reflectorHeightM": 36.4,
-      "periodDeg": 0.2166,
-      "strength": 0.1945,
+      "elevDeg": [0.025, 0.075, 0.175, 0.275, /* … 63 more */],
+      "devDb": [0.5798, 0.1468, -0.5675, 0.6082, /* … 63 more */],
+      "rippleDb": 0.645,
+      "reflectorHeightM": 8.8,
+      "periodDeg": 0.8962,
+      "strength": 0.2743,
       "detected": false,
-      "bins": 74
+      "bins": 67
     },
     "aspect": {
       "fromDeg": [0, 10, 20, 30, /* … 14 more */],
-      "meanDb": [-0.1378, 0.099, -0.3266, -0.724, /* … 14 more */],
-      "stdDb": [1.8074, 1.4997, 1.6265, 1.8613, /* … 14 more */],
-      "n": [1550, 314, 580, 87, /* … 14 more */],
-      "noseDb": -0.1522,
-      "beamDb": -0.002,
-      "tailDb": -0.3289,
-      "noseTailDb": 0.1767
+      "meanDb": [-0.2215, 0.249, -0.206, 0.6627, /* … 14 more */],
+      "stdDb": [1.8214, 1.7339, 1.6572, 2.03, /* … 14 more */],
+      "n": [1472, 277, 545, 79, /* … 14 more */],
+      "noseDb": -0.161,
+      "beamDb": 0.0383,
+      "tailDb": -0.3674,
+      "noseTailDb": 0.2064
     }
   },
   "detection": {
@@ -10416,35 +10413,35 @@ Example: `GET /api/rf/report`
       {
         "type": "position",
         "nominalRate": 2,
-        "expected": 3100,
-        "decoded": 1771,
-        "pd": 0.5713
+        "expected": 2300,
+        "decoded": 1369,
+        "pd": 0.5952
       },
       /* … 2 more */
     ],
     "vsDistance": {
       "lo": [0, 10, 20, 30, /* … 46 more */],
       "hi": [10, 20, 30, 40, /* … 46 more */],
-      "pos": [null, null, 0.9542, null, /* … 46 more */],
-      "vel": [null, null, 0.95, null, /* … 46 more */],
-      "ident": [null, null, 0.9583, null, /* … 46 more */],
-      "expected": [80, 0, 240, 0, /* … 46 more */]
+      "pos": [null, null, 0.9444, null, /* … 46 more */],
+      "vel": [null, null, 0.9, null, /* … 46 more */],
+      "ident": [null, null, 0.9444, null, /* … 46 more */],
+      "expected": [60, 0, 180, 0, /* … 46 more */]
     },
     "vsElev": {
       "lo": [null, -1, -0.5, 0, /* … 15 more */],
       "hi": [-1, -0.5, 0, 0.25, /* … 15 more */],
-      "pos": [null, null, null, 0.5115, /* … 15 more */],
-      "vel": [null, null, null, 0.5577, /* … 15 more */],
-      "ident": [null, null, null, 0.6667, /* … 15 more */],
-      "expected": [0, 0, 0, 260, /* … 15 more */]
+      "pos": [null, null, null, 0.485, /* … 15 more */],
+      "vel": [null, null, null, 0.55, /* … 15 more */],
+      "ident": [null, null, null, 0.4, /* … 15 more */],
+      "expected": [0, 0, 0, 200, /* … 15 more */]
     },
     "vsBearing": {
       "lo": [0, 10, 20, 30, /* … 32 more */],
       "hi": [10, 20, 30, 40, /* … 32 more */],
-      "pos": [null, 0.65, 0.2833, null, /* … 32 more */],
-      "vel": [null, 0.6167, 0.275, null, /* … 32 more */],
-      "ident": [null, 0.5833, 0.3333, null, /* … 32 more */],
-      "expected": [40, 120, 120, 40, /* … 32 more */]
+      "pos": [null, 0.73, 0.4, null, /* … 32 more */],
+      "vel": [null, 0.72, 0.3833, null, /* … 32 more */],
+      "ident": [null, 0.8, 0.5833, null, /* … 32 more */],
+      "expected": [20, 100, 120, 20, /* … 32 more */]
     },
     "vsRssi": {
       "lo": [-50, -48, -46, -44, /* … 21 more */],
@@ -10454,18 +10451,18 @@ Example: `GET /api/rf/report`
       "ident": [null, null, null, null, /* … 21 more */],
       "expected": [0, 0, 0, 0, /* … 21 more */]
     },
-    "range50Km": 269.3568,
-    "range90Km": 145,
+    "range50Km": 320,
+    "range90Km": 95,
     "gaps": [
       {
         "loKm": 0,
         "hiKm": 50,
-        "n": 476,
-        "p50": 0.5014,
-        "p90": 0.5912,
-        "p95": 0.922,
-        "p99": 1.131,
-        "mean": 0.5287,
+        "n": 422,
+        "p50": 0.5021,
+        "p90": 0.5914,
+        "p95": 0.8967,
+        "p99": 1.189,
+        "mean": 0.532,
         "tSec": [2, 4, 5, 8, /* … 1 more */],
         "pUpdate": [1, 1, 1, 1, /* … 1 more */]
       },
@@ -10474,59 +10471,59 @@ Example: `GET /api/rf/report`
     "aircraft": [
       {
         "icao": "44F2CE",
-        "distKm": 7.1755,
-        "pdPos": 0.925,
-        "pdVel": 0.9625,
+        "distKm": 6.9644,
+        "pdPos": 0.9667,
+        "pdVel": 0.9667,
         "pdIdent": 1,
-        "rssi": -6.9021
+        "rssi": -4.1299
       },
-      /* … 43 more */
+      /* … 42 more */
     ]
   },
   "channel": {
-    "seconds": 51,
-    "frames": 10577,
-    "fps": 207.3922,
+    "seconds": 46,
+    "frames": 9472,
+    "fps": 205.913,
     "byDf": [
       {
         "df": 0,
         "label": "DF0 Short air-air surveillance (ACAS)",
-        "count": 728,
-        "rate": 14.2745
+        "count": 677,
+        "rate": 14.7174
       },
       /* … 6 more */
     ],
     "byCrc": {
-      "addrAccepted": 2853,
-      "addrRejected": 19,
+      "addrAccepted": 2538,
+      "addrRejected": 37,
       "bad": 0,
       "fixed": 0,
-      "ok": 7705,
+      "ok": 6897,
       "unknown": 0
     },
-    "occupancyPct": 2.1113,
-    "peakOccupancyPct": 2.368,
-    "meanReplyUs": 101.8028,
+    "occupancyPct": 2.0961,
+    "peakOccupancyPct": 2.3648,
+    "meanReplyUs": 101.7965,
     "crcBadFrac": 0,
     "fixedFrac": 0,
-    "rejectedFrac": 0.0066,
-    "failFrac": 0.0018,
-    "overlapProb": 0.0413,
-    "impliedRate": 8.8306,
-    "excessFail": -0.0396,
+    "rejectedFrac": 0.0144,
+    "failFrac": 0.0039,
+    "overlapProb": 0.0411,
+    "impliedRate": 19.2241,
+    "excessFail": -0.0371,
     "vsLoad": [
       {
-        "loFps": 100,
-        "hiFps": 200,
-        "seconds": 15,
-        "meanFps": 187.8667,
-        "failFrac": 0.0053,
-        "modelFailFrac": 0.0375
+        "loFps": 0,
+        "hiFps": 100,
+        "seconds": 1,
+        "meanFps": 79,
+        "failFrac": 0.1772,
+        "modelFailFrac": 0.016
       },
-      /* … 1 more */
+      /* … 2 more */
     ],
     "recent": {
-      "t0": 1795791944000,
+      "t0": 1795792426000,
       "frames": [0, 0, 0, 0, /* … 296 more */],
       "bad": [0, 0, 0, 0, /* … 296 more */],
       "occPct": [0, 0, 0, 0, /* … 296 more */]
@@ -10539,11 +10536,11 @@ Example: `GET /api/rf/report`
       {
         "code": "II 0",
         "iid": 0,
-        "replies": 1513,
-        "rate": 29.6667,
-        "last10m": 1513,
-        "aircraft": 51,
-        "replyingFrac": 0.9808,
+        "replies": 1367,
+        "rate": 29.7174,
+        "last10m": 1367,
+        "aircraft": 50,
+        "replyingFrac": 0.9615,
         "lockoutLikely": false,
         "timeline": [0, 0, 0, 0, /* … 56 more */],
         "acqSquitter": true
@@ -10557,53 +10554,53 @@ Example: `GET /api/rf/report`
     "commB": [
       {
         "bds": "2,0",
-        "count": 110,
-        "frac": 0.1166
+        "count": 75,
+        "frac": 0.088
       },
       /* … 4 more */
     ],
-    "df0Rate": 14.2745,
+    "df0Rate": 14.7174,
     "df16Rate": 0,
     "raReports": 0,
-    "acasAircraft": 40,
-    "activeAircraft": 53,
-    "adsbAndModeS": 46,
-    "adsbOnly": 0,
-    "modeSOnly": 6,
-    "radarShare": 1
+    "acasAircraft": 39,
+    "activeAircraft": 54,
+    "adsbAndModeS": 45,
+    "adsbOnly": 2,
+    "modeSOnly": 7,
+    "radarShare": 0.9574
   },
   "timing": {
     "available": true,
     "types": [
       {
         "type": "position",
-        "intervals": 2207,
+        "intervals": 2000,
         "badFrac": 0,
         "hist": {
           "lo": 0.4,
           "step": 0.005,
-          "counts": [41, 31, 47, 43, /* … 515 more */]
+          "counts": [31, 37, 44, 40, /* … 502 more */]
         },
         "nominalLo": 0.4,
         "nominalHi": 0.6,
-        "mean": 0.5018,
-        "std": 0.0575,
-        "chi2": 4.7302,
+        "mean": 0.498,
+        "std": 0.057,
+        "chi2": 11.5588,
         "uniformOk": true
       },
       /* … 2 more */
     ],
-    "altPairs": 1705,
-    "altRegularity": 0.9625,
-    "alt2Pairs": 292,
-    "alt2Same": 0.9349,
+    "altPairs": 1539,
+    "altRegularity": 0.9526,
+    "alt2Pairs": 260,
+    "alt2Same": 0.9308,
     "nonCompliant": [
       {
         "icao": "397EF0",
-        "intervals": 184,
+        "intervals": 159,
         "badFrac": 0,
-        "mean": 0.513,
-        "std": 0.0535,
+        "mean": 0.5015,
+        "std": 0.0622,
         "reason": "even/odd CPR formats do not alternate"
       },
       /* … 1 more */
@@ -10611,13 +10608,13 @@ Example: `GET /api/rf/report`
     "note": "Single receiver: GPS timestamps allow interval statistics only; time-of-arrival ranging or position verification needs several synchronised …"
   },
   "census": {
-    "aircraft": 53,
-    "adsb": 46,
+    "aircraft": 54,
+    "adsb": 47,
     "versions": [
       {
         "label": "v2",
-        "count": 33,
-        "share": 0.7174
+        "count": 32,
+        "share": 0.6809
       },
       /* … 1 more */
     ],
@@ -10625,108 +10622,94 @@ Example: `GET /api/rf/report`
       {
         "label": "6",
         "count": 1,
-        "share": 0.0217
+        "share": 0.0213
       },
-      /* … 4 more */
+      /* … 5 more */
     ],
     "nacp": [
       {
         "label": "7",
         "count": 1,
-        "share": 0.0217
+        "share": 0.0213
       },
       /* … 4 more */
     ],
     "sil": [
       {
         "label": "3",
-        "count": 34,
-        "share": 0.7391
+        "count": 33,
+        "share": 0.7021
       },
       /* … 1 more */
     ],
-    "poorIntegrityShare": 0.0217,
+    "poorIntegrityShare": 0.0213,
     "categories": [
       {
         "label": "A1",
         "count": 4,
-        "share": 0.087
+        "share": 0.0851
       },
       /* … 5 more */
     ],
-    "tc28Share": 0.5217,
-    "tc29Share": 0.7391,
-    "tc31Share": 0.7174,
-    "gnssAltShare": 1,
+    "tc28Share": 0.4894,
+    "tc29Share": 0.7021,
+    "tc31Share": 0.6809,
+    "gnssAltShare": 0.9787,
     "gnssDelta": {
       "lo": -25,
       "step": 25,
-      "counts": [379, 284, 0, 97, /* … 16 more */]
+      "counts": [339, 262, 0, 93, /* … 16 more */]
     },
-    "gnssDeltaMeanFt": 234.748,
+    "gnssDeltaMeanFt": 232.4767,
     "gnssDeltaByAlt": [
       {
         "band": "\u003c1000",
-        "meanFt": 257,
-        "stdFt": 190.1999,
-        "n": 25
+        "meanFt": 184.375,
+        "stdFt": 192.5112,
+        "n": 32
       },
       /* … 6 more */
     ],
     "jumpAircraft": 0,
     "degradedNow": 0,
     "degradedList": null,
-    "gnssIndexNow": 0,
-    "gnssSeries": [
-      {
-        "t": 1795792140000,
-        "index": 0,
-        "tot": 38,
-        "deg": 0,
-        "jumps": 0
-      }
-    ],
-    "gnssCells": [
-      {
-        "sector": 1,
-        "ring": 3,
-        "lat": 51.5684,
-        "lon": 9.2552,
-        "tot": 1,
-        "deg": 0,
-        "index": 0
-      },
-      /* … 27 more */
-    ],
+    "gnssIndexNow": null,
+    "gnssSeries": null,
+    "gnssCells": null,
     "droppedFrames": 0
   },
   "health": {
-    "score": 91,
+    "score": 82,
     "status": "ok",
     "items": [
       {
         "key": "gain",
         "label": "Receiver gain",
-        "score": 100,
-        "status": "ok",
-        "text": "Median -28.1 dBFS, decode floor -34.8 dBFS, 0.5 % of frames within 3 dB of full scale.",
-        "code": "gain.ok",
+        "score": 65,
+        "status": "warn",
+        "text": "Median -28.5 dBFS, decode floor -34.6 dBFS, 1.8 % of frames within 3 dB of full scale. Gain is on the high side; consider 2-3 dB less.",
+        "code": "gain.high",
         "data": {
-          "floorDbfs": -34.8427,
+          "floorDbfs": -34.5798,
           "nearDb": 3,
-          "p50Dbfs": -28.0925,
-          "strongPct": 0.4546
+          "p50Dbfs": -28.4665,
+          "stepMaxDb": 3,
+          "stepMinDb": 2,
+          "strongPct": 1.8124
         }
       },
       /* … 6 more */
     ],
     "blockedSectors": null,
-    "advice": ["RF chain looks healthy."],
+    "advice": ["Gain slightly high: consider reducing it by 2-3 dB."],
     "adviceItems": [
       {
-        "code": "advice.healthy",
-        "text": "RF chain looks healthy.",
-        "data": {}
+        "code": "advice.gain-slightly-high",
+        "text": "Gain slightly high: consider reducing it by 2-3 dB.",
+        "data": {
+          "stepMaxDb": 3,
+          "stepMinDb": 2
+        }
       }
     ]
   }
@@ -10745,21 +10728,21 @@ Example: `GET /api/rf/signal`
 
 ```jsonc
 {
-  "frames": 10558,
+  "frames": 9435,
   "all": {
     "label": "all",
     "lo": null,
     "hi": null,
-    "n": 10558,
-    "p05": -33.6387,
-    "p50": -28.0925,
-    "p95": -15.2769,
-    "mean": -26.4355,
-    "strongFrac": 0.0045,
+    "n": 9435,
+    "p05": -33.4761,
+    "p50": -28.4665,
+    "p95": -15.3586,
+    "mean": -26.4722,
+    "strongFrac": 0.0181,
     "hist": {
       "lo": -36.5,
       "step": 0.5,
-      "counts": [6, 25, 45, 94, 170, 260, 329, 438, /* … 63 more */]
+      "counts": [7, 7, 19, 73, 136, 214, 330, 354, /* … 64 more */]
     }
   },
   "perAntenna": [
@@ -10767,16 +10750,16 @@ Example: `GET /api/rf/signal`
       "label": "vertical",
       "lo": null,
       "hi": null,
-      "n": 10558,
-      "p05": -33.6387,
-      "p50": -28.0925,
-      "p95": -15.2769,
-      "mean": -26.4355,
-      "strongFrac": 0.0045,
+      "n": 9435,
+      "p05": -33.4761,
+      "p50": -28.4665,
+      "p95": -15.3586,
+      "mean": -26.4722,
+      "strongFrac": 0.0181,
       "hist": {
         "lo": -36.5,
         "step": 0.5,
-        "counts": [6, 25, 45, 94, 170, 260, 329, 438, /* … 63 more */]
+        "counts": [7, 7, 19, 73, 136, 214, 330, 354, /* … 64 more */]
       }
     }
   ],
@@ -10785,12 +10768,12 @@ Example: `GET /api/rf/signal`
       "label": "0 km",
       "lo": 0,
       "hi": 25,
-      "n": 1079,
-      "p05": -21.9181,
-      "p50": -17.004,
-      "p95": -3.3729,
-      "mean": -14.5883,
-      "strongFrac": 0.0417
+      "n": 960,
+      "p05": -22.0625,
+      "p50": -16.3375,
+      "p95": -1.2895,
+      "mean": -13.5266,
+      "strongFrac": 0.176
     },
     /* … 15 more */
   ],
@@ -10799,29 +10782,29 @@ Example: `GET /api/rf/signal`
       "label": "0–0.5°",
       "lo": 0,
       "hi": 0.5,
-      "n": 1285,
-      "p05": -33.8719,
-      "p50": -27.1284,
-      "p95": -21.8259,
-      "mean": -27.7286,
+      "n": 1015,
+      "p05": -33.8321,
+      "p50": -26.133,
+      "p95": -20.4886,
+      "mean": -26.9382,
       "strongFrac": 0
     },
     /* … 7 more */
   ],
-  "decodeFloorDbfs": -34.8427,
-  "noiseFloorEstDbfs": -44.8427,
+  "decodeFloorDbfs": -34.5798,
+  "noiseFloorEstDbfs": -44.5798,
   "assumedDecodeSnrDb": 10,
-  "p50Dbfs": -28.0925,
-  "p999Dbfs": -1.5215,
-  "dynamicRangeDb": 34.3874,
-  "snrMarginDb": 6.7502,
-  "snrEstDb": 16.7502,
-  "strongFrac": 0.0045,
-  "nearClipFrac": 0,
+  "p50Dbfs": -28.4665,
+  "p999Dbfs": -0.8145,
+  "dynamicRangeDb": 35.0116,
+  "snrMarginDb": 6.1133,
+  "snrEstDb": 16.1133,
+  "strongFrac": 0.0181,
+  "nearClipFrac": 0.0016,
   "fading": {
-    "windows": 156,
-    "kMedianDb": 12.1613,
-    "stdMedianDb": 1.5083,
+    "windows": 145,
+    "kMedianDb": 11.5625,
+    "stdMedianDb": 1.5875,
     "kHist": {
       "lo": -10,
       "step": 1,
@@ -10830,47 +10813,47 @@ Example: `GET /api/rf/signal`
     "stdHist": {
       "lo": 0,
       "step": 0.25,
-      "counts": [0, 0, 2, 16, 15, 44, 30, 12, /* … 32 more */]
+      "counts": [0, 0, 3, 10, 17, 32, 30, 21, /* … 32 more */]
     },
     "kByElev": [
       {
         "label": "0–0.5°",
-        "kDb": 13.3195,
-        "n": 28
+        "kDb": 13.3113,
+        "n": 24
       },
       /* … 6 more */
     ],
     "worst": [
       {
         "icao": "3007E2",
-        "kDb": 4.0771,
-        "stdDb": 3.624,
+        "kDb": 3.5474,
+        "stdDb": 3.8495,
         "windows": 4,
-        "distKm": 30.0079,
-        "elevDeg": 16.6308
+        "distKm": 29.1828,
+        "elevDeg": 17.0792
       },
       /* … 9 more */
     ]
   },
   "multipath": {
-    "elevDeg": [0.025, 0.075, 0.175, 0.275, 0.325, 0.475, 0.525, 0.625, /* … 66 more */],
-    "devDb": [-0.4737, -0.654, -0.4084, -0.0348, -0.2846, -0.706, -0.0296, 1.0953, /* … 66 more */],
-    "rippleDb": 0.5423,
-    "reflectorHeightM": 36.4,
-    "periodDeg": 0.2166,
-    "strength": 0.1945,
+    "elevDeg": [0.025, 0.075, 0.175, 0.275, 0.475, 0.675, 0.725, 0.775, /* … 59 more */],
+    "devDb": [0.5798, 0.1468, -0.5675, 0.6082, 0.2895, -0.3599, -0.7802, -0.193, /* … 59 more */],
+    "rippleDb": 0.645,
+    "reflectorHeightM": 8.8,
+    "periodDeg": 0.8962,
+    "strength": 0.2743,
     "detected": false,
-    "bins": 74
+    "bins": 67
   },
   "aspect": {
     "fromDeg": [0, 10, 20, 30, 40, 50, 60, 70, /* … 10 more */],
-    "meanDb": [-0.1378, 0.099, -0.3266, -0.724, 0.1664, -1.0023, -0.2281, null, /* … 10 more */],
-    "stdDb": [1.8074, 1.4997, 1.6265, 1.8613, 1.6262, 1.287, 2.059, null, /* … 10 more */],
-    "n": [1550, 314, 580, 87, 617, 39, 689, 0, /* … 10 more */],
-    "noseDb": -0.1522,
-    "beamDb": -0.002,
-    "tailDb": -0.3289,
-    "noseTailDb": 0.1767
+    "meanDb": [-0.2215, 0.249, -0.206, 0.6627, 0.6366, -0.7731, -0.3182, null, /* … 10 more */],
+    "stdDb": [1.8214, 1.7339, 1.6572, 2.03, 1.5853, 1.6488, 1.7679, null, /* … 10 more */],
+    "n": [1472, 277, 545, 79, 533, 38, 579, 0, /* … 10 more */],
+    "noseDb": -0.161,
+    "beamDb": 0.0383,
+    "tailDb": -0.3674,
+    "noseTailDb": 0.2064
   }
 }
 ```
@@ -10891,56 +10874,56 @@ Example: `GET /api/rf/detection`
     {
       "type": "position",
       "nominalRate": 2,
-      "expected": 3100,
-      "decoded": 1771,
-      "pd": 0.5713
+      "expected": 2300,
+      "decoded": 1369,
+      "pd": 0.5952
     },
     /* … 2 more */
   ],
   "vsDistance": {
     "lo": [0, 10, 20, 30, 40, 50, 60, 70, /* … 42 more */],
     "hi": [10, 20, 30, 40, 50, 60, 70, 80, /* … 42 more */],
-    "pos": [null, null, 0.9542, null, null, null, null, null, /* … 42 more */],
-    "vel": [null, null, 0.95, null, null, null, null, null, /* … 42 more */],
-    "ident": [null, null, 0.9583, null, null, null, null, null, /* … 42 more */],
-    "expected": [80, 0, 240, 0, 80, 80, 40, 80, /* … 42 more */]
+    "pos": [null, null, 0.9444, null, null, null, null, null, /* … 42 more */],
+    "vel": [null, null, 0.9, null, null, null, null, null, /* … 42 more */],
+    "ident": [null, null, 0.9444, null, null, null, null, null, /* … 42 more */],
+    "expected": [60, 0, 180, 0, 60, 60, 40, 60, /* … 42 more */]
   },
   "vsElev": {
     "lo": [null, -1, -0.5, 0, 0.25, 0.5, 0.75, 1, /* … 11 more */],
     "hi": [-1, -0.5, 0, 0.25, 0.5, 0.75, 1, 1.5, /* … 11 more */],
-    "pos": [null, null, null, 0.5115, 0.4423, 0.3125, 0.614, 0.3925, /* … 11 more */],
-    "vel": [null, null, null, 0.5577, 0.4423, 0.2625, 0.61, 0.4325, /* … 11 more */],
-    "ident": [null, null, null, 0.6667, 0.6, 0.5, 0.6, 0.4412, /* … 11 more */],
-    "expected": [0, 0, 0, 260, 260, 160, 500, 400, /* … 11 more */]
+    "pos": [null, null, null, 0.485, 0.4563, 0.3417, 0.7294, 0.4111, /* … 11 more */],
+    "vel": [null, null, null, 0.55, 0.4625, 0.3417, 0.6618, 0.4167, /* … 11 more */],
+    "ident": [null, null, null, 0.4, 0.5, 0.25, 0.6765, 0.5333, /* … 11 more */],
+    "expected": [0, 0, 0, 200, 160, 120, 340, 360, /* … 11 more */]
   },
   "vsBearing": {
     "lo": [0, 10, 20, 30, 40, 50, 60, 70, /* … 28 more */],
     "hi": [10, 20, 30, 40, 50, 60, 70, 80, /* … 28 more */],
-    "pos": [null, 0.65, 0.2833, null, null, 0.8, null, null, /* … 28 more */],
-    "vel": [null, 0.6167, 0.275, null, null, 0.8438, null, null, /* … 28 more */],
-    "ident": [null, 0.5833, 0.3333, null, null, 0.875, null, null, /* … 28 more */],
-    "expected": [40, 120, 120, 40, 40, 160, 60, 0, /* … 28 more */]
+    "pos": [null, 0.73, 0.4, null, null, 0.9083, null, null, /* … 28 more */],
+    "vel": [null, 0.72, 0.3833, null, null, 0.9083, null, null, /* … 28 more */],
+    "ident": [null, 0.8, 0.5833, null, null, 0.9167, null, null, /* … 28 more */],
+    "expected": [20, 100, 120, 20, 40, 120, 60, 0, /* … 28 more */]
   },
   "vsRssi": {
     "lo": [-50, -48, -46, -44, -42, -40, -38, -36, /* … 17 more */],
     "hi": [-48, -46, -44, -42, -40, -38, -36, -34, /* … 17 more */],
-    "pos": [null, null, null, null, null, null, null, 0.0375, /* … 17 more */],
-    "vel": [null, null, null, null, null, null, null, 0.04, /* … 17 more */],
+    "pos": [null, null, null, null, null, null, null, null, /* … 17 more */],
+    "vel": [null, null, null, null, null, null, null, null, /* … 17 more */],
     "ident": [null, null, null, null, null, null, null, null, /* … 17 more */],
-    "expected": [0, 0, 0, 0, 0, 0, 0, 160, /* … 17 more */]
+    "expected": [0, 0, 0, 0, 0, 0, 0, 40, /* … 17 more */]
   },
-  "range50Km": 269.3568,
-  "range90Km": 145,
+  "range50Km": 320,
+  "range90Km": 95,
   "gaps": [
     {
       "loKm": 0,
       "hiKm": 50,
-      "n": 476,
-      "p50": 0.5014,
-      "p90": 0.5912,
-      "p95": 0.922,
-      "p99": 1.131,
-      "mean": 0.5287,
+      "n": 422,
+      "p50": 0.5021,
+      "p90": 0.5914,
+      "p95": 0.8967,
+      "p99": 1.189,
+      "mean": 0.532,
       "tSec": [2, 4, 5, 8, 12],
       "pUpdate": [1, 1, 1, 1, 1]
     },
@@ -10949,13 +10932,13 @@ Example: `GET /api/rf/detection`
   "aircraft": [
     {
       "icao": "44F2CE",
-      "distKm": 7.1755,
-      "pdPos": 0.925,
-      "pdVel": 0.9625,
+      "distKm": 6.9644,
+      "pdPos": 0.9667,
+      "pdVel": 0.9667,
       "pdIdent": 1,
-      "rssi": -6.9021
+      "rssi": -4.1299
     },
-    /* … 43 more */
+    /* … 42 more */
   ]
 }
 ```
@@ -10976,12 +10959,12 @@ Example: `GET /api/rf/intervals`
     {
       "loKm": 0,
       "hiKm": 50,
-      "n": 476,
-      "p50": 0.5014,
-      "p90": 0.5912,
-      "p95": 0.922,
-      "p99": 1.131,
-      "mean": 0.5287,
+      "n": 422,
+      "p50": 0.5021,
+      "p90": 0.5914,
+      "p95": 0.8967,
+      "p99": 1.189,
+      "mean": 0.532,
       "tSec": [2, 4, 5, 8, 12],
       "pUpdate": [1, 1, 1, 1, 1]
     },
@@ -10991,14 +10974,14 @@ Example: `GET /api/rf/intervals`
     {
       "type": "position",
       "nominalRate": 2,
-      "expected": 3100,
-      "decoded": 1771,
-      "pd": 0.5713
+      "expected": 2300,
+      "decoded": 1369,
+      "pd": 0.5952
     },
     /* … 2 more */
   ],
-  "range50Km": 269.3568,
-  "range90Km": 145
+  "range50Km": 320,
+  "range90Km": 95
 }
 ```
 
@@ -11014,49 +10997,49 @@ Example: `GET /api/rf/channel`
 
 ```jsonc
 {
-  "seconds": 51,
-  "frames": 10577,
-  "fps": 207.3922,
+  "seconds": 46,
+  "frames": 9472,
+  "fps": 205.913,
   "byDf": [
     {
       "df": 0,
       "label": "DF0 Short air-air surveillance (ACAS)",
-      "count": 728,
-      "rate": 14.2745
+      "count": 677,
+      "rate": 14.7174
     },
     /* … 6 more */
   ],
   "byCrc": {
-    "addrAccepted": 2853,
-    "addrRejected": 19,
+    "addrAccepted": 2538,
+    "addrRejected": 37,
     "bad": 0,
     "fixed": 0,
-    "ok": 7705,
+    "ok": 6897,
     "unknown": 0
   },
-  "occupancyPct": 2.1113,
-  "peakOccupancyPct": 2.368,
-  "meanReplyUs": 101.8028,
+  "occupancyPct": 2.0961,
+  "peakOccupancyPct": 2.3648,
+  "meanReplyUs": 101.7965,
   "crcBadFrac": 0,
   "fixedFrac": 0,
-  "rejectedFrac": 0.0066,
-  "failFrac": 0.0018,
-  "overlapProb": 0.0413,
-  "impliedRate": 8.8306,
-  "excessFail": -0.0396,
+  "rejectedFrac": 0.0144,
+  "failFrac": 0.0039,
+  "overlapProb": 0.0411,
+  "impliedRate": 19.2241,
+  "excessFail": -0.0371,
   "vsLoad": [
     {
-      "loFps": 100,
-      "hiFps": 200,
-      "seconds": 15,
-      "meanFps": 187.8667,
-      "failFrac": 0.0053,
-      "modelFailFrac": 0.0375
+      "loFps": 0,
+      "hiFps": 100,
+      "seconds": 1,
+      "meanFps": 79,
+      "failFrac": 0.1772,
+      "modelFailFrac": 0.016
     },
-    /* … 1 more */
+    /* … 2 more */
   ],
   "recent": {
-    "t0": 1795791944000,
+    "t0": 1795792426000,
     "frames": [0, 0, 0, 0, 0, 0, 0, 0, /* … 292 more */],
     "bad": [0, 0, 0, 0, 0, 0, 0, 0, /* … 292 more */],
     "occPct": [0, 0, 0, 0, 0, 0, 0, 0, /* … 292 more */]
@@ -11078,17 +11061,17 @@ Example: `GET /api/rf/interrogators`
 
 ```jsonc
 {
-  "t": 1795792244000,
+  "t": 1795792726000,
   "interrogators": {
     "codes": [
       {
         "code": "II 0",
         "iid": 0,
-        "replies": 1513,
-        "rate": 29.6667,
-        "last10m": 1513,
-        "aircraft": 51,
-        "replyingFrac": 0.9808,
+        "replies": 1367,
+        "rate": 29.7174,
+        "last10m": 1367,
+        "aircraft": 50,
+        "replyingFrac": 0.9615,
         "lockoutLikely": false,
         "timeline": [0, 0, 0, 0, 0, 0, 0, 0, /* … 52 more */],
         "acqSquitter": true
@@ -11102,20 +11085,20 @@ Example: `GET /api/rf/interrogators`
     "commB": [
       {
         "bds": "2,0",
-        "count": 110,
-        "frac": 0.1166
+        "count": 75,
+        "frac": 0.088
       },
       /* … 4 more */
     ],
-    "df0Rate": 14.2745,
+    "df0Rate": 14.7174,
     "df16Rate": 0,
     "raReports": 0,
-    "acasAircraft": 40,
-    "activeAircraft": 53,
-    "adsbAndModeS": 46,
-    "adsbOnly": 0,
-    "modeSOnly": 6,
-    "radarShare": 1
+    "acasAircraft": 39,
+    "activeAircraft": 54,
+    "adsbAndModeS": 45,
+    "adsbOnly": 2,
+    "modeSOnly": 7,
+    "radarShare": 0.9574
   }
 }
 ```
@@ -11136,33 +11119,33 @@ Example: `GET /api/rf/timing`
   "types": [
     {
       "type": "position",
-      "intervals": 2207,
+      "intervals": 2000,
       "badFrac": 0,
       "hist": {
         "lo": 0.4,
         "step": 0.005,
-        "counts": [41, 31, 47, 43, 37, 37, 40, 42, /* … 511 more */]
+        "counts": [31, 37, 44, 40, 44, 40, 37, 31, /* … 498 more */]
       },
       "nominalLo": 0.4,
       "nominalHi": 0.6,
-      "mean": 0.5018,
-      "std": 0.0575,
-      "chi2": 4.7302,
+      "mean": 0.498,
+      "std": 0.057,
+      "chi2": 11.5588,
       "uniformOk": true
     },
     /* … 2 more */
   ],
-  "altPairs": 1705,
-  "altRegularity": 0.9625,
-  "alt2Pairs": 292,
-  "alt2Same": 0.9349,
+  "altPairs": 1539,
+  "altRegularity": 0.9526,
+  "alt2Pairs": 260,
+  "alt2Same": 0.9308,
   "nonCompliant": [
     {
       "icao": "397EF0",
-      "intervals": 184,
+      "intervals": 159,
       "badFrac": 0,
-      "mean": 0.513,
-      "std": 0.0535,
+      "mean": 0.5015,
+      "std": 0.0622,
       "reason": "even/odd CPR formats do not alternate"
     },
     /* … 1 more */
@@ -11183,13 +11166,13 @@ Example: `GET /api/rf/fleet`
 
 ```jsonc
 {
-  "aircraft": 53,
-  "adsb": 46,
+  "aircraft": 54,
+  "adsb": 47,
   "versions": [
     {
       "label": "v2",
-      "count": 33,
-      "share": 0.7174
+      "count": 32,
+      "share": 0.6809
     },
     /* … 1 more */
   ],
@@ -11197,79 +11180,60 @@ Example: `GET /api/rf/fleet`
     {
       "label": "6",
       "count": 1,
-      "share": 0.0217
+      "share": 0.0213
     },
-    /* … 4 more */
+    /* … 5 more */
   ],
   "nacp": [
     {
       "label": "7",
       "count": 1,
-      "share": 0.0217
+      "share": 0.0213
     },
     /* … 4 more */
   ],
   "sil": [
     {
       "label": "3",
-      "count": 34,
-      "share": 0.7391
+      "count": 33,
+      "share": 0.7021
     },
     /* … 1 more */
   ],
-  "poorIntegrityShare": 0.0217,
+  "poorIntegrityShare": 0.0213,
   "categories": [
     {
       "label": "A1",
       "count": 4,
-      "share": 0.087
+      "share": 0.0851
     },
     /* … 5 more */
   ],
-  "tc28Share": 0.5217,
-  "tc29Share": 0.7391,
-  "tc31Share": 0.7174,
-  "gnssAltShare": 1,
+  "tc28Share": 0.4894,
+  "tc29Share": 0.7021,
+  "tc31Share": 0.6809,
+  "gnssAltShare": 0.9787,
   "gnssDelta": {
     "lo": -25,
     "step": 25,
-    "counts": [379, 284, 0, 97, 73, 0, 20, 72, /* … 12 more */]
+    "counts": [339, 262, 0, 93, 54, 0, 21, 63, /* … 12 more */]
   },
-  "gnssDeltaMeanFt": 234.748,
+  "gnssDeltaMeanFt": 232.4767,
   "gnssDeltaByAlt": [
     {
       "band": "\u003c1000",
-      "meanFt": 257,
-      "stdFt": 190.1999,
-      "n": 25
+      "meanFt": 184.375,
+      "stdFt": 192.5112,
+      "n": 32
     },
     /* … 6 more */
   ],
   "jumpAircraft": 0,
   "degradedNow": 0,
   "degradedList": null,
-  "gnssIndexNow": 0,
-  "gnssSeries": [
-    {
-      "t": 1795792140000,
-      "index": 0,
-      "tot": 38,
-      "deg": 0,
-      "jumps": 0
-    }
-  ],
-  "gnssCells": [
-    {
-      "sector": 1,
-      "ring": 3,
-      "lat": 51.5684,
-      "lon": 9.2552,
-      "tot": 1,
-      "deg": 0,
-      "index": 0
-    },
-    /* … 27 more */
-  ],
+  "gnssIndexNow": null,
+  "gnssSeries": null,
+  "gnssCells": null,
   "droppedFrames": 0
 }
 ```
@@ -11286,43 +11250,24 @@ Example: `GET /api/rf/gnss`
 
 ```jsonc
 {
-  "indexNow": 0,
-  "series": [
-    {
-      "t": 1795792140000,
-      "index": 0,
-      "tot": 38,
-      "deg": 0,
-      "jumps": 0
-    }
-  ],
-  "cells": [
-    {
-      "sector": 1,
-      "ring": 3,
-      "lat": 51.5684,
-      "lon": 9.2552,
-      "tot": 1,
-      "deg": 0,
-      "index": 0
-    },
-    /* … 27 more */
-  ],
+  "indexNow": null,
+  "series": null,
+  "cells": null,
   "degradedNow": 0,
   "degradedList": null,
   "jumpAircraft": 0,
   "gnssDelta": {
     "lo": -25,
     "step": 25,
-    "counts": [379, 284, 0, 97, 73, 0, 20, 72, /* … 12 more */]
+    "counts": [339, 262, 0, 93, 54, 0, 21, 63, /* … 12 more */]
   },
-  "gnssDeltaMeanFt": 234.748,
+  "gnssDeltaMeanFt": 232.4767,
   "gnssDeltaByAlt": [
     {
       "band": "\u003c1000",
-      "meanFt": 257,
-      "stdFt": 190.1999,
-      "n": 25
+      "meanFt": 184.375,
+      "stdFt": 192.5112,
+      "n": 32
     },
     /* … 6 more */
   ]
@@ -11339,32 +11284,37 @@ Example: `GET /api/rf/health`
 
 ```jsonc
 {
-  "score": 91,
+  "score": 82,
   "status": "ok",
   "items": [
     {
       "key": "gain",
       "label": "Receiver gain",
-      "score": 100,
-      "status": "ok",
-      "text": "Median -28.1 dBFS, decode floor -34.8 dBFS, 0.5 % of frames within 3 dB of full scale.",
-      "code": "gain.ok",
+      "score": 65,
+      "status": "warn",
+      "text": "Median -28.5 dBFS, decode floor -34.6 dBFS, 1.8 % of frames within 3 dB of full scale. Gain is on the high side; consider 2-3 dB less.",
+      "code": "gain.high",
       "data": {
-        "floorDbfs": -34.8427,
+        "floorDbfs": -34.5798,
         "nearDb": 3,
-        "p50Dbfs": -28.0925,
-        "strongPct": 0.4546
+        "p50Dbfs": -28.4665,
+        "stepMaxDb": 3,
+        "stepMinDb": 2,
+        "strongPct": 1.8124
       }
     },
     /* … 6 more */
   ],
   "blockedSectors": null,
-  "advice": ["RF chain looks healthy."],
+  "advice": ["Gain slightly high: consider reducing it by 2-3 dB."],
   "adviceItems": [
     {
-      "code": "advice.healthy",
-      "text": "RF chain looks healthy.",
-      "data": {}
+      "code": "advice.gain-slightly-high",
+      "text": "Gain slightly high: consider reducing it by 2-3 dB.",
+      "data": {
+        "stepMaxDb": 3,
+        "stepMinDb": 2
+      }
     }
   ]
 }
@@ -11475,7 +11425,7 @@ Example: `POST /api/navdata/import` with body `{"datasets":["nosuch"]}` -> `200`
   "import": {
     "running": true,
     "fraction": 0,
-    "started": 1795792244609
+    "started": 1795792726435
   },
   "started": true
 }
@@ -11506,11 +11456,11 @@ Example: `GET /api/navdata/progress`
         "error": "navdata: invalid input: unknown dataset \"nosuch\""
       }
     ],
-    "started": 1795792244624,
-    "finished": 1795792244624
+    "started": 1795792726435,
+    "finished": 1795792726435
   },
   "error": "navdata: invalid input: unknown dataset \"nosuch\"",
-  "started": 1795792244609
+  "started": 1795792726435
 }
 ```
 
@@ -11541,11 +11491,11 @@ Example: `POST /api/navdata/cancel` -> `200`
           "error": "navdata: invalid input: unknown dataset \"nosuch\""
         }
       ],
-      "started": 1795792244624,
-      "finished": 1795792244624
+      "started": 1795792726435,
+      "finished": 1795792726435
     },
     "error": "navdata: invalid input: unknown dataset \"nosuch\"",
-    "started": 1795792244609
+    "started": 1795792726435
   }
 }
 ```
@@ -11905,7 +11855,7 @@ Example: `POST /api/alerts/rules` with body `{"name":"Heavies over the house","e
 
 ```jsonc
 {
-  "id": "r-5f0450ff7b88",
+  "id": "r-ed13be28b30b",
   "name": "Heavies over the house",
   "enabled": true,
   "severity": "info",
@@ -11927,8 +11877,8 @@ Example: `POST /api/alerts/rules` with body `{"name":"Heavies over the house","e
     "log": true,
     "highlight": "#0a84ff"
   },
-  "created": 1795792244916,
-  "updated": 1795792244916
+  "created": 1795792726741,
+  "updated": 1795792726741
 }
 ```
 
@@ -11972,11 +11922,11 @@ Request body: a Rule
 
 Response: the stored Rule; `404` when unknown.
 
-Example: `PUT /api/alerts/rules/r-5f0450ff7b88` with body `{"name":"Heavies over the house","enabled":true,"severity":"warning","match":{"op":"and","conds":[{"type":"category","values":["A5"]},{"type":"distance","max":30}]},"cooldownSec":900,"actions":{"notify":true,"sound":true,"log":true,"highlight":"#0a84ff"}}` -> `200`
+Example: `PUT /api/alerts/rules/r-ed13be28b30b` with body `{"name":"Heavies over the house","enabled":true,"severity":"warning","match":{"op":"and","conds":[{"type":"category","values":["A5"]},{"type":"distance","max":30}]},"cooldownSec":900,"actions":{"notify":true,"sound":true,"log":true,"highlight":"#0a84ff"}}` -> `200`
 
 ```jsonc
 {
-  "id": "r-5f0450ff7b88",
+  "id": "r-ed13be28b30b",
   "name": "Heavies over the house",
   "enabled": true,
   "severity": "warning",
@@ -11997,8 +11947,8 @@ Example: `PUT /api/alerts/rules/r-5f0450ff7b88` with body `{"name":"Heavies over
     "log": true,
     "highlight": "#0a84ff"
   },
-  "created": 1795792244916,
-  "updated": 1795792244916
+  "created": 1795792726741,
+  "updated": 1795792726741
 }
 ```
 
@@ -12010,7 +11960,7 @@ Delete a rule.
 
 Response: `{"ok":true}`; `404` when unknown.
 
-Example: `DELETE /api/alerts/rules/r-caac5313584d` -> `200`
+Example: `DELETE /api/alerts/rules/r-9113d9019caa` -> `200`
 
 ```jsonc
 {
@@ -12048,8 +11998,8 @@ Example: `POST /api/alerts/rules/builtin-new-airframe/enabled` with body `{"enab
     "log": true,
     "highlight": "#34c759"
   },
-  "created": 1795792244917,
-  "updated": 1795792244917
+  "created": 1795792726741,
+  "updated": 1795792726741
 }
 ```
 
@@ -12083,14 +12033,14 @@ Example: `POST /api/alerts/test` with body `{"rule":{"name":"Above FL300","enabl
 
 ```jsonc
 {
-  "aircraft": 53,
+  "aircraft": 52,
   "matches": [
     {
       "icao": "3007E2",
       "callsign": "ITY1011",
-      "text": "Above FL300: ITY1011 [3007E2] sq 2401 30000 ft 30.0 km"
+      "text": "Above FL300: ITY1011 [3007E2] sq 2401 30000 ft 29.2 km"
     },
-    /* … 29 more */
+    /* … 31 more */
   ]
 }
 ```
@@ -12114,8 +12064,8 @@ Example: `GET /api/alerts/recent?limit=5`
 [
   {
     "id": 5,
-    "t": 1795792223271,
-    "ruleId": "r-c6bb3cf5b90c",
+    "t": 1795792710107,
+    "ruleId": "r-dd68f690c504",
     "ruleName": "Example rule",
     "severity": "warning",
     "kind": "aircraft",
@@ -12123,15 +12073,15 @@ Example: `GET /api/alerts/recent?limit=5`
     "callsign": "ITY1011",
     "operator": "ITA Airways",
     "squawk": "2401",
-    "lat": 50.28791524596133,
-    "lon": 8.677566115920609,
+    "lat": 50.287353515625,
+    "lon": 8.678476434004933,
     "altFt": 30000,
-    "distKm": 27.03782107273315,
+    "distKm": 26.99010872866031,
     "gsKt": 439.84088031923545,
     "vrFpm": 0,
     "trackDeg": 315.55267526494816,
-    "brgDeg": 11.797306873560697,
-    "rssi": -13.5,
+    "brgDeg": 11.959344422661927,
+    "rssi": -13.6,
     "text": "Example rule: ITY1011 at 30000 ft, 27.0 km",
     "notify": true,
     "sound": true,
@@ -12156,11 +12106,11 @@ Example: `GET /api/alerts/highlights`
   {
     "icao": "3007E2",
     "color": "#ffd60a",
-    "ruleId": "r-c6bb3cf5b90c",
+    "ruleId": "r-dd68f690c504",
     "severity": "warning",
-    "until": 1795792259568
+    "until": 1795792741361
   },
-  /* … 43 more */
+  /* … 42 more */
 ]
 ```
 
@@ -12176,19 +12126,19 @@ Example: `GET /api/alerts/stats`
 {
   "rules": 12,
   "enabledRules": 5,
-  "evaluations": 55,
-  "lastEvalMicros": 18,
-  "lastEvalNanos": 18056,
-  "lastEvalAircraft": 53,
+  "evaluations": 48,
+  "lastEvalMicros": 19,
+  "lastEvalNanos": 19108,
+  "lastEvalAircraft": 52,
   "fired": 5,
-  "suppressed": 43,
-  "states": 46,
+  "suppressed": 41,
+  "states": 45,
   "webhookSent": 0,
   "webhookFailed": 0,
   "webhookDropped": 0,
   "subscribers": 2,
   "rangeBaselineKm": 0,
-  "rangeRecentKm": 421.2
+  "rangeRecentKm": 420
 }
 ```
 
@@ -12313,7 +12263,7 @@ Example: `GET /api/alerts/watchlists/demo`
   {
     "icao": "3C6444",
     "note": "Lufthansa A319 (test entry)",
-    "added": 1795792244000
+    "added": 1795792726000
   }
 ]
 ```
@@ -12414,32 +12364,32 @@ Example: `GET /api/replay?hours=0.5&step=60`
 
 ```jsonc
 {
-  "from": 1795790444000,
-  "to": 1795792244000,
+  "from": 1795790926000,
+  "to": 1795792726000,
   "step": 60,
   "staleSec": 120,
   "aircraft": [
     {
-      "icao": "4CA256",
-      "flightId": 2056,
-      "callsign": "RYR3FX",
-      "operator": "Ryanair",
+      "icao": "3C5A5E",
+      "flightId": 2065,
+      "callsign": "DLH1567",
+      "operator": "Lufthansa",
       "category": "A3"
     },
-    /* … 102 more */
+    /* … 90 more */
   ],
   "frames": [
     {
-      "t": 1795790444000,
+      "t": 1795790926000,
       "p": [
-        [0, 46.40136, 7.64580, 32000, 443, 193, 0, 93],
-        [1, 47.40921, 13.12324, 38000, 506, 117, 1, 1],
-        /* … 35 more */
+        [0, 50.06875, 7.56787, 2375, 181, 109, 0, 2],
+        [1, 51.61577, 3.41301, 38000, 438, 240, 0, 2],
+        /* … 33 more */
       ]
     },
     /* … 30 more */
   ],
-  "points": 10714,
+  "points": 10489,
   "truncated": false
 }
 ```
@@ -12452,39 +12402,41 @@ Full stored trail of one flight with track angles, and the guessed departure / a
 
 Response: [server.traceReply](#t-server-traceReply)
 
-Example: `GET /api/history/flights/2162/trace`
+Example: `GET /api/history/flights/2152/trace`
 
 ```jsonc
 {
   "flight": {
-    "id": 2162,
-    "icao": "4436CA",
-    "callsign": "AUA7911",
-    "start": 1795792196000,
-    "end": 1795792244000,
-    "msgs": 69,
+    "id": 2152,
+    "icao": "47023A",
+    "callsign": "WZZ8806",
+    "squawk": "1000",
+    "start": 1795792682000,
+    "end": 1795792726000,
+    "msgs": 164,
     "positions": 26,
-    "srcMask": 2,
-    "maxDistKm": 336.9053652470078,
-    "maxDistBrg": 222.6450558029,
-    "minDistKm": 331.85692655242775,
-    "minAlt": 41000,
-    "maxAlt": 41000,
-    "maxGs": 455.83439975499874,
-    "rssiMin": -35.7,
-    "rssiMax": -31.8,
-    "rssiAvg": -33.477777777777774,
-    "firstLat": 47.7802734375,
-    "firstLon": 5.554412841796875,
-    "lastLat": 47.76869434421345,
-    "lastLon": 5.6804950420673075,
-    "operator": "Austrian Airlines",
-    "country": "Austria"
+    "srcMask": 1,
+    "maxDistKm": 271.4102229597883,
+    "maxDistBrg": 69.02525976876385,
+    "minDistKm": 264.0135965599059,
+    "minAlt": 38000,
+    "maxAlt": 38000,
+    "maxGs": 406.03078701004927,
+    "rssiMin": -34.7,
+    "rssiMax": -28.5,
+    "rssiAvg": -31.72638036809815,
+    "firstLat": 50.868255615234375,
+    "firstLon": 12.201282398120776,
+    "lastLat": 50.85282665188029,
+    "lastLon": 12.09869384765625,
+    "reg": "HA-AVY",
+    "operator": "Wizz Air",
+    "country": "Hungary"
   },
   "points": [
-    [1795792199000, 47.78027, 5.55441, 41000, 446, 99, null, 1],
-    [1795792204000, 47.77922, 5.56883, 41000, 448, 98, null, 1],
-    /* … 6 more */
+    [1795792690000, 50.86826, 12.20128, 38000, 406, 257, -31.7, 0],
+    [1795792695000, 50.86601, 12.18629, 38000, 406, 257, -33.9, 0],
+    /* … 5 more */
   ],
   "airports": {
     "departure": null,
@@ -12499,7 +12451,7 @@ Download one flight: `{id}.kml` (Google Earth, absolute altitudes), `{id}.geojso
 
 Response: `application/vnd.google-earth.kml+xml`, `application/geo+json` or `text/csv` with `Content-Disposition: attachment`; `404` unknown flight or format.
 
-Example: `GET /api/export/flight/2162.geojson`
+Example: `GET /api/export/flight/2152.geojson`
 
 ```jsonc
 {
@@ -12510,21 +12462,21 @@ Example: `GET /api/export/flight/2162.geojson`
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [5.55441, 47.78027, 12497],
-          [5.56883, 47.77922, 12497],
-          /* … 6 more */
+          [12.20128, 50.86826, 11582],
+          [12.18629, 50.86601, 11582],
+          /* … 5 more */
         ]
       },
       "properties": {
-        "callsign": "AUA7911",
-        "end": 1795792244000,
-        "flightId": 2162,
-        "icao": "4436CA",
-        "operator": "Austrian Airlines",
-        "positions": 8,
-        "reg": "",
-        "start": 1795792196000,
-        "times": [1795792199000, 1795792204000, 1795792209000, 1795792214000, 1795792219000, 1795792227000, 1795792235000, 1795792240000],
+        "callsign": "WZZ8806",
+        "end": 1795792726000,
+        "flightId": 2152,
+        "icao": "47023A",
+        "operator": "Wizz Air",
+        "positions": 7,
+        "reg": "HA-AVY",
+        "start": 1795792682000,
+        "times": [1795792690000, 1795792695000, 1795792701000, 1795792706000, 1795792712000, 1795792718000, 1795792723000],
         "type": ""
       }
     }
@@ -12548,7 +12500,7 @@ Example: `GET /api/export/live.kml?minutes=5` (shortened)
 <?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
 <Document>
-<name>AirView live 20261127-151044</name>
+<name>AirView live 20261127-151846</name>
 <Style id="ac">
 <IconStyle>
 <scale>0.8</scale>
@@ -12568,7 +12520,7 @@ Example: `GET /api/export/live.kml?minutes=5` (shortened)
 <styleUrl>#ac</styleUrl>
 <Point>
 <altitudeMode>absolute</altitudeMode>
-<coordinates>8.62961,50.31911,9144</coordinates>
+<coordinates>8.64216,50.31096,9144</coordinates>
 </Point>
 </Placemark>
 <Placemark>
@@ -12577,7 +12529,7 @@ Example: `GET /api/export/live.kml?minutes=5` (shortened)
 <LineString>
 <tessellate>1</tessellate>
 <altitudeMode>absolute</altitudeMode>
-<coordinates>8.74121,50.24648,9144 8.73346,50.25146,9144 8.72641,50.25612,9144 8.71881,50.26103,9144 8.71119,50.26599,9144 8.70451,50.27037,9144 8.69776,50.27479,9144 8.69108,50.27916,9144 8.68402,50.28373,9144 8.67624,50.28877,914 ...
+<coordinates>8.74136,50.24634,9144 8.73456,50.25078,9144 8.72770,50.25526,9144 8.72083,50.25975,9144 8.71349,50.26455,9144 8.70674,50.26892,9144 8.69915,50.27385,9144 8.69182,50.27865,9144 8.68455,50.28342,9144 8.67757,50.28796,914 ...
 ```
 
 ### `GET /api/export/live.geojson`
@@ -12600,7 +12552,7 @@ Example: `GET /api/export/live.geojson?minutes=5`
       "type": "Feature",
       "geometry": {
         "type": "Point",
-        "coordinates": [8.62961, 50.31911]
+        "coordinates": [8.64216, 50.31096]
       },
       "properties": {
         "altFt": 30000,
@@ -12608,7 +12560,7 @@ Example: `GET /api/export/live.geojson?minutes=5`
         "gsKt": 440,
         "icao": "3007E2",
         "kind": "aircraft",
-        "lastSeen": 1795792244568,
+        "lastSeen": 1795792726180,
         "operator": "ITA Airways",
         "predicted": false,
         "reg": "",
@@ -12617,7 +12569,7 @@ Example: `GET /api/export/live.geojson?minutes=5`
         "type": ""
       }
     },
-    /* … 89 more */
+    /* … 87 more */
   ]
 }
 ```
@@ -12632,8 +12584,8 @@ Example: `GET /api/export/aircraft.csv`
 
 ```
 icao,reg,type,type_desc,operator,country,category,military,first_seen,last_seen,msgs,flights,positions,max_dist_km,max_alt_ft,year
-06A022,,,,Qatar Airways,Qatar,A5,false,2026-11-25T05:12:01Z,2026-11-25T06:10:05Z,14676,1,3034,457.3,41000,
-06A075,,,,Qatar Airways,Qatar,A5,false,2026-11-25T18:46:42Z,2026-11-25T19:23:20Z,4591,1,691,435.1,36000,
+06A024,,,,Qatar Airways,Qatar,A5,false,2026-11-26T09:47:11Z,2026-11-26T10:27:14Z,19398,1,4158,473.0,30000,
+06A055,,,,Qatar Airways,Qatar,,false,2026-11-26T12:00:39Z,2026-11-26T12:59:53Z,6929,1,1818,473.1,36000,
 ...
 ```
 
@@ -12675,8 +12627,8 @@ Example: `GET /api/reports?hours=6&limit=3`
 
 ```jsonc
 {
-  "from": 1795770644953,
-  "to": 1795792244953,
+  "from": 1795771126773,
+  "to": 1795792726773,
   "total": 346,
   "limit": 3,
   "offset": 0,
@@ -12684,17 +12636,13 @@ Example: `GET /api/reports?hours=6&limit=3`
   "desc": true,
   "rows": [
     {
-      "flightId": 2173,
+      "flightId": 2161,
       "icao": "39FED3",
-      "callsign": "AFR7US",
-      "squawk": "1123",
-      "operator": "Air France",
       "country": "France",
-      "category": "A5",
-      "start": 1795792218000,
-      "end": 1795792242000,
-      "durationS": 24,
-      "msgs": 14,
+      "start": 1795792713000,
+      "end": 1795792726000,
+      "durationS": 13,
+      "msgs": 6,
       "positions": 0,
       "srcMask": 16,
       "minDistKm": null,
@@ -12703,8 +12651,8 @@ Example: `GET /api/reports?hours=6&limit=3`
       "minAlt": 31000,
       "maxAlt": 31000,
       "maxGs": 487,
-      "rssiMax": -32.4,
-      "rssiAvg": -33.9,
+      "rssiMax": -32.7,
+      "rssiAvg": -34.2,
       "firstLat": null,
       "firstLon": null,
       "lastLat": null,
@@ -12752,8 +12700,8 @@ Example: `GET /api/reports.csv?hours=6&limit=5`
 
 ```
 flight_id,icao,callsign,squawk,reg,type,type_desc,operator,country,category,military,start,end,duration_s,msgs,positions,min_dist_km,max_dist_km,max_dist_brg,min_alt_ft,max_alt_ft,max_gs_kt,rssi_max,rssi_avg,first_lat,first_lon,last_lat,last_lon,emergency,dep,arr
-2173,39FED3,AFR7US,1123,,,,Air France,France,A5,false,2026-11-27T15:10:18Z,2026-11-27T15:10:42Z,24,14,0,,,,31000,31000,487,-32.4,-33.9,,,,,,,
-2172,405A0A,EXS1733,,,,,Jet2.com,United Kingdom,,false,2026-11-27T15:10:12Z,2026-11-27T15:10:43Z,31,14,0,,,,35000,35000,477,-29.2,-33.2,,,,,,,
+2161,39FED3,,,,,,,France,,false,2026-11-27T15:18:33Z,2026-11-27T15:18:46Z,13,6,0,,,,31000,31000,487,-32.7,-34.2,,,,,,,
+2160,4CA42F,EIN1584,1575,,,,Aer Lingus,Ireland,A5,false,2026-11-27T15:18:17Z,2026-11-27T15:18:39Z,22,8,0,,,,38000,38000,448,-34.0,-34.5,,,,,,,
 ...
 ```
 
@@ -12779,6 +12727,18 @@ Field tables of the response types named above, in alphabetical order (`package.
 The *Notes* column is the comment of the field in the source. A type written `T | null` can be null; fields
 marked *optional* are left out when empty / unknown. `model.Config`, `model.Status`, `model.Aircraft` and
 `model.LiveSnapshot` are the shared contract types of `internal/model`.
+
+<a id="t-acas-Stats"></a>
+
+#### acas.Stats
+
+Stats are the recorder's counters.
+
+| Field | Type | Notes |
+|---|---|---|
+| `events` | integer | events started since the start |
+| `open` | integer | events in progress |
+| `dropped` | integer | reports dropped by the flood guard |
 
 <a id="t-alerts-Actions"></a>
 
@@ -14596,6 +14556,18 @@ WindAloft is one row of the winds-aloft table.
 | `isaDev` | number | *optional* |
 | `coded` | string | *optional* - Coded is the classic winds-aloft (FD/FB) group "DDSS+TT", e.g. "2745-32" = from 270 degrees at 45 kt, -32 degC ("9900" = light and variable; speeds of 100 kt and more add 50 to the direction digits). |
 
+<a id="t-model-ACASMark"></a>
+
+#### model.ACASMark
+
+ACASMark is an active ACAS resolution advisory reported by the aircraft.
+
+| Field | Type | Notes |
+|---|---|---|
+| `advisory` | string | e.g. "Climb", "Do not descend" |
+| `sense` | string | *optional* - "up" \| "down" |
+| `since` | integer | Unix ms of the first report |
+
 <a id="t-model-AggAuth"></a>
 
 #### model.AggAuth
@@ -15357,6 +15329,7 @@ Aircraft is the live state DTO for one tracked aircraft (GET /api/aircraft, SSE 
 | `terrainVisible` | boolean | *optional* - Terrain line of sight from the receiver (internal/terrain), refreshed at 1 Hz. above the terrain radio horizon of the best antenna; omitted until the terrain analysis exists |
 | `losMarginDeg` | number | *optional* - elevation above (+) or below (-) the terrain skyline, deg |
 | `route` | [model.RouteShort](#t-model-RouteShort) | *optional* - Route from the offline standing data (or a cached online lookup). |
+| `acas` | [model.ACASMark](#t-model-ACASMark) | *optional* - ACAS is set while the aircraft reports an active ACAS (TCAS) resolution advisory (internal/acas). |
 | `highlight` | [model.AlertMark](#t-model-AlertMark) | *optional* - Highlight is set while an alert rule with a highlight colour matches this aircraft (the JSON name "alert" is the Mode S alert flag above). |
 | `mlatGrade` | string | *optional* - MLATGrade is the grade "A".."C" of the current own-MLAT position. |
 | `mlatSigmaM` | number | *optional* - MLATSigmaM is the 1-sigma horizontal uncertainty of an MLAT position, m. |

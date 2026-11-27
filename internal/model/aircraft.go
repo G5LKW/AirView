@@ -109,6 +109,9 @@ type Aircraft struct {
 
 	// Route from the offline standing data (or a cached online lookup).
 	Route *RouteShort `json:"route,omitempty"`
+	// ACAS is set while the aircraft reports an active ACAS (TCAS)
+	// resolution advisory (internal/acas).
+	ACAS *ACASMark `json:"acas,omitempty"`
 	// Highlight is set while an alert rule with a highlight colour matches
 	// this aircraft (the JSON name "alert" is the Mode S alert flag above).
 	Highlight *AlertMark `json:"highlight,omitempty"`
@@ -160,6 +163,13 @@ type RouteShort struct {
 	Kind     string   `json:"kind,omitempty"`     // "" | "positioning" | "charter"
 	Class    string   `json:"lic,omitempty"`      // licence class: open | own | restricted (restricted never leaves the station's own scopes)
 	Flags    []string `json:"flags,omitempty"`    // "variant", "stale-standing"
+}
+
+// ACASMark is an active ACAS resolution advisory reported by the aircraft.
+type ACASMark struct {
+	Advisory string `json:"advisory"`        // e.g. "Climb", "Do not descend"
+	Sense    string `json:"sense,omitempty"` // "up" | "down"
+	Since    int64  `json:"since"`           // Unix ms of the first report
 }
 
 // AlertMark marks an aircraft that matches an alert rule with a highlight.

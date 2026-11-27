@@ -186,7 +186,7 @@ func (s *shardSet) invalidate() { s.gen.Add(1) }
 // must not run concurrently with themselves.
 func (s *shardSet) setHooks(t *Tracker) {
 	t.mu.Lock()
-	hook, notice, af, guess := t.hook, t.onNotice, t.onNewAF, t.guessFn
+	hook, notice, af, guess, ra := t.hook, t.onNotice, t.onNewAF, t.guessFn, t.onACAS
 	t.mu.Unlock()
 	var wh func(EHSEvent) EHSResult
 	if hook != nil {
@@ -221,6 +221,7 @@ func (s *shardSet) setHooks(t *Tracker) {
 		}
 		p.onNotice = notice
 		p.onNewAF = waf
+		p.onACAS = ra // the recorder is safe for concurrent use
 		p.guessFn = wg
 		if wg == nil {
 			p.guessQ, p.guessDue = p.guessQ[:0], false

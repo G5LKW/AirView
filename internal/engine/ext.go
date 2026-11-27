@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"airview/internal/acas"
 	"airview/internal/alerts"
 	"airview/internal/met"
 	"airview/internal/model"
@@ -54,6 +55,7 @@ type extState struct {
 	cpaSweep int64
 
 	rt       *routes.Service
+	acas     *acas.Recorder
 	routeCfg atomic.Pointer[model.RoutesConfig]
 
 	regionKick  chan struct{}
@@ -109,6 +111,8 @@ func (e *Engine) buildExt(cfg model.Config) {
 		Config:        func() model.RoutesConfig { return *x.routeCfg.Load() },
 		OverridesFile: filepath.Join(e.dir, "routes.overrides.csv"),
 	})
+	x.acas = acas.New(e.st, e.log)
+	e.tr.SetACASHook(x.acas.Observe)
 	x.al = alerts.New(alerts.Options{Store: e.st, Logger: e.log, UserAgent: model.AppName + "/" + e.opts.Version})
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	if err := x.al.Load(ctx); err != nil {
@@ -146,6 +150,14 @@ func routeContact(c string) string {
 		return c
 	}
 	return model.ProjectURL
+}
+
+// ACAS returns the resolution advisory recorder.
+func (e *Engine) ACAS() *acas.Recorder {
+	if e.ext == nil {
+		return nil
+	}
+	return e.ext.acas
 }
 
 // Routes returns the route service.
@@ -286,6 +298,7 @@ func (e *Engine) startExt(rt *runtimeState, run func(string, func(context.Contex
 	run("alerts", func(ctx context.Context) error { x.al.Run(ctx); return nil })
 	run("live", func(ctx context.Context) error { e.liveLoop(ctx); return nil })
 	run("routes", func(ctx context.Context) error { x.rt.Run(ctx); return nil })
+	run("acas", func(ctx context.Context) error { x.acas.Run(ctx, nil); return nil })
 	run("navdata", func(ctx context.Context) error { e.navLoop(ctx); return nil })
 	run("airports", func(ctx context.Context) error { e.airportLoop(ctx); return nil })
 	x.rfMu.Lock()
@@ -422,6 +435,16 @@ func (e *Engine) enrich(s *model.LiveSnapshot) {
 	var tj *trajectory.Manager
 	if cfg.Prediction.Enabled && located(cfg.Receiver) {
 		tj = x.tj
+	}
+
+	if marks := x.acas.LiveMarks(s.Now); len(marks) > 0 {
+		for i := range s.Aircraft {
+			if key, err := modes.ParseICAO(s.Aircraft[i].ICAO); err == nil {
+				if m, ok := marks[key]; ok {
+					s.Aircraft[i].ACAS = &model.ACASMark{Advisory: m.Advisory, Sense: m.Sense, Since: m.Since}
+				}
+			}
+		}
 	}
 
 	x.enrichMu.Lock()

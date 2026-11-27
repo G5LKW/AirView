@@ -38,6 +38,7 @@
 package tracker
 
 import (
+	"airview/internal/acas"
 	"context"
 	"log/slog"
 	"math"
@@ -318,6 +319,7 @@ type Tracker struct {
 	coastMs int64               // longest predicted position shown after the last real one
 	rf      *rfstat.Stats       // RF statistics (nil = off)
 	onNewAF func(icao uint32)   // first sighting of an airframe ever (called without locks)
+	onACAS  func(acas.Report)   // ACAS resolution advisory report (called under the lock; must be cheap)
 	enrich  func(s *model.LiveSnapshot)
 	snapMu  sync.Mutex // serialises snapshot builds (enrich runs without mu)
 	lastBDS uint8      // Comm-B register settled on for the frame being applied
@@ -561,6 +563,18 @@ func (t *Tracker) SetEHSHook(fn func(EHSEvent) EHSResult) {
 	t.hookPending = false
 	t.mu.Unlock()
 	t.hookMu.Unlock()
+	if s := t.sh.Load(); s != nil {
+		s.setHooks(t)
+	}
+}
+
+// SetACASHook installs fn, called for every received ACAS resolution
+// advisory report (DF16, BDS 3,0, TC28). It runs under the tracker's lock:
+// it must be quick and must not call back into the tracker. nil removes it.
+func (t *Tracker) SetACASHook(fn func(acas.Report)) {
+	t.mu.Lock()
+	t.onACAS = fn
+	t.mu.Unlock()
 	if s := t.sh.Load(); s != nil {
 		s.setHooks(t)
 	}

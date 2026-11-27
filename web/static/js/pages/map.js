@@ -104,6 +104,7 @@ function baseEffective(S) {
     airports: p.airports === null ? cfg.navData?.airportsOverlay !== false : !!p.airports,
     heat: !!p.heat,
     prox: !!p.prox,
+    acas: !!p.acas,
     mute: !!p.mute,
     soundAllowed: cfg.alerts?.sound !== false,
   };
@@ -113,7 +114,7 @@ function baseEffective(S) {
 // layers
 // -----------------------------------------------------------------------------------------------
 const SOURCES = ['night', 'heat', 'coverage', 'range', 'terrain', 'rings', 'ring-labels', 'compass', 'compass-labels', 'beams', 'beam-axes',
-  'airports', 'route', 'receiver', 'trail-sel', 'trace', 'focus', 'pred-paths', 'pred-ticks', 'pred-links', 'prox', 'measure'];
+  'airports', 'acas', 'route', 'receiver', 'trail-sel', 'trace', 'focus', 'pred-paths', 'pred-ticks', 'pred-links', 'prox', 'measure'];
 
 function installLayers() {
   const { map } = S;
@@ -176,6 +177,10 @@ function installLayers() {
     'symbol-sort-key': ['-', 0, ['get', 'size']],
   }, paint: { 'text-color': apt, 'text-halo-color': halo, 'text-halo-width': 1.5 } });
 
+  // TCAS resolution advisories of the last 24 h (where each started)
+  add({ id: 'acas-dot', type: 'circle', source: 'acas', paint: { 'circle-radius': 5, 'circle-color': '#ff453a', 'circle-opacity': 0.85, 'circle-stroke-color': halo, 'circle-stroke-width': 1.2 } });
+  add({ id: 'acas-label', type: 'symbol', source: 'acas', minzoom: 6, layout: { 'text-field': ['get', 't'], 'text-font': LABEL_FONT, 'text-size': 10, 'text-offset': [0, 0.9], 'text-anchor': 'top', 'text-optional': true, 'text-max-width': 16 }, paint: { 'text-color': '#ff8a80', 'text-halo-color': halo, 'text-halo-width': 1.5 } });
+
   // route of the selected aircraft
   add({ id: 'route-line', type: 'line', source: 'route', filter: ['==', ['get', 'kind'], 'line'], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': ['case', ['==', ['get', 'ok'], 0], '#fbbf24', '#e879f9'], 'line-width': 1.6, 'line-opacity': 0.75, 'line-dasharray': [1, 2.4] } });
   add({ id: 'route-ap', type: 'circle', source: 'route', filter: ['==', ['get', 'kind'], 'ap'], paint: { 'circle-radius': 5, 'circle-color': dark ? '#0b1430' : '#ffffff', 'circle-stroke-color': '#e879f9', 'circle-stroke-width': 2 } });
@@ -207,6 +212,8 @@ function installLayers() {
   // coasting aircraft: uncertainty circle under everything aircraft-related
   add({ id: 'ac-pred-sigma', type: 'circle', source: 'aircraft', filter: ['all', ['==', ['get', 'pred'], 1], ['>', ['get', 'r0'], 0]], paint: { 'circle-radius': SIGMA_RADIUS, 'circle-color': ['get', 'c'], 'circle-opacity': 0.08, 'circle-stroke-color': ['get', 'c'], 'circle-stroke-width': 1, 'circle-stroke-opacity': ['*', 0.55, ['get', 'gi']], 'circle-pitch-alignment': 'map' } });
   add({ id: 'ac-emerg', type: 'circle', source: 'aircraft', filter: ['==', ['get', 'emerg'], 1], paint: { 'circle-radius': 20, 'circle-color': '#ff4d5e', 'circle-opacity': 0.22, 'circle-stroke-color': '#ff4d5e', 'circle-stroke-width': 1.6, 'circle-stroke-opacity': 0.9 } });
+  // an active TCAS resolution advisory reported by the aircraft
+  add({ id: 'ac-ra', type: 'circle', source: 'aircraft', filter: ['==', ['get', 'ra'], 1], paint: { 'circle-radius': iconScale(21), 'circle-color': 'rgba(255,69,58,0.12)', 'circle-stroke-color': '#ff453a', 'circle-stroke-width': 2.6, 'circle-stroke-opacity': 0.95 } });
   add({ id: 'ac-hl', type: 'circle', source: 'aircraft', filter: ['!=', ['get', 'hl'], ''], paint: { 'circle-radius': iconScale(17), 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': ['get', 'hl'], 'circle-stroke-width': 2.2, 'circle-stroke-opacity': 0.95 } });
   // MLAT positions: a ring around the icon in the colour of the fix grade (A green, B amber, C orange; violet
   // for external MLAT without a grade), thicker for better grades - distinct from ADS-B in every colour mode
@@ -282,6 +289,7 @@ function applyVisibility() {
   setVisible(['apt-centerline', 'apt-runway', 'apt-dot', 'apt-label'], e.airports);
   setVisible(['heat'], e.heat);
   setVisible(['prox-line', 'prox-label'], e.prox);
+  setVisible(['acas-dot', 'acas-label'], e.acas);
   setVisible(['pred-path', 'pred-tick', 'pred-tick-sigma', 'pred-tick-label'], e.predPaths !== 'off');
 }
 
@@ -434,9 +442,10 @@ function prepare(snap) {
         po: cp ? cp.po : 1,
         r0: cp ? cp.r0 : 0,
         hl,
+        ra: a.acas ? 1 : 0,
         mine: a.mine ? 1 : 0,
-        label: labels === 'none' ? '' : labelFor(a, labels),
-        sk: a.icao === S.selected ? -1e7 : emerg ? -1e6 : hl ? -5e5 : -alt,
+        label: a.acas ? (labels === 'none' ? a.callsign || a.icao : labelFor(a, labels)) + '\nRA ' + a.acas.advisory : labels === 'none' ? '' : labelFor(a, labels),
+        sk: a.icao === S.selected ? -1e7 : emerg ? -1e6 : a.acas ? -9e5 : hl ? -5e5 : -alt,
       },
     };
     // blend the jump between the shown and the newly reported position over the next frames
@@ -1116,13 +1125,14 @@ function renderLegend() {
   if (S.predictedCount || S.eff.predPaths !== 'off') sym.push(h('span.lg-sym', { tip: 'No position for a few seconds: shown where the tracking filter predicts it; the glow fades as the prediction ages, the circle is the 1σ uncertainty' }, h('i.lg-glow'), 'Predicted (glow)'));
   if (S.eff.predPaths !== 'off') sym.push(h('span.lg-sym', h('i.lg-dash'), 'Predicted path'));
   if (S.hasHighlights) sym.push(h('span.lg-sym', h('i.lg-ring'), 'Alert rule'));
+  if (S.hasRA) sym.push(h('span.lg-sym', { tip: 'The aircraft reports an active TCAS resolution advisory (its label shows the advisory)' }, h('i.lg-ring', { style: { borderColor: '#ff453a' } }), 'TCAS RA'));
   if (S.mlatCount && S.legendMlat) {
     sym.push(h('span.lg-sym.lg-mlat-title', { tip: 'Multilateration: positions the network computes from the arrival times at several stations. The ring colour is the quality grade (1σ horizontal error).' }, 'MLAT'));
     if (S.legendMlat & 1) for (const g of GRADES) sym.push(h('span.lg-sym', { tip: `Grade ${g.label}: ${g.text}` }, h('i.lg-mring', { style: { borderColor: g.color, borderWidth: g.width + 'px' } }), g.label));
     if (S.mlatUngraded) sym.push(h('span.lg-sym', { tip: 'MLAT from an external server, without a grade' }, h('i.lg-mring', { style: { borderColor: MLAT_UNGRADED } }), 'ext.'));
   }
   const notes = [];
-  for (const [key, label] of [['range', 'Range'], ['terrain', 'Terrain'], ['airports', 'Airports'], ['heat', 'Heat map'], ['prox', 'Proximity']]) {
+  for (const [key, label] of [['range', 'Range'], ['terrain', 'Terrain'], ['airports', 'Airports'], ['heat', 'Heat map'], ['prox', 'Proximity'], ['acas', 'TCAS RAs']]) {
     if (!S.eff[key]) continue;
     const nt = S.extras.notes.get(key);
     if (nt && nt.text && nt.state !== 'ok') notes.push(h('div.lg-note' + (nt.state === 'error' ? '.err' : ''), icon(nt.state === 'error' ? 'alert' : nt.state === 'loading' ? 'refresh' : 'info'), `${label}: ${nt.text}`));
@@ -1179,6 +1189,7 @@ function openLayersPanel(anchor) {
     ] : null,
     tgl('airports', 'Airports & runways', () => S.extras.airports(), noteOf('airports') || 'From zoom 5; runways and centrelines from zoom 8'),
     rxOk ? tgl('heat', 'Heat map (all time)', () => S.extras.heat(), noteOf('heat') || 'Every position ever received') : null,
+    tgl('acas', 'TCAS RAs (24 h)', () => S.extras.acas(), noteOf('acas') || 'Where aircraft reported a resolution advisory'),
     net.aggregator ? ui.field({ label: 'Load aircraft', hint: `"Visible area" saves bandwidth on large networks; the list then shows the aircraft in view only. Automatic switches to it above ${VIEWPORT_ON} aircraft.`,
       control: ui.segmented({ block: true, value: S.prefs.get().viewport || 'auto', options: [{ value: 'auto', label: 'Automatic' }, { value: 'on', label: 'Visible area' }, { value: 'off', label: 'Everything' }],
         onChange: (v) => { S.prefs.set({ viewport: v }); syncViewport(true); } }) }) : null,
@@ -1353,6 +1364,8 @@ function onSnapshot(snap) {
   S.list.update(snap);
   S.detail.update(snap.now);
   const hl = snap.aircraft.some((a) => a.highlight);
+  const ra = snap.aircraft.some((a) => a.acas);
+  if (ra !== !!S.hasRA) { S.hasRA = ra; renderLegend(); }
   const predNow = S.predictedCount > 0;
   let mlatKey = 0;
   if (S.mlatCount) for (const a of snap.aircraft) if (a.source === 'mlat' && typeof a.lat === 'number' && !a.predicted) mlatKey |= a.mlatGrade ? 1 : 2;
@@ -1438,7 +1451,7 @@ export default {
       basemap: null, colorBy: null, labels: 'callsign', trails: true, trailMinutes: null,
       rings: true, beams: true, compass: true, night: true, radar: null, coverage: true, smooth: null,
       list: true, view: null,
-      predPaths: null, range: false, terrain: false, terrainKind: 'los', airports: null, heat: false, prox: false, mute: false, filter: {},
+      predPaths: null, range: false, terrain: false, terrainKind: 'los', airports: null, heat: false, prox: false, acas: false, mute: false, filter: {},
       viewport: 'auto',
     });
 
