@@ -22,11 +22,11 @@ work on the top unfinished item, and update it before they finish.
 6. **Record** progress in this file and in `docs/V1.1-PROGRESS.md`.
 
 ## 1.1 feature list (priority order)
-- [ ] Small fixes from `docs/aggregator/HOOKS.md`:
-  - flaky tests `TestMetSamplePruner` and `TestEpochCostGate`;
-  - `timing.js:125` suggests the Radarcape NTP service even without a Radarcape;
+- [x] Small fixes from `docs/aggregator/HOOKS.md` (branch `auto/small-fixes`, 2026-11-27):
+  - flaky tests `TestMetSamplePruner` and `TestEpochCostGate` (plus `hub.TestLoopbackRoundTrip`);
+  - `timing.js:125` suggests the Radarcape NTP service even without a Radarcape (also `timing/tdoa.js`);
   - `guess.js` text says "four" methods while it lists five;
-  - show the registration/type source in the detail panel.
+  - show the registration/type source in the detail panel (server `regSource` / `typeSource` / `acdbAttribution`).
 - [ ] Route lookups, per `docs/ROUTES-DESIGN.md`. Binding decisions: auto data download on; online adsbdb lookups on by default; learned routes published under CC0.
 - [ ] TCAS RA events (DF16/DF0, BDS 3,0) with an events list and map markers.
 - [ ] Mode-S EHS weather (BDS 4,4/4,5; winds and temperatures from 5,0/6,0), with a gridded layer, then fronts and short-term forecasting.
@@ -48,3 +48,8 @@ work on the top unfinished item, and update it before they finish.
 
 ## Improvement backlog
 _(Automated runs append ideas here.)_
+- Commit the `cmd/airview/testdata/airview-1.0.0.db` fixture (owner: it only exists on the owner's PC; `.gitignore` now lets it in). Until then `TestDBMigrateOldFormat` and `TestDBVacuum` fail on every fresh clone.
+- `internal/analytics` `TestLocate2Synthetic` takes minutes per sub-test on a 4-core VM and pushes the package past the default 10-minute `go test` timeout under a full parallel run; trim the 24 h synthetic cases or gate the slowest behind `-short`/an env var, or document `go test -timeout 20m ./...`.
+- Show the registration/type source on the Aircraft page too (it still uses the client-side "(derived)" rule) using the new `regSource` / `typeSource` fields.
+- ECharts "scroll" legend cuts off the next item's label on 375 px cards (HOOKS r101-verifier, charts.js).
+
