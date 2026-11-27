@@ -7849,7 +7849,7 @@ Example: `GET /api/system`
 
 ### `GET /api/ssr`
 
-EXPERIMENTAL: state of the SSR self-location (enabled, feed, counters, estimator statistics incl. `pairMatches`, the last solve with the interrogators it used). Advisory only: the result is never applied to a position.
+EXPERIMENTAL: state of the SSR self-location (enabled, feed, counters, estimator statistics incl. `pairMatches`, the last solve with the interrogators it used, and `radars`: the interrogators located from their beam sweeps, with formal 1σ ellipses). Advisory only: the result is never applied to a position.
 
 Response: `SSRStatus` (`experimental`, `enabled`, ...); `enabled:false` when `ssr.enabled` is off
 

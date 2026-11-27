@@ -35,7 +35,7 @@ work on the top unfinished item, and update it before they finish.
 - [ ] Feeding external networks (ADSBx, OARC, adsb.lol…) through the uplinks code, plus our own mlat-client output.
 - [ ] Learned flight prediction from surrounding traffic, self-correcting against observed positions.
 - [x] ACARS/VDL2 integration (acarsdec/dumpvdl2 JSON input) (branch `auto/acars`, 2026-11-27: `internal/acars`, `acars` config block, `/api/acars`, map detail panel group, Settings card).
-- [ ] Interrogator radar locating (SSR bistatic; Ofcom data as a reference).
+- [x] Interrogator radar locating (SSR bistatic; Ofcom data as a reference) (branch `auto/radar-locate`, 2026-11-27: `ssr.LocateBySweep` locates Mode S radars from the beam-sweep timing of their DF11 II/SI bursts, also under lockout where the pair method fails; `GET /api/ssr` `radars`; Settings > SSR table; reference = nearest `ssr.sites` entry, no radar list shipped; simulation only, no real-radar accuracy yet).
 - [ ] On-device AI (Pi 4 class) with a daily summary.
 - [ ] Information architecture and navigation overhaul, and chart explanations.
 - [ ] Better Locate Me: reverse MLAT, statistics, and honest error bars.
@@ -58,3 +58,9 @@ _(Automated runs append ideas here.)_
 - ACARS: decode common structured payloads (H1 position / weather reports, OOOI times, libacars-decoded fields from dumpvdl2/acarsdec `libacars` objects) into fields; show a badge on aircraft that sent messages in the last minutes.
 - ACARS: verify both parsers against real decoder captures (acarsdec 4.x, dumpvdl2 2.x) and add them as test fixtures.
 - `uplink.TestSimnetOutage30Min/spool` failed once under the full parallel suite ("pre-outage frame marked late"; passes 3x alone): investigate whether an in-flight frame acknowledged late is resent as backfill.
+- Radar locating: verify against real radars with known sites (owner: enter published sites in `ssr.sites`, run `ssr.enabled` for an hour, compare); add a systematic floor to the formal ellipse once real errors are known.
+- Radar locating: model beam squint / one-sided burst truncation by lockout in ssrsim, and use the burst start or end instead of its mean when lockout truncation is detected.
+- Radar locating: use Mode S roll-call replies (DF4/5/20/21, every scan, unaffected by all-call lockout) to estimate the rotation period per aircraft, then attribute them to codes; and Mode A/C replies of identified aircraft for conventional SSRs.
+- Radar locating: show located radars as a map layer (site, error ellipse, a rotating beam line), and link the RF Lab "Interrogators" census to the Settings > SSR table; consider running the locator without the full self-location (its own switch), since it needs no station timing precision.
+- Radar locating: persist located sites across restarts (today they are recomputed from the last hour after each solve).
+

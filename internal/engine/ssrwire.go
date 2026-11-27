@@ -159,6 +159,7 @@ type ssrWiring struct {
 	resMu     sync.Mutex
 	last      *ssr.Result
 	lastAt    time.Time
+	radars    []ssr.SweepRadar // interrogators located from beam sweeps (last solve)
 	solving   bool
 	solveErr  string
 	solveRuns uint64
@@ -429,8 +430,10 @@ func (w *ssrWiring) solve() {
 		h = w.hint()
 	}
 	res := est.Solve(h)
+	radars := est.LocateRadars(h)
 	w.resMu.Lock()
 	w.last, w.lastAt, w.solving = &res, time.Now(), false
+	w.radars = radars
 	w.solveRuns++
 	w.resMu.Unlock()
 }
@@ -465,6 +468,63 @@ type SSRStatus struct {
 	// Last is the most recent solve (nil before the first one).
 	Last   *SSRResultDTO `json:"last,omitempty"`
 	LastAt int64         `json:"lastAt,omitempty"` // Unix ms
+	// Radars are the interrogators located from the timing of their beam
+	// sweeps (DF11 all-call bursts with an II/SI code; ssr.LocateBySweep),
+	// independent of the self-location above. Formal errors only.
+	Radars []SSRSweepRadarDTO `json:"radars,omitempty"`
+}
+
+// SSRSweepRadarDTO is one interrogator located from its beam sweeps.
+type SSRSweepRadarDTO struct {
+	Code   string `json:"code"` // "II 5" / "SI 12"
+	OK     bool   `json:"ok"`
+	Reason string `json:"reason,omitempty"`
+	// Lat / Lon are omitted when no fit was possible.
+	Lat *float64 `json:"lat,omitempty"`
+	Lon *float64 `json:"lon,omitempty"`
+	// Formal 1σ error ellipse (m) and the azimuth of its major axis.
+	SemiMajorM float64 `json:"semiMajorM,omitempty"`
+	SemiMinorM float64 `json:"semiMinorM,omitempty"`
+	OrientDeg  float64 `json:"orientDeg,omitempty"`
+	// PeriodS: antenna rotation period, negative when anticlockwise.
+	PeriodS      float64 `json:"periodS,omitempty"`
+	PeriodSigmaS float64 `json:"periodSigmaS,omitempty"`
+	Coherence    float64 `json:"coherence"`
+	RMSDeg       float64 `json:"rmsDeg,omitempty"`
+	NObs         int     `json:"nObs"`
+	NUsed        int     `json:"nUsed"`
+	NAircraft    int     `json:"nAircraft"`
+	SpreadDeg    float64 `json:"spreadDeg,omitempty"`
+	SpanS        float64 `json:"spanS,omitempty"`
+	RangeMinM    float64 `json:"rangeMinM,omitempty"`
+	RangeMaxM    float64 `json:"rangeMaxM,omitempty"`
+	// Ref / RefDistM: the nearest configured ssr.sites entry.
+	Ref      string   `json:"ref,omitempty"`
+	RefDistM *float64 `json:"refDistM,omitempty"`
+}
+
+func ssrSweepDTO(rs []ssr.SweepRadar) []SSRSweepRadarDTO {
+	out := make([]SSRSweepRadarDTO, 0, len(rs))
+	for i := range rs {
+		r := &rs[i]
+		d := SSRSweepRadarDTO{
+			Code: r.Code, OK: r.OK, Reason: r.Reason, Coherence: fin(r.Coherence), NObs: r.NObs, NUsed: r.NUsed, NAircraft: r.NAircraft,
+		}
+		if r.NUsed > 0 && !math.IsNaN(r.LLH.Lat) && !math.IsNaN(r.LLH.Lon) {
+			lat, lon := r.LLH.Lat, r.LLH.Lon
+			d.Lat, d.Lon = &lat, &lon
+			d.SemiMajorM, d.SemiMinorM, d.OrientDeg = fin(r.SemiMajorM), fin(r.SemiMinorM), fin(r.OrientDeg)
+			d.PeriodS, d.PeriodSigmaS = fin(r.PeriodS), fin(r.PeriodSigmaS)
+			d.RMSDeg, d.SpreadDeg, d.SpanS = fin(r.RMSDeg), fin(r.SpreadDeg), fin(r.SpanS)
+			d.RangeMinM, d.RangeMaxM = fin(r.RangeMinM), fin(r.RangeMaxM)
+			if r.RefDistM >= 0 {
+				v := fin(r.RefDistM)
+				d.Ref, d.RefDistM = r.Ref, &v
+			}
+		}
+		out = append(out, d)
+	}
+	return out
 }
 
 type ssrStatsDTO struct {
@@ -478,6 +538,7 @@ type ssrStatsDTO struct {
 	PairMatches   uint64 `json:"pairMatches"`
 	Observations  int    `json:"observations"`
 	Tracks        int    `json:"tracks"`
+	SweepBursts   int    `json:"sweepBursts"` // DF11 bursts with an II/SI code kept for the radar locator
 }
 
 // SSRResultDTO is a JSON-safe ssr.Result (NaN/Inf become 0 / omitted).
@@ -543,12 +604,16 @@ func (w *ssrWiring) status() SSRStatus {
 	st := est.Stats()
 	s.Estimator = ssrStatsDTO{Replies: st.Replies, ResolvedAC: st.ResolvedAC, UnresolvedAC: st.UnresolvedAC,
 		AmbiguousAC: st.AmbiguousAC, Dwells: st.Dwells, DwellsNoTrack: st.DwellsNoTrack, PairsTried: st.PairsTried,
-		PairMatches: st.PairMatches, Observations: st.Observations, Tracks: st.Tracks}
+		PairMatches: st.PairMatches, Observations: st.Observations, Tracks: st.Tracks,
+		SweepBursts: st.SweepObs}
 	w.resMu.Lock()
 	s.Solving, s.SolveRuns = w.solving, w.solveRuns
 	if w.last != nil {
 		s.Last = ssrResultDTO(w.last)
 		s.LastAt = w.lastAt.UnixMilli()
+	}
+	if w.radars != nil {
+		s.Radars = ssrSweepDTO(w.radars)
 	}
 	w.resMu.Unlock()
 	return s

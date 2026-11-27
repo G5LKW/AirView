@@ -63,6 +63,17 @@
 //	e.AddReply(ssr.Reply{...})         // every Mode A/C and DF11 reply
 //	e.Process(now)                     // about once a second
 //	res := e.Solve(ssr.Hint{...})      // when wanted (≈0.3 s for 2k observations)
+//	radars := e.LocateRadars(hint)     // interrogators from their beam sweeps (sweep.go)
+//
+// # Locating the interrogators from their beam sweeps
+//
+// LocateBySweep (sweep.go) is a second, independent method: the DF11
+// all-call bursts of one interrogator code arrive while that radar's beam
+// points at the replying aircraft, so their times and the aircraft
+// positions give the radar site and rotation (a bearing-only fit). It
+// needs no common-interrogation pairs, so it still works where Mode S
+// lockout defeats the pair method, as long as some aircraft answer the
+// same radar on several scans. See SSR-RESEARCH.md §9.
 //
 // Everything is in the receiver's own time base. See WIRING.md for the
 // integration points and package ssrsim for the ground-truth simulator.

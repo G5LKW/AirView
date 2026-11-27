@@ -230,6 +230,27 @@ Experimental and advisory, off by default: estimates where the receiver is from 
 of aircraft with known positions, and shows the result with **Solve now**. AirView never uses it to set, confirm or
 replace the station position. The detailed tunables are in the `ssr` block of the configuration file.
 
+While it runs, each solve also locates the **radars** themselves (**Radars located from beam sweeps**). A rotating
+Mode S radar makes aircraft answer its all-call interrogations (DF11 replies, tagged with its interrogator code
+II 1-15 or SI 1-63) only while its beam points at them. From the times of those reply bursts and the aircraft
+positions AirView fits the radar's site and its rotation period (↻ clockwise, ↺ anticlockwise); it needs no 1030 MHz
+receiver and does not depend on the station position. The table shows, per code:
+
+- **Formal error**: the 1σ error ellipse of the fit (semi-major / semi-minor axis). It is a statistical figure only:
+  it does not contain beam squint, bursts cut short by lock-out, or ADS-B position latency, and the accuracy on real
+  radars has not been measured yet. In simulation the sites came out within tens of metres; treat real results as
+  "within a few hundred metres to a few kilometres" until they have been compared with known sites.
+- **Fit**: how well the burst times follow one rotating beam (1 = perfectly).
+- **No fix** with a reason: most often *too few repeat bursts*. Mode S radars usually **lock out** aircraft they have
+  acquired, which then stop answering that radar's all-calls, so a code may never show the once-per-scan bursts
+  the method needs.
+- **Reference site**: the nearest entry of `ssr.sites` within 25 km. To compare with published radar sites (for
+  example from Ofcom licence data where it covers the site, or a national AIP), copy them into `ssr.sites` yourself; AirView
+  ships no radar list. Note that configured sites are also used by the self-location as known interrogators.
+
+Interrogator codes are reused by radars far apart, so one code can list up to three radars. The method uses the
+last hour of bursts and runs on the solve schedule (`ssr.solveEveryMin`, default 10 minutes) or with **Solve now**.
+
 ### ACARS / VDL2
 
 Off by default. AirView does not demodulate VHF itself: run **acarsdec** (ACARS, 129-131 MHz) or **dumpvdl2**

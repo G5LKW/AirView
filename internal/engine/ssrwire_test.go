@@ -222,3 +222,62 @@ func BenchmarkSSRObserve(b *testing.B) {
 		w.observe(&f)
 	}
 }
+
+// TestSSRWiringSweep: Mode S radars that only send all-calls (no Mode A/C,
+// half the aircraft locked out) are located from their beam sweeps through
+// the engine's frame decoder, and the status carries them.
+func TestSSRWiringSweep(t *testing.T) {
+	if testing.Short() {
+		t.Skip("simulation")
+	}
+	rx := geo.LLH{Lat: 52, Lon: -1, H: 30}
+	allCall := []ssrsim.Mode{ssrsim.ModeSAllCall}
+	sc := ssrsim.Scenario{
+		Seed: 5, Receiver: rx, ClockOffsetS: 50, ClockDriftPPM: 20, Aircraft: 120, DurS: 600,
+		Radars: []ssrsim.Radar{
+			{Name: "A", Pos: ssrsim.Offset(rx, 130, 80e3, 70), PeriodS: 4.8, PRFHz: 110, Modes: allCall, IID: 7, LockoutFrac: 0.5},
+			{Name: "B", Pos: ssrsim.Offset(rx, 300, 150e3, 90), PeriodS: -9, PRFHz: 90, Modes: allCall, IID: 16 + 33, LockoutFrac: 0.5},
+		},
+	}
+	w := &ssrWiring{cfgM: model.SSRConfig{Enabled: true}, est: ssr.New(ssr.DefaultConfig()), ac: map[uint32]*ssrAircraft{},
+		hint: func() ssr.Hint { return ssr.Hint{Valid: true, Pos: rx, RadiusM: 50e3} }}
+	next := math.Inf(-1)
+	ssrFrames(sc, func(f model.RawFrame) {
+		w.observe(&f)
+		if w.now >= next {
+			w.tick()
+			next = w.now + 1
+		}
+	})
+	w.est.Process(math.Inf(1))
+	w.solve()
+	st := w.status()
+	if st.Estimator.SweepBursts == 0 {
+		t.Fatal("no sweep bursts")
+	}
+	for _, rd := range sc.Radars {
+		code := ssr.CodeName(rd.IID)
+		var got *SSRSweepRadarDTO
+		for i := range st.Radars {
+			if st.Radars[i].Code == code {
+				got = &st.Radars[i]
+			}
+		}
+		if got == nil || !got.OK || got.Lat == nil {
+			t.Fatalf("%s (%s) not located: %+v", rd.Name, code, got)
+		}
+		f := geo.NewFrame(rd.Pos)
+		d := f.ToENU(geo.ToECEF(*got.Lat, *got.Lon, rd.Pos.H))
+		e := math.Hypot(d.X, d.Y)
+		t.Logf("%s %s: %.0f m off, σ %.0f/%.0f m, period %.3f s, %d bursts of %d aircraft", rd.Name, code, e, got.SemiMajorM, got.SemiMinorM, got.PeriodS, got.NUsed, got.NAircraft)
+		if e > 500 {
+			t.Errorf("%s: %.0f m from the truth", rd.Name, e)
+		}
+		if math.Abs(got.PeriodS-rd.PeriodS) > 0.05 {
+			t.Errorf("%s: period %.3f, want %.3f", rd.Name, got.PeriodS, rd.PeriodS)
+		}
+		if got.RefDistM != nil {
+			t.Errorf("%s: reference distance without configured sites", rd.Name)
+		}
+	}
+}

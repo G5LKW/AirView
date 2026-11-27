@@ -32,7 +32,7 @@ const (
 type Radar struct {
 	Name         string
 	Pos          geo.LLH
-	PeriodS      float64   // antenna rotation period (4-12 s)
+	PeriodS      float64   // antenna rotation period (4-12 s; negative: anticlockwise)
 	Az0Deg       float64   // beam azimuth at t = 0
 	BeamwidthDeg float64   // interrogation beam: aircraft within ±bw/2 answer
 	PRFHz        float64   // mean interrogation rate
@@ -410,7 +410,7 @@ func (s *sim) interrogate(k int, t0, t1 float64, recs []rec) []rec {
 		}
 		s.st.Interrogations++
 		mode := r.Modes[n%len(r.Modes)]
-		beam := math.Mod(r.Az0Deg+360*t/r.PeriodS, 360)
+		beam := math.Mod(math.Mod(r.Az0Deg+360*t/r.PeriodS, 360)+360, 360) // negative period: anticlockwise
 		for _, a := range bins[int(beam)%360] {
 			p0, _ := s.pos(a, t)
 			e := rf.ToENU(p0)
