@@ -10,6 +10,7 @@ import { shapeFor, shapeSvg } from './aircraft-icons.js';
 import { isEmergency, hasPosition } from './list.js';
 import { net } from '../net/store.js';
 import { shortSid } from '../net/model.js';
+import { openRouteOverride } from './route-override.js';
 
 /** Name of a station SID for the "Received by" row (from the picker's list). */
 const stationName = (sid) => { const st = net.stations.find((x) => x.sid === sid); return st?.name || shortSid(sid); };
@@ -249,12 +250,24 @@ export function createDetail(ctx, hooks) {
   }
 
   // ---- route ----
+  // "Correct route…" (ROUTES-DESIGN §6.3): administrators (on a station: whoever may change the settings).
+  const canCorrect = () => !net.aggregator || net.scope === 'admin';
+  function correctButton(a, label) {
+    if (!canCorrect() || !(a.callsign || '').trim()) return null;
+    return ui.button({ label, icon: 'route', variant: 'ghost', size: 'sm', tip: 'Set, verify or block the route of this callsign (kept in an audit log)',
+      onClick: async () => {
+        const res = await openRouteOverride(ctx, a.callsign, a.route);
+        if (res) { routeFor = ''; if (last) loadRoute(last); }
+      } });
+  }
+
   function routeView(a) {
     const r = a.route;
     const ri = routeInfo && routeInfo.found && routeFor === (a.callsign || '').trim() ? routeInfo : null;
     if (!r && !ri) {
       if (routeState === 'loading') return h('div.det-route-empty', h('span.spinner'), 'Looking up the route…');
-      return null;
+      const set = correctButton(a, 'Set route…');
+      return set ? h('div.det-route-empty', h('span.muted', 'No route known for this callsign.'), set) : null;
     }
     const aps = ri ? ri.airports || [] : [];
     const first = aps[0];
@@ -303,7 +316,8 @@ export function createDetail(ctx, hooks) {
         h('div.det-route-mid', h('i'), via ? h('span.muted', `${via} stop${via > 1 ? 's' : ''}`) : null),
         h('div.det-route-ap.end', h('b.num', { tip: to.icao }, to.code), h('span', to.name))),
       progress,
-      h('div.det-route-foot', badge, n(ri?.distanceKm) ? h('span.muted', units.dist(ri.distanceKm)) : null, h('span.muted', { tip: srcTip }, src)));
+      h('div.det-route-foot', badge, n(ri?.distanceKm) ? h('span.muted', units.dist(ri.distanceKm)) : null, h('span.muted', { tip: srcTip }, src),
+        correctButton(a, 'Correct route…')));
   }
 
   function renderRoute(a) {
