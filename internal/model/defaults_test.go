@@ -38,3 +38,14 @@ func TestIsFactoryDefaultFeed(t *testing.T) {
 		}
 	}
 }
+
+func TestExampleRadarcapeConfig(t *testing.T) {
+	c := ExampleRadarcapeConfig()
+	if len(c.Antennas) != 2 || c.Antennas[1].ID != "yagi" || c.Antennas[1].Channel != 1 || c.Feeds[0].ID != "radarcape" ||
+		!IsFactoryDefaultFeed(c.Feeds[0]) || c.Receiver.Model != "Radarcape EVO 2CH" {
+		t.Fatalf("%+v %+v", c.Antennas, c.Feeds)
+	}
+	if len(DefaultConfig().Antennas) != 1 {
+		t.Fatal("ExampleRadarcapeConfig changed DefaultConfig")
+	}
+}

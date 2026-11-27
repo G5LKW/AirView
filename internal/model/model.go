@@ -16,7 +16,7 @@ package model
 import "time"
 
 // Version is the application version shown in the UI and /api/status.
-const Version = "1.0.0"
+const Version = "1.0.1"
 
 // AppName is the product name.
 const AppName = "AirView"

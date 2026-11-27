@@ -383,7 +383,7 @@ export function createDetail(ctx, hooks) {
     const p = el.__parts;
     if (!p) return;
     const color = lost ? '#8fa3c4' : hooks.colorOf(a);
-    const shape = shapeFor(a);
+    const shape = shapeFor(info && info.typeInfo && !a.typeInfo ? { ...a, typeInfo: info.typeInfo } : a);
     const sig = `${shape}|${color}|${Math.round((a.track || 0) / 5)}`;
     if (p.head.shape.__s !== sig) { p.head.shape.__s = sig; p.head.shape.innerHTML = shapeSvg(shape, color, 34, a.track || 0); }
     p.head.shape.classList.toggle('pred', !!a.predicted && !lost);

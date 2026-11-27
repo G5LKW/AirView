@@ -213,8 +213,8 @@ binaries for amd64 and arm64, and a health-check helper. No image is published t
 yourself (BuildKit is needed, the default since Docker 23).
 
 ```sh
-tar xzf airview-docker-1.0.0.tar.gz && cd airview-docker-1.0.0
-docker build -t airview:1.0.0 --build-arg VERSION=1.0.0 .
+tar xzf airview-docker-1.0.1.tar.gz && cd airview-docker-1.0.1
+docker build -t airview:1.0.1 --build-arg VERSION=1.0.1 .
 cp docker-compose.example.yml docker-compose.yml   # edit the values marked "<- edit"
 docker compose run --rm airview config check       # validate the AIRVIEW_* settings
 docker compose up -d

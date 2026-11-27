@@ -11,7 +11,7 @@
       "0409": {
         "identity": {
           "name": "AirView.Feeder",
-          "version": "1.0.0.0"
+          "version": "1.0.1.0"
         },
         "description": "AirView Feeder - forwards receiver data to AirView aggregators",
         "minimum-os": "win10",
@@ -35,20 +35,20 @@
     "#1": {
       "0000": {
         "fixed": {
-          "file_version": "1.0.0.0",
-          "product_version": "1.0.0.0"
+          "file_version": "1.0.1.0",
+          "product_version": "1.0.1.0"
         },
         "info": {
           "0409": {
             "Comments": "Forwards ADS-B / Mode S receiver data to AirView aggregators",
             "CompanyName": "AirView",
             "FileDescription": "AirView Feeder",
-            "FileVersion": "1.0.0",
+            "FileVersion": "1.0.1",
             "InternalName": "airview-feeder",
             "LegalCopyright": "",
             "OriginalFilename": "airview-feeder.exe",
             "ProductName": "AirView Feeder",
-            "ProductVersion": "1.0.0"
+            "ProductVersion": "1.0.1"
           }
         }
       }

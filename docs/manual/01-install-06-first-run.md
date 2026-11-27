@@ -13,8 +13,10 @@ admin.
 
 ### 1. Receiver feeds
 
-**Settings → Receiver feeds.** The default feed is a Radarcape on host `radarcape`, Beast port 10003. Enter your
-receiver's host name or IP address and port, or start from a preset:
+**Settings → Receiver feeds.** The default feed is Beast from `localhost`, port 30005: readsb or dump1090 with an
+RTL-SDR dongle on the same machine works without any change (until 1.0.0 the default was a Radarcape on host
+`radarcape`, port 10003; existing configurations keep their feeds). For any other receiver enter its host name or IP
+address and port, or start from a preset:
 
 | Preset | Use for |
 |---|---|
@@ -42,7 +44,8 @@ model. Range, coverage, horizon, antenna, terrain and weather analyses all need 
 
 ### 3. Antennas
 
-**Settings → Antennas.** Two antennas are defined to start with, a vertical and a Yagi. For each: name, receiver
+**Settings → Antennas.** One omnidirectional vertical (channel 0, 8 m above ground) is defined to start with;
+add a second one for a two-channel receiver or a directional antenna. For each: name, receiver
 channel, type (vertical, collinear, Yagi, patch, other), peak gain (dBi), height above ground, polarisation, the
 vertical beamwidth, and for directional antennas the azimuth and horizontal beamwidth; then cable loss, filter
 loss and LNA gain and noise figure. A live preview draws the modelled pattern and the radio horizon.

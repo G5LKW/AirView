@@ -160,7 +160,7 @@ func TestDirectional(t *testing.T) {
 }
 
 func TestResolve(t *testing.T) {
-	def := model.DefaultConfig()
+	def := model.ExampleRadarcapeConfig()
 
 	// Factory vertical: 5 dBi, 30° elevation beamwidth, fully specified.
 	v := Resolve(def.Antennas[0])

@@ -75,20 +75,20 @@ port only when started with the environment variable `AIRVIEW_REMOTE=1`. See
 ## Choosing what to download
 
 Every release is published as one set of files with a `SHA256SUMS` list (and its signature
-`SHA256SUMS.sig`). For release 1.0.0:
+`SHA256SUMS.sig`). For release 1.0.1:
 
 | File | Install it when you want ... | Section |
 |---|---|---|
-| `AirView-Setup-1.0.0.exe` | the station on a Windows PC (installer, Start menu, uninstaller) | [1.2](01-install-01-windows-station.md) |
+| `AirView-Setup-1.0.1.exe` | the station on a Windows PC (installer, Start menu, uninstaller) | [1.2](01-install-01-windows-station.md) |
 | `airview.exe` | the station on Windows without installing (portable) | [1.2](01-install-01-windows-station.md#portable-airviewexe) |
-| `AirView-Station-Pi-1.0.0.img.zip` | a ready SD card for a Raspberry Pi station | [1.3](01-install-02-pi-station.md) |
-| `airview-pi-1.0.0.tar.gz` + `airview-pi-install.sh` | the station on an existing Raspberry Pi OS (arm64 or armv7) | [1.3](01-install-02-pi-station.md#install-from-the-app-bundle) |
+| `AirView-Station-Pi-1.0.1.img.zip` | a ready SD card for a Raspberry Pi station | [1.3](01-install-02-pi-station.md) |
+| `airview-pi-1.0.1.tar.gz` + `airview-pi-install.sh` | the station on an existing Raspberry Pi OS (arm64 or armv7) | [1.3](01-install-02-pi-station.md#install-from-the-app-bundle) |
 | `airview-server-linux-{amd64,arm64}.tar.gz` + `airview-server-install.sh` | an aggregator (or a headless station) on a Linux server with systemd | [1.4](01-install-03-linux-server.md) |
-| `airview-docker-1.0.0.tar.gz` | an aggregator in Docker (build context with the prebuilt binaries) | [1.4](01-install-03-linux-server.md#145-docker) |
-| `AirView-Feeder-Pi-1.0.0.img.zip` | a ready SD card for a Raspberry Pi feeder | [1.5](01-install-04-pi-feeder.md) |
-| `airview-feeder-pi-1.0.0.tar.gz` + `airview-feeder-install.sh` | the feeder on Raspberry Pi OS / Debian / Ubuntu | [1.5](01-install-04-pi-feeder.md) |
-| `AirView-Feeder-Setup-1.0.0.exe` (`-arm64.exe` for Windows on Arm) | the feeder on Windows (service + tray icon) | [1.6](01-install-05-windows-feeder.md) |
-| `AirView-Feeder-1.0.0-windows-{amd64,arm64}.zip` | the feeder on Windows without installing (portable) | [1.6](01-install-05-windows-feeder.md#162-portable-zip) |
+| `airview-docker-1.0.1.tar.gz` | an aggregator in Docker (build context with the prebuilt binaries) | [1.4](01-install-03-linux-server.md#145-docker) |
+| `AirView-Feeder-Pi-1.0.1.img.zip` | a ready SD card for a Raspberry Pi feeder | [1.5](01-install-04-pi-feeder.md) |
+| `airview-feeder-pi-1.0.1.tar.gz` + `airview-feeder-install.sh` | the feeder on Raspberry Pi OS / Debian / Ubuntu | [1.5](01-install-04-pi-feeder.md) |
+| `AirView-Feeder-Setup-1.0.1.exe` (`-arm64.exe` for Windows on Arm) | the feeder on Windows (service + tray icon) | [1.6](01-install-05-windows-feeder.md) |
+| `AirView-Feeder-1.0.1-windows-{amd64,arm64}.zip` | the feeder on Windows without installing (portable) | [1.6](01-install-05-windows-feeder.md#162-portable-zip) |
 | `airview-linux-*`, `airview-feeder-linux-*`, `airview-feeder-windows-*.exe` | plain binaries (also the self-update payloads) | – |
 | `release/airview/`, `release/feeder/` | signed update manifests, published for self-update | [1.8](01-install-07-updates.md) |
 
@@ -101,7 +101,7 @@ sha256sum -c SHA256SUMS --ignore-missing          # Linux / macOS
 ```
 
 ```powershell
-Get-FileHash .\AirView-Setup-1.0.0.exe            # Windows: compare the hash with SHA256SUMS
+Get-FileHash .\AirView-Setup-1.0.1.exe            # Windows: compare the hash with SHA256SUMS
 ```
 
 `SHA256SUMS.sig` is an Ed25519 signature of `SHA256SUMS`, made with the release key. The Pi station installer
@@ -119,7 +119,7 @@ checks it for you when you give it the release public key (`--key`, [1.3](01-ins
 
 All AirView programs are single static binaries: no runtime, no external database, no other packages.
 
-> **Release 1.0.0 notes.** The Windows installers are not code-signed, so SmartScreen warns the first time
+> **Release 1.0.1 notes.** The Windows installers are not code-signed, so SmartScreen warns the first time
 > (see [1.2](01-install-01-windows-station.md#smartscreen)). The Raspberry Pi images and installers, Docker
 > and the systemd units were built and checked offline but not run on real hardware for this release; see
 > `docs/RELEASE-NOTES.md`.

@@ -25,9 +25,17 @@ function stratumText(s) {
 
 /** GPS lock state out of the receiver's status text (see feed.BeastStatus.String on the server). */
 function gpsState(feed) {
-  const info = String(feed.info || '').toLowerCase();
+  const raw = String(feed.info || '');
+  const cut = raw.indexOf(' - check: ');
+  const st = gpsStateOf(feed, raw.toLowerCase());
+  if (cut >= 0 && st.kind !== 'green') st.tip = `${st.tip} Check: ${raw.slice(cut + 10).trim()}`;
+  return st;
+}
+
+function gpsStateOf(feed, info) {
   if (!feed.gpsTime) return { label: feed.connected ? 'no GPS timestamps' : '—', kind: 'other', tip: 'The feed delivers no absolute timestamps (12 MHz counter or none). Latency cannot be measured.' };
   if (feed.type === 'demo') return { label: 'simulated', kind: 'blue', tip: 'The built-in simulator stamps its frames with the host clock.' };
+  if (info.includes('not synchronised')) return { label: 'DPLL not locked', kind: 'amber', tip: 'Antenna and satellites are fine, but the receiver clock is not yet synchronised to GPS: its timestamps are emulated.' };
   if (info.includes('gps locked')) return { label: 'GPS locked', kind: 'green', tip: 'Antenna fine, at least three satellites, timestamps valid.' };
   if (info.includes('antenna fault')) return { label: 'antenna fault', kind: 'red', tip: 'The receiver reports a GPS antenna problem: check the cable and the antenna.' };
   if (info.includes('not valid')) return { label: 'time not valid', kind: 'red', tip: 'The receiver flags its timestamps as not usable.' };
@@ -50,7 +58,7 @@ function decodeStatus(st) {
   const pps = bytes[1] > 127 ? bytes[1] - 256 : bytes[1];
   return {
     gpsTimestamps: !!(s & 0x10), detail: g !== 0, antennaOk: !!(g & 0x01), tracking: !!(g & 0x02), sats3: !!(g & 0x04), utc: !!(g & 0x08),
-    bad: !!(g & 0x20), ppsNs: pps * 15.625, hex: bytes.slice(0, 3).map((b) => (b & 0xff).toString(16).padStart(2, '0')).join(' '),
+    bad: !!(g & 0x20), ppsNs: pps * 15, hex: bytes.slice(0, 3).map((b) => (b & 0xff).toString(16).padStart(2, '0')).join(' '),
   };
 }
 

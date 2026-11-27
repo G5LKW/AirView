@@ -579,6 +579,15 @@ WHERE first_seen >= ? AND first_seen < ? GROUP BY 1`, []any{off, a.sid, from, to
 		}); err != nil {
 			return nil, err
 		}
+		// An airframe first seen on a day was seen that day, so the new ones
+		// are a subset of the unique ones. The aircraft table also holds
+		// addresses heard too briefly to open a flight, which would otherwise
+		// show e.g. "52 unique today, 53 never seen before".
+		for _, dt := range days {
+			if dt.UniqueAircraft > 0 && dt.NewAirframes > dt.UniqueAircraft {
+				dt.NewAirframes = dt.UniqueAircraft
+			}
+		}
 		keys := make([]int64, 0, len(days))
 		for d := range days {
 			keys = append(keys, d)

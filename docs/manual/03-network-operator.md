@@ -129,7 +129,7 @@ With `aggregator.admission` = `invite`, a new native feeder must present an enro
 
 ![A new enrol token is shown once](img/network/admin-token-created.png)
 
-The owner enters the token in the installer (`--token` / `--enrol`), in `airview-feeder setup -server <host> -pin <pin> -enrol TOKEN`, or in the Uplinks setting of their AirView station (3.3). (In version 1.0.0 the token dialog also shows an example line `airview-feeder enrol --server ... --token ...`; that command does not exist. Use `airview-feeder setup` as above, or the installer.)
+The owner enters the token in the installer (`--token` / `--enrol`), in `airview-feeder setup -server <host> -pin <pin> -enrol TOKEN`, or in the Uplinks setting of their AirView station (3.3). (In version 1.0.1 the token dialog also shows an example line `airview-feeder enrol --server ... --token ...`; that command does not exist. Use `airview-feeder setup` as above, or the installer.)
 
 For an install day, mint one token with a higher use count and a short lifetime. Revoke tokens that are no longer needed (**Revoke** in the token list). Used and expired tokens stay listed with their state.
 
@@ -372,7 +372,7 @@ For the ZIP format: stop the service, then `sudo -u airview /opt/airview/airview
 
 ```sh
 curl -fsS http://127.0.0.1:8080/healthz
-{"ok":true,"status":"ok","mode":"aggregator","version":"1.0.0","uptimeS":77,
+{"ok":true,"status":"ok","mode":"aggregator","version":"1.0.1","uptimeS":77,
  "checks":{"engine":"ok","listener.avf":"listening","listener.beast":"listening",
            "listener.mlatc":"listening","listener.sbsIn":"off","mlat":"ok","registry":"ok",
            "store.main":"ok","store.stations":"ok"},"adminReady":true}
@@ -451,7 +451,7 @@ Layers, later wins: built-in defaults < `config.json` (written by the web interf
 
 ![The Feed this network page](img/network/public-feeder.png)
 
-The **Feed this network** page is public. It shows the commands and configuration lines with your host name (`aggregator.publicHost`) and open ports filled in, the timestamp notice, and for readsb / Ultrafeeder users the Beast and mlat-client lines. The installer served at `https://<your host>/feeder/install.sh` has your server address and AVF/1 key pin built in. In version 1.0.0 the page's `airview-feeder setup --server ...` line carries no `--pin`: with the default self-signed certificate an owner who follows it must add `--pin sha256/...` (or use the installer).
+The **Feed this network** page is public. It shows the commands and configuration lines with your host name (`aggregator.publicHost`) and open ports filled in, the timestamp notice, and for readsb / Ultrafeeder users the Beast and mlat-client lines. The installer served at `https://<your host>/feeder/install.sh` has your server address and AVF/1 key pin built in. In version 1.0.1 the page's `airview-feeder setup --server ...` line carries no `--pin`: with the default self-signed certificate an owner who follows it must add `--pin sha256/...` (or use the installer).
 
 ---
 

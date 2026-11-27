@@ -69,6 +69,22 @@ func init() {
 		_, err := s.SealHistDays(ctx, time.Now().Unix(), 0)
 		return err
 	})
+	// TableCounts reports the logical rows: live rows plus sealed bins, so
+	// sealing a day (or the 1.1 data migration) does not show as data loss.
+	for tbl, name := range histTableNames {
+		tbl, name := tbl, name
+		registerTableCounter(name, func(ctx context.Context, tx *sql.Tx) (int64, bool, error) {
+			if !txHasTable(ctx, tx, histDayTable) {
+				return 0, false, nil
+			}
+			var live, sealed sql.NullInt64
+			err := tx.QueryRowContext(ctx, `SELECT (SELECT COUNT(*) FROM `+name+`), (SELECT SUM(n) FROM hist_day WHERE tbl = ?)`, tbl).Scan(&live, &sealed)
+			if err != nil {
+				return 0, false, err
+			}
+			return live.Int64 + sealed.Int64, true, nil
+		})
+	}
 }
 
 // ------------------------------------------------------------------ codec

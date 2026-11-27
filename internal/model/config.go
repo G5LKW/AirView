@@ -87,6 +87,28 @@ const (
 	DefaultFeedPort = 30005
 )
 
+// ExampleRadarcapeConfig is DefaultConfig with the two-antenna Radarcape
+// EVO 2CH station that earlier releases shipped as factory default: a
+// vertical (channel 0) and a 9-element yagi (channel 1), and the
+// "radarcape" Beast feed on radarcape:10003. Tests and examples that need a
+// directional antenna or a second channel start from it; it is never used
+// as a default.
+func ExampleRadarcapeConfig() Config {
+	c := DefaultConfig()
+	c.Receiver.Model = "Radarcape EVO 2CH"
+	c.Antennas = append(c.Antennas, Antenna{
+		ID: "yagi", Name: "Yagi", Type: AntYagi, Channel: 1,
+		GainDBi: 12, HeightAGLM: 8, AzimuthDeg: 0, HBeamwidthDeg: 40, VBeamwidthDeg: 40,
+		FrontToBackDB: 18, Elements: 9, Polarization: "vertical",
+		Color: "#f59e0b",
+	})
+	c.Feeds = []Feed{{
+		ID: "radarcape", Name: "Radarcape EVO (Beast 10003)", Enabled: true,
+		Type: FeedBeast, Host: "radarcape", Port: 10003,
+	}}
+	return c
+}
+
 // PredictionConfig controls the trajectory filter (internal/trajectory):
 // coasting aircraft on the live map and predicted paths.
 type PredictionConfig struct {

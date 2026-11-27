@@ -1,29 +1,53 @@
-# AirView 1.1 release notes (storage efficiency; not released yet)
+# AirView 1.0.1 release notes
 
-The 1.1 storage layout makes the station database several times smaller and writes far less to disk, so a
-Raspberry Pi can run from an SD card for years. Nothing was removed: every page, API answer and export shows
-the same data as 1.0. Measured numbers: docs/perf/DB-RESULTS.md.
+Released 2026-11-27. A maintenance release: a much smaller station database that writes far less to disk (so a
+Raspberry Pi can run from an SD card for years), receiver-neutral factory settings, and the fixes listed below.
+Nothing was removed: every page, API answer and export shows the same data as 1.0.0. Measured numbers:
+docs/perf/DB-RESULTS.md.
+
+## Storage efficiency
+
+Measured against 1.0.0 on the same data (docs/perf/DB-RESULTS.md §1, §2 and §8):
+
+| | 1.0.0 | 1.0.1 `standard` | 1.0.1 `low-wear` |
+|---|---:|---:|---:|
+| Database after 7 days (250 aircraft peak) | 553 MB | **101 MB** (-82 %) | 101 MB |
+| Database after 30 days | 2.41 GB | **0.42 GB** (-83 %) | 0.42 GB |
+| Database after 1 / 2 years (projection) | 3.6 / 4.3 GB | **1.24 / 1.80 GB** | same |
+| All bytes written by the process | 747 MB/h | **229 MB/h** (-69 %) | **120 MB/h** (-84 %) |
+| Database commits | 1,925 /h | 402 /h | 125 /h |
+| WAL checkpoints (fsync pairs) | 93 /h | 9.2 /h | 4.6 /h |
+| Log file written (`airview.log`) | ~20 KB/h | 4.8 KB/h | 7.7 KB/h |
+| `/api/db/stats`, first call | 16.7 s | 31 ms | same |
+| `/api/replay?hours=24` | 1.2 s, truncated | 0.42 s, complete | same |
+
+The design targets for bytes written (160 / 80 MB/h) are not fully met yet; what remains is mostly heat-map,
+flight and statistics increments.
 
 ### What changes for you
 - **Smaller database, fewer writes, on every platform.** Trails are stored as compressed chunks (about
-  7-10 bytes per point instead of 38), meteorological observations and range statistics in compact tables,
+  6-10 bytes per point instead of 38), meteorological observations and range statistics in compact tables,
   the heat map in tile order; commits are grouped, statistics are kept in memory a little longer (pages
   still show them at once) and the write-ahead log is checkpointed on a timer instead of every 4 MiB.
-- **Storage profiles** (`storage.profile`, docs/CONFIG.md "Storage profiles"): `auto` picks `low-wear` on an
-  SD card or a small ARM board, `server` for an aggregator, `standard` elsewhere. Single values can be
-  changed under `storage.tuning`. `airview db profile` shows what is in force.
-- **What a power cut can lose** depends on the profile (at most 15 minutes of heat-map increments with
-  `low-wear`); a clean stop always writes everything. The database file is never damaged. Table: docs/CONFIG.md.
+- **Storage profiles** (`storage.profile`, docs/CONFIG.md "Storage profiles", manual 4.1): `auto` picks
+  `low-wear` on an SD card or a small ARM board, `server` for an aggregator, `standard` elsewhere. Single
+  values can be changed under `storage.tuning`. `airview db profile` shows what is in force.
+- **Low-wear profile for Raspberry Pi SD cards:** group commits every 30 s, day statistics every 5 min, heat
+  map every 15 min, checkpoints at most every 10 min, smaller caches and a 128 MB tile-cache cap. On the
+  reference workload this writes 120 MB/h instead of 747 MB/h with 1.0.0.
+- **What a power cut can lose** depends on the profile (trail points up to about 70 s with `standard`, 90 s
+  with `low-wear`; at most 15 minutes of heat-map increments with `low-wear`); a clean stop always writes
+  everything. The database file is never damaged. Table: docs/CONFIG.md.
 - **Logging under systemd:** the journal receives warnings and errors only (`process.journalLevel`, default
   `warn` when systemd runs AirView); `airview.log` in the data directory still has every line. The server kit
   keeps `info` in the journal (`AIRVIEW_PROCESS_JOURNAL_LEVEL=info` in its unit).
-- **Tile cache:** 128 MB cap with the `low-wear` profile (512 MB elsewhere).
 - **Raspberry Pi:** `install.sh --low-wear-journal` (opt-in) keeps the systemd journal in RAM; the unit allows
   120 s for the final write at a stop. The server kit writes `"storage": {"profile": "server"}` for a new
   aggregator.
 
 ### Automatic migration
-- The first start of 1.1 converts an existing database **in the background**. The station keeps receiving,
+- The first start of 1.0.1 converts an existing 1.0.0 database **in the background** to the new storage
+  layout (called "1.1" inside the program and in the backup file name). The station keeps receiving,
   showing and recording while it runs (minutes on a PC, up to about an hour for a large database on a Pi);
   every step is its own transaction, so a crash or power cut resumes where it stopped and never loses data.
   The migration pauses while the disk has too little free space.
@@ -34,10 +58,39 @@ the same data as 1.0. Measured numbers: docs/perf/DB-RESULTS.md.
 - Headless installs: `airview db migrate --status` (progress, safe while running), `--backup` (a copy of
   every database now, kept until you delete it), `--now` (finish at once, service stopped). The freed space
   goes back to the disk over the next hours; `airview db vacuum` (service stopped) does it at once.
-- **Downgrade to 1.0 only by restoring the backup.** 1.0 does not read the new trail chunks or compact
+- **Downgrade to 1.0.0 only by restoring the backup.** 1.0.0 does not read the new trail chunks or compact
   tables: stop AirView, put the backup in place of `airview.db` (delete `airview.db-wal` / `-shm`), then
-  install 1.0. Data recorded after the backup is not in it. The installers' automatic roll-back (a new
+  install 1.0.0. Data recorded after the backup is not in it. The installers' automatic roll-back (a new
   version that does not start) restores the previous program, not the previous data layout.
+
+## Receiver-neutral factory settings
+- A **new** installation starts with one omnidirectional antenna (`vertical`, channel 0) and one feed, Beast
+  from `localhost:30005` (readsb or dump1090 with an RTL-SDR on the same machine), with an empty receiver
+  model. 1.0.0 started with a Radarcape on `radarcape:10003` and a second (Yagi) antenna. Existing
+  `config.json` files are not changed; the old factory feed is still recognised as a placeholder.
+- The first-start banner and the feed presets are worded for any receiver (RTL-SDR / readsb / dump1090 first,
+  Radarcape after); "Check feeds" opens Settings > Receiver feeds directly, and notice toasts link to the
+  setting they concern.
+
+## Fixes
+- **Locate Me:** the signal-strength fit no longer lands far away (one field report: 1,650 km) when the levels
+  hardly fall with distance (gain compression, a flat level); Locate Me v2's uncertainty is recalibrated
+  against a real station: its 1σ never drops below about 2 km and the 95 % circle holds errors the old,
+  over-confident circle missed (a station placed "±0.3 nm" while 2.6 nm off).
+- **Radarcape timing status:** "not synchronised" (DPLL not locked) is no longer reported as "GPS locked";
+  the status text ends with what to check; the 1PPS error uses 15 ns per tick (was 15.625).
+- **Statistics:** new airframes per day can no longer exceed the unique aircraft of that day; database table
+  counts include the sealed coverage, signal and elevation histogram days.
+- **Map:** better aircraft silhouettes from the ICAO type designator and Doc 8643 class (new turboprop shape).
+- **Aircraft database:** an uploaded tar1090 / OpenSky file records its format, licence and attribution.
+- Power-cut documentation corrected for trail points (see above); smaller chart and narrow-screen fixes.
+
+## Known issues
+- Where a registration or type came from (aircraft database, received, derived) is not yet shown in the
+  aircraft detail panel.
+- On Timing, the "No NTP server configured" hint mentions the Radarcape's own NTP service even on stations
+  without a Radarcape; the Locate Me page's introduction says "four" methods while its table lists five.
+- The Windows installers are still not code-signed (SmartScreen warns the first time).
 
 # AirView 1.0.0 release notes
 

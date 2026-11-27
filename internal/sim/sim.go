@@ -62,7 +62,7 @@ type Config struct {
 	// DefaultLon / DefaultGroundElevM.
 	Receiver model.Receiver
 	// Antennas are the receive antennas, one RF channel each (at most 4 are
-	// used). Empty = model.DefaultConfig().Antennas: an omni vertical on
+	// used). Empty = model.ExampleRadarcapeConfig().Antennas: an omni vertical on
 	// channel 0 and a yagi on channel 1.
 	Antennas []model.Antenna
 	// FeedID is stamped on every RawFrame (default "demo").
@@ -258,7 +258,7 @@ func New(cfg Config) *Sim {
 
 	ants := cfg.Antennas
 	if len(ants) == 0 {
-		ants = model.DefaultConfig().Antennas
+		ants = model.ExampleRadarcapeConfig().Antennas
 	}
 	if len(ants) > maxAnt {
 		slog.Warn("sim: more antennas than supported, using the first ones", "configured", len(ants), "used", maxAnt)

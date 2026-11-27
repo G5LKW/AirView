@@ -2,16 +2,16 @@
 title: AirView
 subtitle: User and Operator Manual
 edition: Manual 1.0
-software: AirView 1.0.0 and AirView Feeder 1.0.0
+software: AirView 1.0.1 and AirView Feeder 1.0.1
 date: November 2026
 covers: Windows station · Raspberry Pi station · Linux aggregator · Raspberry Pi, Linux and Windows feeders · MLAT · API reference
 ---
 
 # About this manual
 
-This manual describes AirView 1.0.0: the AirView **station** for Windows and the Raspberry Pi, the AirView
+This manual describes AirView 1.0.1: the AirView **station** for Windows and the Raspberry Pi, the AirView
 **aggregator** that runs an AirView Network on a Linux server, and **AirView Feeder** (`airview-feeder`) for the
-Raspberry Pi, Linux and Windows. Everything in it was checked against release 1.0.0. The screenshots come from
+Raspberry Pi, Linux and Windows. Everything in it was checked against release 1.0.0 and updated for 1.0.1. The screenshots come from
 demo stations and a demonstration network, so the aircraft, stations and figures in them are simulated.
 
 ## Who should read what
@@ -60,8 +60,15 @@ Commands for Windows are written for PowerShell unless stated otherwise.
 
 The full list is in chapter 4, **Ports at a glance**.
 
-## Important notes for release 1.0.0
+## Important notes for release 1.0.1
 
+- **Smaller database, fewer disk writes.** The first start of 1.0.1 converts an existing 1.0.0 database in the
+  background (about 80 % smaller); the station keeps working meanwhile, and a backup is written first when the
+  disk has room. Going back to 1.0.0 needs that backup. On a Raspberry Pi with the data on an SD card AirView
+  uses the **low-wear** storage profile automatically. Details: section 4.1, "Storage profiles".
+- **Receiver-neutral factory settings.** A new installation starts with one omnidirectional antenna and a Beast
+  feed from `localhost:30005` (readsb or dump1090 on the same machine) instead of a Radarcape with two antennas.
+  Existing configurations are not changed.
 - The Windows installers are not code-signed. Windows SmartScreen warns the first time you run them; section 1.2
   explains how to continue.
 - All MLAT accuracy figures in this manual come from simulations. Every network measures its own accuracy

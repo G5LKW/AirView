@@ -113,7 +113,7 @@ will be skipped. A new list name creates a list.
 A rule with a webhook URL sends an HTTP `POST` with a JSON body for every alert:
 
 ```json
-{ "app": "AirView", "version": "1.0.0", "type": "alert", "alert": { "...": "the alert" } }
+{ "app": "AirView", "version": "1.0.1", "type": "alert", "alert": { "...": "the alert" } }
 ```
 
 **Send test** sends the same shape with `"type": "test"`. Webhooks only leave the computer while **Settings →

@@ -7,7 +7,7 @@ The chapter has two parts:
 - [4.1.1 – 4.1.9](#411-where-settings-come-from) the AirView program (`airview`: desktop station, headless station and network aggregator);
 - [4.1.10](#4110-airview-feeder-feederjson) the feeder program (`airview-feeder`) and the Raspberry Pi image's `feeder-setup.txt`.
 
-The setting tables in 4.1.9 are generated from the same source as `airview config example` and `airview config env` (AirView 1.0.0). When in doubt, the program on your machine is the authority: `airview config env` lists every variable of *that* build.
+The setting tables in 4.1.9 are generated from the same source as `airview config example` and `airview config env` (AirView 1.0.1). When in doubt, the program on your machine is the authority: `airview config env` lists every variable of *that* build.
 
 ---
 
@@ -190,13 +190,65 @@ environment:
 
 **One-off override** while testing: `airview serve -data ./testdata -set http.port=18080 -set demo.enabled=true`.
 
+### Storage profiles: SD cards, PCs and servers
+
+`storage.profile` decides how often the database writes to disk and how much memory its caches use. It never changes what is stored, kept or shown. `auto` (the default, also written `""`) picks:
+
+- `server` in aggregator mode (for `airview.db` and `stations.db`);
+- `low-wear` when the data directory is on an SD / MMC card (Linux: block device major 179 in `/proc/self/mountinfo`) or the host is a Linux ARM board with at most 1 GiB of RAM;
+- `standard` everywhere else (Windows, x86 Linux, a Raspberry Pi with the data on an SSD).
+
+The profile in force, and why `auto` chose it, is written to the log at start, shown by `airview db profile` and in `GET /api/db/stats` (`profile`). Single values can be changed with `storage.tuning.*` (0 = the profile's value).
+
+| Value | `standard` | `low-wear` | `server` |
+|---|---|---|---|
+| Group commit of queued rows (`tuning.flushSec`) | 10 s | 30 s | 5 s |
+| Trail points written | every 60 s | every 60 s | aggregator lanes |
+| Coverage / signal / elevation statistics of the day (`tuning.incFlushSec`) | every 60 s | every 300 s | aggregator lanes |
+| Heat-map increments (`tuning.heatFlushSec`) | every 300 s | every 900 s | aggregator lanes |
+| Partial `range_hour` row of the open hour | every 15 min | every 30 min | aggregator lanes |
+| All-time aircraft rows of the aircraft in view (`tuning.aircraftFlushSec`; a new aircraft within 15 s, readers get rows at most 60 s old) | every 300 s | every 900 s | every 300 s |
+| Trail tail sealed into compressed chunks | every 5 min | every 10 min | every 5 min |
+| WAL checkpoint (`tuning.walSoftMB`, `tuning.checkpointSec`) | 40 MiB or 5 min | 48 MiB or 10 min | 64 MiB or 60 s |
+| WAL hard cap / size limit after a reset | 64 MiB / 64 MiB | 64 MiB / 64 MiB | 512 MiB / 128 MiB |
+| Writer page cache (`tuning.cacheMB`) | 16 MiB | 8 MiB (4 MiB on 32-bit) | 64 MiB |
+| Reader connections x cache (`tuning.readConns`) | 4 x 8 MiB | 2 x 4 MiB (3 with >= 2 GiB RAM) | 8 x 16 MiB |
+| Idle reader connections closed after | 10 min | 2 min | never |
+| Memory-mapped I/O (`tuning.mmapMB`; Linux / macOS) | 256 MiB | 64 MiB | 1 GiB |
+| Map tile cache cap (`AIRVIEW_TILECACHE_MB` overrides it) | 512 MB | 128 MB | 512 MB |
+
+Memory-mapped I/O is never used on 32-bit systems, and on Windows only when `tuning.mmapMB` asks for it (Windows cannot shrink a file while a connection maps it, so the space freed by retention would never be returned). Checkpoints run on their own connection between two commits, never inside one; in practice the time limit triggers them (a few per hour), the size only after a burst such as the migration. `synchronous=NORMAL` with the write-ahead log is used by every profile: a crash, a killed process, a power cut or a full disk never damages the database file.
+
+Statistics held in memory between two writes are always part of what the web pages and the API show, so a page looks the same with every profile.
+
+#### What a power cut can lose
+
+A clean stop (service stop, `SIGTERM`, Ctrl+C, closing the window, a Windows or Linux shutdown) writes everything first; the Pi unit allows 120 s for that. An application crash or a killed process loses what was held in memory. A power cut additionally loses commits the operating system had not written to the card yet (Linux writes dirty pages back within about 30 s, Windows within seconds):
+
+| Data | `standard` | `low-wear` | 1.0.0 |
+|---|---|---|---|
+| Trail points | <= 70 s + write-back | <= 90 s + write-back | 15 s |
+| Coverage, signal and elevation statistics | <= 60 s + write-back | <= 5 min + write-back | 15 s |
+| Heat-map increments | <= 5 min + write-back | <= 15 min + write-back | 15 s |
+| Range statistics of the open hour (maximum, percentiles) | <= 15 min + write-back | <= 30 min + write-back | 5 min |
+| Small rows (Locate Me samples, met observations, events, latency, NTP) | <= 10 s + write-back | <= 30 s + write-back | 2 s |
+| Flight rows | <= 60 s + write-back | <= 60 s + write-back | 60 s |
+| Aircraft rows (messages, positions, last seen of the aircraft in view) | <= 5 min + write-back | <= 15 min + write-back | 60 s |
+
+The `server` profile commits every 5 s; the aggregator's per-station statistics follow `aggregator.lanes.*` as before.
+
+#### Storage layout migration (upgrading from 1.0.0)
+
+A database written by AirView 1.0.0 is converted to the new storage layout of 1.0.1 (internally called the 1.1 layout, hence the backup file name) in the background after the first start (trails into compressed chunks, compact heat, range and met tables). The station works normally meanwhile; every step is a separate transaction, so a crash or power cut resumes where it stopped. Before the first step AirView writes a backup `<data>/backup/airview-pre-1.1-<date>.db` when the disk has room for it (`storage.backupBeforeMigrate`: `auto`; `always` = no migration without a backup; `never`). The automatic backup is deleted 14 days after the migration finished. `airview db migrate --status` shows the progress, `--backup` writes a backup now, `--now` finishes the migration at once while AirView is stopped. The space the old layout used is returned to the disk over the following hours; a file that was created without incremental auto-vacuum keeps it for new rows instead (the log says so) until `airview db vacuum` runs with AirView stopped. Going back to 1.0.0 is only possible by restoring that backup.
+
+
 ---
 
 ## 4.1.9 All settings of `airview`
 
 Columns: **Setting** is the path in the operator file; **Type** is the JSON type; **Default** is the built-in default (`–` for fields of list elements, which have no default of their own); **Environment variable** is the `AIRVIEW_*` name (`<n>` = list index from 0).
 
-<!-- BEGIN GENERATED: settings (from docs/CONFIG.md, AirView 1.0.0) -->
+<!-- BEGIN GENERATED: settings (from docs/CONFIG.md, AirView 1.0.1) -->
 
 ### General
 
@@ -225,7 +277,7 @@ Describes the receiving station.
 | Setting | Type | Default | Environment variable | Description |
 |---|---|---|---|---|
 | `receiver.name` | string | `"My Station"` | `AIRVIEW_RECEIVER_NAME` | Display name of this station. |
-| `receiver.model` | string | `"Radarcape EVO 2CH"` | `AIRVIEW_RECEIVER_MODEL` | E.g. "Radarcape EVO 2CH". |
+| `receiver.model` | string | `""` | `AIRVIEW_RECEIVER_MODEL` | E.g. "Radarcape EVO 2CH". |
 | `receiver.located` | boolean | `false` | `AIRVIEW_RECEIVER_LOCATED` | False until the user (or the guesser) sets coordinates. |
 | `receiver.lat` | number | `0` | `AIRVIEW_RECEIVER_LAT` | Latitude in WGS84 degrees (north positive). |
 | `receiver.lon` | number | `0` | `AIRVIEW_RECEIVER_LON` | Longitude in WGS84 degrees (east positive). |
@@ -343,7 +395,7 @@ This is used by the desktop app in remote-data / remote-web modes.
 
 ### Storage and retention (`storage`)
 
-Controls database retention.
+Controls database retention and how the database writes to disk (the storage profile, see storage.go).
 
 | Setting | Type | Default | Environment variable | Description |
 |---|---|---|---|---|
@@ -351,6 +403,24 @@ Controls database retention.
 | `storage.trailRetentionDays` | integer | `30` | `AIRVIEW_STORAGE_TRAIL_RETENTION_DAYS` | Stored position trails (default 30) |
 | `storage.flightRetentionDays` | integer | `730` | `AIRVIEW_STORAGE_FLIGHT_RETENTION_DAYS` | Flight/session rows (default 730, 0 = forever) |
 | `storage.minuteRetentionDays` | integer | `90` | `AIRVIEW_STORAGE_MINUTE_RETENTION_DAYS` | Per-minute stats (default 90); hourly/daily rollups are kept forever. |
+| `storage.profile` | string | `""` | `AIRVIEW_STORAGE_PROFILE` | profile selects how often the database writes to disk and how much memory its caches use: "auto" ("" is the same; server in aggregator mode, low-wear when the data directory is on an SD/MMC card or on a small ARM board, else standard), "standard", "low-wear" (fewest disk writes, for SD cards) or "server". No profile changes what is stored or shown; the power-cut loss windows are listed in docs/CONFIG.md. |
+| `storage.backupBeforeMigrate` | string | `""` | `AIRVIEW_STORAGE_BACKUP_BEFORE_MIGRATE` | backupBeforeMigrate controls the backup taken before the database is converted to a new storage layout: "auto" ("" is the same; a backup when the disk has room for it, else migrate without one), "always" (no migration without a backup) or "never". |
+
+#### `storage.tuning`
+
+This block overrides single values of the storage profile. Every value 0 keeps the profile's value; the defaults suit every installation, these exist for measurements and unusual hardware.
+
+| Setting | Type | Default | Environment variable | Description |
+|---|---|---|---|---|
+| `storage.tuning.flushSec` | integer | `0` | `AIRVIEW_STORAGE_TUNING_FLUSH_SEC` | flushSec is the group-commit interval of the database writer in seconds (1..600; 0 = profile: standard 10, low-wear 30, server 5). |
+| `storage.tuning.incFlushSec` | integer | `0` | `AIRVIEW_STORAGE_TUNING_INC_FLUSH_SEC` | incFlushSec is how often the coverage, signal and elevation statistics of the current day are written (15..3600 s; 0 = profile: standard 60, low-wear 300). Pages always show the unwritten part. |
+| `storage.tuning.heatFlushSec` | integer | `0` | `AIRVIEW_STORAGE_TUNING_HEAT_FLUSH_SEC` | heatFlushSec is how often the antenna heat map increments are written (15..3600 s; 0 = profile: standard 300, low-wear 900). |
+| `storage.tuning.aircraftFlushSec` | integer | `0` | `AIRVIEW_STORAGE_TUNING_AIRCRAFT_FLUSH_SEC` | aircraftFlushSec is how often the all-time aircraft rows (messages, positions, last seen) of the aircraft in view are rewritten (60..3600 s; 0 = profile: standard 300, low-wear 900). A new aircraft is written within 15 s, and the aircraft list, the aircraft details and the export write what is pending first, so they always show rows at most a minute old. |
+| `storage.tuning.checkpointSec` | integer | `0` | `AIRVIEW_STORAGE_TUNING_CHECKPOINT_SEC` | checkpointSec is the longest time between two WAL checkpoints (10..3600 s; 0 = profile: standard 300, low-wear 600, server 60). |
+| `storage.tuning.walSoftMB` | integer | `0` | `AIRVIEW_STORAGE_TUNING_WAL_SOFT_MB` | walSoftMB is the WAL size in MiB that triggers a checkpoint before checkpointSec has passed (1..1024; 0 = profile: standard 40, low-wear 48, server 64). |
+| `storage.tuning.cacheMB` | integer | `0` | `AIRVIEW_STORAGE_TUNING_CACHE_MB` | cacheMB is the page cache of the database writer in MiB (1..4096; 0 = profile: standard 16, low-wear 8 (4 on 32-bit), server 64). |
+| `storage.tuning.readConns` | integer | `0` | `AIRVIEW_STORAGE_TUNING_READ_CONNS` | readConns is the number of database reader connections (1..64; 0 = profile: standard 4, low-wear 2 (3 with 2 GiB RAM or more), server 8). |
+| `storage.tuning.mmapMB` | integer | `0` | `AIRVIEW_STORAGE_TUNING_MMAP_MB` | mmapMB is the memory-mapped I/O size of the database in MiB (1..65536, -1 = off; 0 = profile: standard 256, low-wear 64, server 1024; off on 32-bit systems, and by default on Windows, where a mapping keeps the file from shrinking). |
 
 ### User interface defaults (`ui`)
 
@@ -902,7 +972,7 @@ Holds the tiered retention and maintenance settings of the aggregator's database
 | `aggregator.storage.trailThinSec` | integer | `30` | `AIRVIEW_AGGREGATOR_STORAGE_TRAIL_THIN_SEC` | trailThinSec is the point interval of thinned trails in seconds (default 30, 0 or 2..3600; 0 = never thin). |
 | `aggregator.storage.freePct` | integer | `10` | `AIRVIEW_AGGREGATOR_STORAGE_FREE_PCT` | freePct releases free pages when more than this share of a file is free (default 10, 1..90 %). |
 | `aggregator.storage.walCheckpointMb` | integer | `64` | `AIRVIEW_AGGREGATOR_STORAGE_WAL_CHECKPOINT_MB` | walCheckpointMb truncates a write-ahead log larger than this (default 64, 4..4096 MiB). |
-| `aggregator.storage.optimizeHours` | integer | `24` | `AIRVIEW_AGGREGATOR_STORAGE_OPTIMIZE_HOURS` | optimizeHours is the interval of PRAGMA optimize (default 24, 1..720 h). |
+| `aggregator.storage.optimizeHours` | integer | `1` | `AIRVIEW_AGGREGATOR_STORAGE_OPTIMIZE_HOURS` | optimizeHours is the interval of PRAGMA optimize (default 1, 1..720 h; bounded by analysis_limit, so an hourly run costs milliseconds). |
 | `aggregator.storage.queueRows` | integer | `2000000` | `AIRVIEW_AGGREGATOR_STORAGE_QUEUE_ROWS` | queueRows bounds the write queue of stations.db in rows (default 2000000, 10000..50000000). |
 
 #### `aggregator.ingest`
@@ -1265,6 +1335,8 @@ This block holds process-level settings of the airview server: the log file and 
 | `process.logMaxMb` | integer | `0` | `AIRVIEW_PROCESS_LOG_MAX_MB` | logMaxMb is the size (MiB) at which airview.log is rotated (1..4096; 0 = automatic: 4 in standalone mode, 64 in aggregator mode). |
 | `process.logFiles` | integer | `0` | `AIRVIEW_PROCESS_LOG_FILES` | logFiles is how many rotated files (airview.log.1, .2, ...) are kept (1..100; 0 = automatic: 1 in standalone mode, 10 in aggregator mode). |
 | `process.memoryLimitMb` | integer | `0` | `AIRVIEW_PROCESS_MEMORY_LIMIT_MB` | memoryLimitMb is the soft Go heap limit in MiB (64..1048576; 0 = automatic: 384 on Raspberry Pi class Linux devices in standalone mode; in aggregator mode 85 % of a cgroup memory cap, else 80 % of the physical memory; -1 = none). GOMEMLIMIT wins over it. |
+| `process.journalLevel` | string | `""` | `AIRVIEW_PROCESS_JOURNAL_LEVEL` | journalLevel is the lowest level copied to standard error, which systemd stores in its journal: debug, info, warn or error ("" = automatic: warn when started by systemd, so the SD card does not get every line twice, else the same as logLevel). airview.log is not affected. |
+
 
 <!-- END GENERATED: settings -->
 

@@ -34,7 +34,7 @@ Every page shares the same frame:
 
 - **Sidebar** (left). One icon per page in the order of the table above, with Settings at the bottom. The
   chevron at the foot of the sidebar expands it to show the page names, or collapses it again; the version
-  and platform (for example `v1.0.0 · windows/amd64`) are shown there when it is expanded. When the sidebar is
+  and platform (for example `v1.0.1 · windows/amd64`) are shown there when it is expanded. When the sidebar is
   collapsed, hover over an icon to see the page name.
 - **Top bar**. The page title and the station name (set in **Settings → Station location**), then a row of
   status chips. On narrow windows the less important chips are hidden first.
@@ -65,7 +65,7 @@ and in °F in the imperial system; antenna and terrain heights are always in met
 | Connection to the AirView server lost – retrying… | The browser cannot reach the station. | Wait; the page reconnects by itself. Check that AirView is still running. |
 | Demo mode – the traffic shown is simulated | Demo mode is on (`-demo` flag or **Settings → Demo mode**). | "Turn off in Settings". |
 | Receiver location not set | The station has no coordinates. | "Set location", or let AirView "estimate it" on the Locate Me page. |
-| No receiver feed is connected | Feeds are enabled but none has been connected for 15 s after start. | "Check feeds" in Settings. |
+| No receiver feed is connected | Feeds are enabled but none has been connected for 15 s after start. While only the factory feed exists it reads "No receiver feed is connected yet. Tell AirView where your receiver delivers its data (RTL-SDR with readsb or dump1090, Beast, SBS or a Radarcape)." | "Check feeds" opens Settings > Receiver feeds. |
 | No feeds are enabled | No feed is enabled and demo mode is off. | "Add a receiver" or enable demo mode. |
 
 All banners except the connection-lost banner can be dismissed with the × on the right. A dismissed banner

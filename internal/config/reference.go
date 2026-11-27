@@ -204,7 +204,7 @@ func writeStorageProfiles(p func(format string, a ...any)) {
 	p("### What a power cut can lose\n\n")
 	p("A clean stop (service stop, `SIGTERM`, Ctrl+C, closing the window, a Windows or Linux shutdown) writes everything first; the Pi unit allows 120 s for that. An application crash or a killed process loses what was held in memory. A power cut additionally loses commits the operating system had not written to the card yet (Linux writes dirty pages back within about 30 s, Windows within seconds):\n\n")
 	p("| Data | `standard` | `low-wear` | 1.0 |\n|---|---|---|---|\n")
-	p("| Trail points | <= 60 s + write-back | <= 60 s + write-back | 15 s |\n")
+	p("| Trail points | <= 70 s + write-back | <= 90 s + write-back | 15 s |\n")
 	p("| Coverage, signal and elevation statistics | <= 60 s + write-back | <= 5 min + write-back | 15 s |\n")
 	p("| Heat-map increments | <= 5 min + write-back | <= 15 min + write-back | 15 s |\n")
 	p("| Range statistics of the open hour (maximum, percentiles) | <= 15 min + write-back | <= 30 min + write-back | 5 min |\n")

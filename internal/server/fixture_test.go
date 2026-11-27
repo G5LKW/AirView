@@ -40,7 +40,7 @@ func seedHistory(tb testing.TB, dir string, hours float64, aircraft int) {
 	if err != nil {
 		tb.Fatalf("seed: open store: %v", err)
 	}
-	cfg := model.DefaultConfig()
+	cfg := model.ExampleRadarcapeConfig()
 	cfg.Receiver.Located = true
 	cfg.Receiver.Lat, cfg.Receiver.Lon, cfg.Receiver.GroundElevM = sim.DefaultLat, sim.DefaultLon, sim.DefaultGroundElevM
 	cfg.Feeds = []model.Feed{{ID: engine.DemoFeedID, Name: "Simulator (demo)", Enabled: true, Type: model.FeedDemo}}

@@ -1,6 +1,6 @@
 # 4 Reference
 
-This part of the manual is for looking things up. Every statement in it was checked against AirView 1.0.0: the setting tables and the endpoint index are generated from the program's own sources, the command options are the programs' own `-h` output, and the screenshots come from a demo station.
+This part of the manual is for looking things up. Every statement in it was checked against AirView 1.0.1 (the endpoint index and the option texts were last generated from 1.0.0): the setting tables and the endpoint index are generated from the program's own sources, the command options are the programs' own `-h` output, and the screenshots come from a demo station.
 
 | Section | Contents |
 |---|---|

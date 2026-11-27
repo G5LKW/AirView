@@ -49,7 +49,7 @@ func (c *countingSink) HandleUpdate(u model.DecodedUpdate) { c.t.HandleUpdate(u)
 
 func newSim(t testing.TB, aircraft int, mutate func(*sim.Config)) (*sim.Sim, model.Config) {
 	t.Helper()
-	cfg := model.DefaultConfig()
+	cfg := model.ExampleRadarcapeConfig()
 	sc := sim.Config{
 		Aircraft: aircraft, Seed: 7, Start: simStart, NoDiurnal: true, PerfectReception: true,
 		EmergencyPerHour: -1, FeedID: "demo",
@@ -345,7 +345,7 @@ func df4(icao uint32, ac13 uint16) []byte {
 }
 
 func TestParityAddressNoiseRejected(t *testing.T) {
-	cfg := model.DefaultConfig()
+	cfg := model.ExampleRadarcapeConfig()
 	tr := New(Options{Config: &cfg})
 	t0 := simStart
 	send := func(dt time.Duration, data []byte) {
@@ -401,7 +401,7 @@ func TestParityAddressNoiseRejected(t *testing.T) {
 }
 
 func TestDuplicateWindow(t *testing.T) {
-	cfg := model.DefaultConfig()
+	cfg := model.ExampleRadarcapeConfig()
 	tr := New(Options{Config: &cfg})
 	const icao = 0x3C6444
 	send := func(dt time.Duration, ch int, data []byte) {
@@ -432,7 +432,7 @@ func TestDuplicateWindow(t *testing.T) {
 }
 
 func TestFeedAntennaAttribution(t *testing.T) {
-	cfg := model.DefaultConfig()
+	cfg := model.ExampleRadarcapeConfig()
 	cfg.Feeds = []model.Feed{
 		{ID: "a", Enabled: true, Type: model.FeedBeast, AntennaID: "yagi"},
 		{ID: "b", Enabled: true, Type: model.FeedBeast, AntennaID: "vertical"},
@@ -840,7 +840,7 @@ func TestAircraftDatabase(t *testing.T) {
 	if err := st.Apply(ctx, b); err != nil {
 		t.Fatal(err)
 	}
-	cfg := model.DefaultConfig()
+	cfg := model.ExampleRadarcapeConfig()
 	var notes []Notice
 	tr := New(Options{Store: st, Config: &cfg, OnNotice: func(n Notice) { notes = append(notes, n) }})
 	for i := 0; i < 3; i++ {
@@ -957,7 +957,7 @@ func TestEHSHook(t *testing.T) {
 }
 
 func TestHandleUpdate(t *testing.T) {
-	cfg := model.DefaultConfig()
+	cfg := model.ExampleRadarcapeConfig()
 	cfg.Receiver.Located, cfg.Receiver.Lat, cfg.Receiver.Lon = true, 50.0, 8.5
 	cfg.Feeds = []model.Feed{{ID: "sbs", Enabled: true, Type: model.FeedSBS, AntennaID: "yagi"}}
 	tr := New(Options{Config: &cfg})
@@ -1057,7 +1057,7 @@ func (c fixedClock) Offset() time.Duration { return time.Duration(c) }
 func (c fixedClock) Synced() bool          { return true }
 
 func TestLatencyMidnightWrap(t *testing.T) {
-	cfg := model.DefaultConfig()
+	cfg := model.ExampleRadarcapeConfig()
 	tr := New(Options{Config: &cfg, Clock: fixedClock(-30 * time.Millisecond)})
 	f := df11(0x3C6444)
 	// Frames stamped by the receiver just before midnight arrive 80 ms later
@@ -1082,7 +1082,7 @@ func TestLatencyMidnightWrap(t *testing.T) {
 }
 
 func TestRunIdleClock(t *testing.T) {
-	cfg := model.DefaultConfig()
+	cfg := model.ExampleRadarcapeConfig()
 	tr := New(Options{Config: &cfg})
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)

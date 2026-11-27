@@ -14,7 +14,7 @@
       "0409": {
         "identity": {
           "name": "AirView",
-          "version": "1.0.0.0"
+          "version": "1.0.1.0"
         },
         "description": "AirView - ADS-B / Mode S statistics and mapping station",
         "minimum-os": "win10",
@@ -38,20 +38,20 @@
     "#1": {
       "0000": {
         "fixed": {
-          "file_version": "1.0.0.0",
-          "product_version": "1.0.0.0"
+          "file_version": "1.0.1.0",
+          "product_version": "1.0.1.0"
         },
         "info": {
           "0409": {
             "Comments": "ADS-B / Mode S statistics and mapping station",
             "CompanyName": "AirView",
             "FileDescription": "AirView",
-            "FileVersion": "1.0.0",
+            "FileVersion": "1.0.1",
             "InternalName": "airview",
             "LegalCopyright": "",
             "OriginalFilename": "airview.exe",
             "ProductName": "AirView",
-            "ProductVersion": "1.0.0"
+            "ProductVersion": "1.0.1"
           }
         }
       }

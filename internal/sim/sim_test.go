@@ -109,7 +109,7 @@ func TestDefaultsAndConfig(t *testing.T) {
 		t.Errorf("default start is not now: %v ago", d)
 	}
 
-	mc := model.DefaultConfig()
+	mc := model.ExampleRadarcapeConfig()
 	mc.Receiver.Located = true
 	mc.Receiver.Lat, mc.Receiver.Lon, mc.Receiver.GroundElevM = 40.64, -73.78, 4
 	mc.Demo.Aircraft = 25
@@ -556,7 +556,7 @@ func TestReceptionStatistics(t *testing.T) {
 		minutes = 6
 	}
 	const yagiAz = 135.0
-	ants := model.DefaultConfig().Antennas
+	ants := model.ExampleRadarcapeConfig().Antennas
 	ants[1].AzimuthDeg = yagiAz
 	s := New(Config{Aircraft: 110, Seed: 17, Start: testStart, NoDiurnal: true, Antennas: ants})
 	st := s.Station()

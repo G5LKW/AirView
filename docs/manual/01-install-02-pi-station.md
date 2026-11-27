@@ -14,16 +14,16 @@ service running as the unprivileged user `airview` on port 80.
 
 ## 1.3.1 SD-card image
 
-The image is the official **Raspberry Pi OS Lite (64-bit)** release (Trixie, 2026-10-06 for AirView 1.0.0),
+The image is the official **Raspberry Pi OS Lite (64-bit)** release (Trixie, 2026-10-06 for AirView 1.0.1),
 byte for byte, plus a few files on the boot partition that install AirView on the first boot. It runs on every
 64-bit Pi supported by Raspberry Pi OS Trixie: Pi 3, 4, 5, 400, 500, Zero 2 W, CM3/4/5.
 
 ### Writing the card with Raspberry Pi Imager
 
-1. Check the download: `AirView-Station-Pi-1.0.0.img.zip.sha256` holds the SHA-256 of the zip
+1. Check the download: `AirView-Station-Pi-1.0.1.img.zip.sha256` holds the SHA-256 of the zip
    (`Get-FileHash -Algorithm SHA256 <file>` on Windows, `sha256sum -c <file>.sha256` on Linux).
 2. Raspberry Pi Imager → **Choose Device** → your Pi.
-3. **Choose OS** → scroll down → **Use custom** → pick `AirView-Station-Pi-1.0.0.img.zip`. Imager reads the
+3. **Choose OS** → scroll down → **Use custom** → pick `AirView-Station-Pi-1.0.1.img.zip`. Imager reads the
    .zip directly.
 4. **Choose Storage** → the SD card (or a USB / NVMe drive).
 5. When Imager offers **OS customisation**, use it as for any Raspberry Pi OS image:
@@ -76,14 +76,14 @@ The bundle `airview-pi-<version>.tar.gz` contains both Linux builds (arm64 and a
 binary for the board. It runs on 64-bit and 32-bit Raspberry Pi OS (Pi 3/4/5, Zero 2 W).
 
 ```sh
-scp airview-pi-1.0.0.tar.gz pi@raspberrypi.local:
+scp airview-pi-1.0.1.tar.gz pi@raspberrypi.local:
 ssh pi@raspberrypi.local
-tar xzf airview-pi-1.0.0.tar.gz
-cd airview-pi-1.0.0
+tar xzf airview-pi-1.0.1.tar.gz
+cd airview-pi-1.0.1
 sudo ./install.sh
 ```
 
-The installer prints what it does (`Installing 1.0.0`, `Upgrading 0.1.0 -> 1.0.0` or `Reinstalling 1.0.0`)
+The installer prints what it does (`Installing 1.0.1`, `Upgrading 0.1.0 -> 1.0.1` or `Reinstalling 1.0.1`)
 and ends with the address of the web interface (`http://<pi-address>/`, port 80).
 
 `install.sh` is idempotent: run it again with the same bundle to repair the installation, or with a newer one to

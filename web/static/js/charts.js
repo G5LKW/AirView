@@ -225,12 +225,11 @@ function yAxisFor(o) {
 }
 
 /**
- * Top of the plot area: the legend row (scrollable, 0..18 px) and the y-axis names (drawn just above the
- * plot) get rows of their own so they never overlap, at any width.
+ * Top of the grid box: the legend row (scrollable, 0..18 px) gets a row of its own.  The y-axis names
+ * need no reservation: fitLabels() lays the grid out so that axis names are contained in the box.
  */
 function gridTop(o, legend) {
-  const named = !o.horizontal && !!(o.yName || o.y2Name);
-  return (legend ? 26 : 0) + (named ? 22 : 0) + (legend || named ? 6 : 16);
+  return legend ? 30 : 10;
 }
 
 function baseCartesian(o) {
@@ -358,7 +357,7 @@ export function polar(o = {}) {
     animation: o.animation ?? false,
     legend: legend ? { show: true, top: 0, left: 0, type: 'scroll' } : { show: false },
     tooltip: { trigger: 'item', confine: true, formatter: o.tooltip || ((p) => `${p.seriesName ? p.seriesName + '<br>' : ''}${Math.round(p.value[1])}° · <b>${o.rFormat ? o.rFormat(p.value[0]) : p.value[0]}</b>`) },
-    polar: { radius: legend ? '70%' : '78%', center: ['50%', legend ? '54%' : '50%'] },
+    polar: { radius: legend ? '66%' : '72%', center: ['50%', legend ? '54%' : '50%'] },
     angleAxis: {
       type: 'value', min: 0, max: 360, startAngle: 90, clockwise: true, interval: o.bearingStep || 30,
       axisLabel: { formatter: typeof o.angleFormat === 'function' ? (v) => (v === 360 ? '' : o.angleFormat(v)) : (v) => bearingLabel(v, o.angleFormat || 'mixed') },

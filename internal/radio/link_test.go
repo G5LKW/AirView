@@ -281,7 +281,7 @@ func TestMaxRange(t *testing.T) {
 }
 
 func TestRangeTableAndAzimuth(t *testing.T) {
-	def := model.DefaultConfig()
+	def := model.ExampleRadarcapeConfig()
 	rx := model.Receiver{GroundElevM: 40}
 	vert := NewLink(def.Antennas[0], AntennaHeightAMSL(rx, def.Antennas[0]), LinkParams{})
 	yagi := NewLink(def.Antennas[1], AntennaHeightAMSL(rx, def.Antennas[1]), LinkParams{})

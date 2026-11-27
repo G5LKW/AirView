@@ -61,6 +61,14 @@ and is at least as sharp as that fusion, it becomes the answer ("Best estimate (
 accuracy circle, and the classic methods stay in the table for comparison only. With very little data v2 is listed
 with weight 0 until its uncertainty is the smaller one.
 
+**How wide the circle is (1.0.1).** Real sites add what no model knows: buildings, trees, errors in the elevation
+data, the antenna mounting and many samples from the same airways. Since 1.0.1 Locate Me v2 therefore widens its
+circle where the model is incomplete and never states less than about 2 km (1σ per axis), so the 95 % accuracy
+circle has a radius of at least about 5 km. A station that 1.0.0 placed "±0.3 nm" while it was 2.6 nm off
+now gets a circle that holds that error. The estimate itself is unchanged; only the stated uncertainty is more
+honest. The signal-strength fit of the classic methods no longer drifts to a far-away position when the levels
+hardly fall with distance (a receiver with gain compression or a flat level).
+
 Locate Me v2 records its samples continuously in the background and keeps them for 7 days by default. There is no
 page section for it; the configuration file's `locate` block switches it off (`enabled`) or changes the retention
 (`retentionDays`, 1–30) and the row limits.

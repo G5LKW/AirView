@@ -13,8 +13,8 @@ right.
 - **Trails** behind each aircraft, coloured like the aircraft. The default length is 15 minutes (**Settings
   → Display → Trail length**), and each browser can change it in the Layers panel.
 - **The receiver** as a blue dot, with **range rings** (100, 200, 300 and 400 km by default, labelled in your
-  distance unit), a **compass rose** and the **antenna beams** of directional antennas (the amber wedge is the
-  default Yagi pointing north). They need the station location.
+  distance unit), a **compass rose** and the **antenna beams** of directional antennas (an amber wedge for each
+  directional antenna, for example a Yagi). They need the station location.
 - **Predicted aircraft.** When an aircraft's positions stop arriving, it keeps moving along the tracking
   filter's prediction for up to 60 seconds (**Settings → Prediction**). It glows, the glow fading as the
   prediction ages, carries a circle for the 1σ position uncertainty and a dotted line to its last real position,

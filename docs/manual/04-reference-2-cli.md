@@ -142,9 +142,9 @@ Prints this aggregator's federation identity, which you give to the operator of 
 
 ```text
 $ airview version
-AirView 1.0.0 (windows/amd64, go1.27.3)
+AirView 1.0.1 (windows/amd64, go1.27.3)
 $ airview version -json
-{ "app": "AirView", "version": "1.0.0", "os": "windows", "arch": "amd64", "go": "go1.27.3", "gui": true }
+{ "app": "AirView", "version": "1.0.1", "os": "windows", "arch": "amd64", "go": "go1.27.3", "gui": true }
 ```
 
 ---

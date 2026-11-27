@@ -13,14 +13,14 @@ Windows SmartScreen may show **"Windows protected your PC"**. Before you continu
 2. Compare its SHA-256 with the line in `SHA256SUMS`:
 
    ```powershell
-   Get-FileHash .\AirView-Setup-1.0.0.exe
+   Get-FileHash .\AirView-Setup-1.0.1.exe
    ```
 
 3. Click **More info**. The publisher shows as *Unknown publisher*. Check the file name, then click **Run anyway**.
 
 ## 1.2.1 Install with AirView-Setup
 
-`AirView-Setup-1.0.0.exe` is AirView's own installer (nothing is downloaded during the installation). Double-click it:
+`AirView-Setup-1.0.1.exe` is AirView's own installer (nothing is downloaded during the installation). Double-click it:
 
 | Page | What to do |
 |---|---|
@@ -55,8 +55,8 @@ an uninstaller.
 ### Silent installation
 
 ```text
-AirView-Setup-1.0.0.exe /S [/NODESKTOP] [/FIREWALL [/PORT=8080]] [/D=D:\Apps\AirView]
-AirView-Setup-1.0.0.exe /S /CURRENTUSER
+AirView-Setup-1.0.1.exe /S [/NODESKTOP] [/FIREWALL [/PORT=8080]] [/D=D:\Apps\AirView]
+AirView-Setup-1.0.1.exe /S /CURRENTUSER
 "C:\Program Files\AirView\uninstall.exe" /S [/REMOVEDATA]
 ```
 

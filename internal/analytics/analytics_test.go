@@ -39,7 +39,7 @@ func apply(t *testing.T, st *store.Store, fill func(b *store.Batch)) {
 }
 
 func locatedConfig(lat, lon float64) model.Config {
-	cfg := model.DefaultConfig()
+	cfg := model.ExampleRadarcapeConfig()
 	cfg.Receiver.Located = true
 	cfg.Receiver.Lat, cfg.Receiver.Lon, cfg.Receiver.GroundElevM = lat, lon, 100
 	return cfg
@@ -108,7 +108,7 @@ func allResults(t *testing.T, a *Analyzer, ant string) {
 }
 
 func TestEmptyDatabase(t *testing.T) {
-	for _, cfg := range []model.Config{model.DefaultConfig(), locatedConfig(50, 8)} {
+	for _, cfg := range []model.Config{model.ExampleRadarcapeConfig(), locatedConfig(50, 8)} {
 		a, _ := newTest(t, cfg)
 		allResults(t, a, "")
 		allResults(t, a, "yagi")

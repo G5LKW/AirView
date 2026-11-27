@@ -222,7 +222,7 @@ DOM: `h('div.card#id', { class, style, dataset, onclick, tip, html, text, ...att
 | Form | `ui.input({ type, value, placeholder, icon, suffix, mono, size, clearable, onInput, onChange, onEnter })` -> wrapper with `.input`, `.value`; `ui.select({ options, value, onChange })`; `ui.toggle({ label, checked, onChange })` (`.checked`); `ui.checkbox(...)`; `ui.slider({ min, max, step, value, format, onInput, onChange })` (`.value`); `ui.segmented({ options, value, onChange, block })` (`.value`); `ui.field({ label, hint, control, row })` (`.setError(msg)`, `.setHint()`) |
 | Tabs | `ui.tabs({ tabs: [{ id, label, icon, badge, render(panelEl) | content }], active, onChange })` -> el with `.select(id)`, `.active`, `.panel(id)`, `.setBadge(id, text)` |
 | States | `ui.skeleton({ lines, title, block })`, `ui.empty({ icon, title, text, action })`, `ui.loading(text)`, `ui.error(err, { retry })`, `ui.load(container, loader, render) -> reload()` (`render` must return a single DOM Node or nothing; an array is not mounted) |
-| Toasts | `ui.toast(msg, { type, title, timeout, action })`, `ui.toast.success/.warn/.error/.info(msg)` |
+| Toasts | `ui.toast(msg, { type, title, timeout, action })` (`action` is `{ label, onClick }` or `{ label, href }`: a real link such as `'#/settings/feeds'`; clicking closes the toast), `ui.toast.success/.warn/.error/.info(msg)` |
 | Dialogs | `ui.modal({ title, body, actions: [{ label, variant, value, onClick }], width, danger }) -> { el, body, close(v), closed }`; `await ui.confirm({ title, message, confirmLabel, danger, requireText: 'RESET' }) -> boolean`; `ui.alert(title, message)` |
 | Drawer / popover | `ui.drawer({ title, body, foot, side, width, onClose }) -> { el, body, close }`; `ui.popover(anchor, content, { placement }) -> { el, close, reposition }`; `ui.menu(anchor, [{ label, icon, checked, onClick } | 'sep'])` |
 | Static table | `ui.table({ columns: [{ key, label, align, num, render, sort, width }], rows, sort, onRowClick, empty, fixed })` -> el with `.setRows()`, `.setSort()`. `width`: number (px) or CSS length, written to a `<colgroup>`; `fixed: true` = `table-layout: fixed` (exact widths, ellipsis) |
@@ -340,6 +340,7 @@ anything else (or no answer) keeps the standalone shell exactly as before. In ne
 | `mlat/phase45.js` | MLAT console cards: ADS-B verification alerts (with a banner while aircraft are suspect), "Where to add a station" (CRLB gain), Mode A/C targets. |
 | `net/locadmin.js` | Locations tab: paged survey table and the network bundle adjustment card. |
 | `map/network.js` | MLAT quality menu: new admin mode `improve` (benefit per candidate cell, best sites ranked `#1..`). |
+| `map/aircraft-icons.js` | `shapeFor(a)`: type designator first (anchored tables checked against the Doc 8643 table by web/dev/test/aircraft-icons.test.mjs), then `typeInfo.description` / `wtc`, then emitter category; `shapeForType(designator)`; shapes jet, heavy, turboprop, light, fast, helicopter, glider, balloon, ground, unknown, dot. |
 
 Owner Location tab: estimates of method `bundle` are labelled and can be confirmed like survey estimates;
 the Privacy tab has "Share this station".

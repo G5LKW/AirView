@@ -69,7 +69,9 @@ export function noticeLink(n, opts = {}) {
 
 /** The unchanged factory default feed (model.IsFactoryDefaultFeed): a Beast feed to host "radarcape". */
 export function isFactoryDefaultFeed(f) {
-  return !!f && f.id === 'radarcape' && f.type === 'beast' && f.host === 'radarcape' && Number(f.port) === 10003;
+  if (!f || f.type !== 'beast') return false;
+  const port = Number(f.port);
+  return (f.id === 'beast' && f.host === 'localhost' && port === 30005) || (f.id === 'radarcape' && f.host === 'radarcape' && port === 10003);
 }
 
 const RADARCAPE_RE = /radarcape/i;
@@ -96,7 +98,7 @@ export function hasRadarcape(cfg, status) {
 export function onlyFactoryPlaceholder(feeds) {
   const on = (feeds || []).filter((f) => f.enabled);
   // status feeds carry addr "host:port", config feeds host + port
-  const placeholder = (f) => isFactoryDefaultFeed(f) || (f.id === 'radarcape' && f.type === 'beast' && f.addr === 'radarcape:10003');
+  const placeholder = (f) => isFactoryDefaultFeed(f) || (f.type === 'beast' && ((f.id === 'radarcape' && f.addr === 'radarcape:10003') || (f.id === 'beast' && f.addr === 'localhost:30005')));
   return on.length > 0 && on.every((f) => placeholder(f) && !f.connected);
 }
 

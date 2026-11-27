@@ -783,7 +783,7 @@ func TestConfigRoundTrip(t *testing.T) {
 		t.Fatalf("partial PUT: %d %s", rec.Code, rec.Body.String())
 	}
 	stored = r.eng.Config().Get()
-	if stored.UI.Units != "metric" || len(stored.Antennas) != 2 || len(stored.Feeds) != 1 || stored.Receiver.Name != "Second Edit" || stored.Hub.Password != "hunter2" {
+	if stored.UI.Units != "metric" || len(stored.Antennas) != len(model.DefaultConfig().Antennas) || len(stored.Feeds) != 1 || stored.Receiver.Name != "Second Edit" || stored.Hub.Password != "hunter2" {
 		t.Fatalf("partial PUT damaged the configuration: %+v", stored)
 	}
 	// "clear".

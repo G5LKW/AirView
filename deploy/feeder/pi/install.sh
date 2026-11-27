@@ -31,7 +31,7 @@ avf_presets() {
 }
 
 avf_constants() {
-	INSTALLER_VERSION="1.0.0"
+	INSTALLER_VERSION="1.0.1"
 	PREFIX=/opt/airview-feeder
 	ETC=/etc/airview-feeder
 	DATA=/var/lib/airview-feeder

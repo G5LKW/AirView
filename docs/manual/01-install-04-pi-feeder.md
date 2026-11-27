@@ -176,8 +176,8 @@ installer again **reconfigures** the feeder with the current values as defaults 
 amd64. Run from the unpacked bundle, the installer uses the bundled binary for this CPU instead of downloading one:
 
 ```sh
-tar xzf airview-feeder-pi-1.0.0.tar.gz
-cd airview-feeder-pi-1.0.0
+tar xzf airview-feeder-pi-1.0.1.tar.gz
+cd airview-feeder-pi-1.0.1
 sudo bash install.sh --server feed.example.org:30160 --pin sha256/... --token ABCD-1234
 ```
 

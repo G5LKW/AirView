@@ -73,7 +73,7 @@ Example:
 
 ```text
 $ curl -s http://127.0.0.1:18783/healthz
-{"ok":true,"status":"ok","mode":"standalone","version":"1.0.0","uptimeS":6,"checks":{"engine":"ok"}}
+{"ok":true,"status":"ok","mode":"standalone","version":"1.0.1","uptimeS":6,"checks":{"engine":"ok"}}
 ```
 
 On an aggregator `checks` also lists the registry, every feeder listener (`listener.avf`, `listener.beast`, `listener.mlatc`, …) and the databases.

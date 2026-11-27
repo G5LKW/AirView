@@ -171,7 +171,7 @@ func testUpdates() []model.DecodedUpdate {
 func TestLoopbackRoundTrip(t *testing.T) {
 	srv, port := startServer(t, Options{Password: "s3cret"})
 	rx := model.Receiver{Name: "Pi", Model: "Radarcape EVO 2CH", Located: true, Lat: 51.5, Lon: -0.12, GroundElevM: 35}
-	ants := model.DefaultConfig().Antennas
+	ants := model.ExampleRadarcapeConfig().Antennas
 	feeds := StationFeeds([]model.Feed{
 		{ID: "radarcape", Name: "Radarcape", Enabled: true, Type: model.FeedBeast, AntennaID: "yagi"},
 		{ID: "off", Enabled: false, Type: model.FeedSBS},

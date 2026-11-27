@@ -32,7 +32,7 @@ Start with the three tools that answer most questions:
 | The configuration file is reported as invalid on start | Run `airview config check`; it prints `file:line:col: setting: problem` and suggests the right name for typos. Remember that the operator file is JSON (quotes around names and strings, no quotes around numbers). |
 | `stations.db schema version … is newer than this program` | An older binary was started on data from a newer version. Install the newer version again, or restore the backup taken before the upgrade. |
 | `airview restore` refuses to run | AirView is still running (or crashed and left `airview.run` behind). Stop it; use `-force` only when you are sure no AirView uses the data directory. |
-| Windows: "Windows protected your PC" when starting the installer | The installers are not code-signed. Compare the file's SHA-256 (`Get-FileHash AirView-Setup-1.0.0.exe`) with the published `SHA256SUMS`, then **More info** → **Run anyway**. |
+| Windows: "Windows protected your PC" when starting the installer | The installers are not code-signed. Compare the file's SHA-256 (`Get-FileHash AirView-Setup-1.0.1.exe`) with the published `SHA256SUMS`, then **More info** → **Run anyway**. |
 | Windows: message "AirView could not create its window (WebView2 did not start)" | The desktop window needs the Microsoft Edge WebView2 runtime (part of current Windows 10 and 11). AirView keeps running and opens in your default browser instead; `airview.exe -headless -open` does the same on purpose. |
 
 ## 4.4.2 The feeder (`airview-feeder`)

@@ -154,4 +154,10 @@ function lineOpt(ctx, data, color, name, fmt) {
   const { units } = ctx;
   const opt = ctx.charts.line({ series: [{ name, data, color, area: 0.22 }], valueFormat: fmt, yScale: true, legend: false });
   opt.grid = { left: 6, right: 10, top: 10, bottom: 4, containLabel: true };
-  opt.xAxis = { ...(opt.xAxis || {}), type: 'time', axisLabel: { formatter: (v) => units.clock(v, { seconds:
+  opt.xAxis = { ...(opt.xAxis || {}), type: 'time', axisLabel: { formatter: (v) => units.clock(v, { seconds: false }) } };
+  opt.tooltip = { ...(opt.tooltip || {}), trigger: 'axis', confine: true, formatter: (ps) => {
+    const p = Array.isArray(ps) ? ps[0] : ps;
+    return p ? `${units.clock(p.value[0])}<br><b>${fmt(p.value[1])}</b>` : '';
+  } };
+  return opt;
+}

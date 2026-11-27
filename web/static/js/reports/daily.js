@@ -242,4 +242,12 @@ export function mountDaily(host, ctx, scope) {
       lines.push([r.date, r.uniqueAircraft, r.flights, r.newAirframes, r.peakAircraft, fin(r.maxKm) ? r.maxKm.toFixed(1) : '', f?.flightId, f?.callsign, f?.icao, hr, r.hour?.aircraft, r.positions, r.uptimeMin].map(esc).join(','));
     }
     const blob = new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/csv' });
-    const a = h('a', { href: URL.createObjectURL(blob), download: `airview-
+    const a = h('a', { href: URL.createObjectURL(blob), download: `airview-daily-${model.rows[model.rows.length - 1].date}-${model.rows[0].date}.csv` });
+    document.body.append(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+
+  scope.onCleanup(units.onChange(() => { if (model) render(); }));
+  load();
+}

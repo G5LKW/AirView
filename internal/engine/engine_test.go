@@ -159,7 +159,7 @@ func TestDemoLifecycle(t *testing.T) {
 	go func() { defer close(clDone); _ = cl.Run(cctx, sink) }()
 	select {
 	case s := <-gotStation:
-		if s.Receiver.Name != "Test Station" || len(s.Antennas) != 2 {
+		if s.Receiver.Name != "Test Station" || len(s.Antennas) != len(next.Antennas) {
 			t.Errorf("hub station = %+v", s)
 		}
 	case <-time.After(10 * time.Second):
@@ -245,7 +245,7 @@ func (c *countSink) HandleFrame(model.RawFrame)       { c.frames.Add(1) }
 func (c *countSink) HandleUpdate(model.DecodedUpdate) {}
 
 func TestEffectiveConfig(t *testing.T) {
-	base := model.DefaultConfig()
+	base := model.ExampleRadarcapeConfig()
 	base.Receiver.Located = true
 	base.Receiver.Lat, base.Receiver.Lon, base.Receiver.GroundElevM = 48.1, 11.5, 520
 

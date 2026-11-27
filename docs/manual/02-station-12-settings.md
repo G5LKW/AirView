@@ -59,7 +59,8 @@ drive the antenna analysis, the link budget and the coverage predictions. Each a
 | Polarisation | Vertical (ADS-B) or horizontal (about 20 dB loss). |
 | Cable loss, Filter loss, LNA gain, LNA noise figure | The RF chain before the first amplifier, used by the link budget. 0 = none. |
 
-The defaults are a vertical on channel 0 and a 9-element Yagi pointing north on channel 1, both 8 m above ground.
+A new installation has one antenna: a vertical (omnidirectional) on channel 0, 8 m above ground (until 1.0.0 a
+second, 9-element Yagi pointing north on channel 1 was added as well; existing configurations keep it).
 **Add antenna** adds one; each card can be removed.
 
 ### Receiver feeds

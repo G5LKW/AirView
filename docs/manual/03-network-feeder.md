@@ -76,7 +76,7 @@ The network's Feed this network page shows the installer command; the script it 
 curl -fsSL https://adsb.example.org/feeder/install.sh -o /tmp/avf.sh && sudo bash /tmp/avf.sh
 ```
 
-The same page also shows a two-line manual setup (`airview-feeder setup --server ... --enrol ...`, then `airview-feeder claim`) for computers where the feeder binary is already installed. In version 1.0.0 that line has no `--pin`: on a network with its own self-signed key (the default), add `--pin sha256/...` with the pin from the operator, or the feeder cannot verify the server.
+The same page also shows a two-line manual setup (`airview-feeder setup --server ... --enrol ...`, then `airview-feeder claim`) for computers where the feeder binary is already installed. In version 1.0.1 that line has no `--pin`: on a network with its own self-signed key (the default), add `--pin sha256/...` with the pin from the operator, or the feeder cannot verify the server.
 
 The installer:
 
@@ -182,7 +182,7 @@ The network's page offers an installer (`AirView-Feeder-Setup-<version>.exe`, re
 **Windows SmartScreen.** The installer is not code-signed, so Windows may show *"Windows protected your PC"*. Check first that you downloaded it from your network's HTTPS page and, if the operator publishes checksums, compare them:
 
 ```powershell
-Get-FileHash .\AirView-Feeder-Setup-1.0.0.exe -Algorithm SHA256
+Get-FileHash .\AirView-Feeder-Setup-1.0.1.exe -Algorithm SHA256
 ```
 
 Then click **More info → Run anyway**. If the browser blocks the download, choose **Keep**. For the ZIP: right-click → **Properties** → tick **Unblock** before extracting.

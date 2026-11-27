@@ -86,7 +86,7 @@ A clean stop (service stop, `SIGTERM`, Ctrl+C, closing the window, a Windows or 
 
 | Data | `standard` | `low-wear` | 1.0 |
 |---|---|---|---|
-| Trail points | <= 60 s + write-back | <= 60 s + write-back | 15 s |
+| Trail points | <= 70 s + write-back | <= 90 s + write-back | 15 s |
 | Coverage, signal and elevation statistics | <= 60 s + write-back | <= 5 min + write-back | 15 s |
 | Heat-map increments | <= 5 min + write-back | <= 15 min + write-back | 15 s |
 | Range statistics of the open hour (maximum, percentiles) | <= 15 min + write-back | <= 30 min + write-back | 5 min |

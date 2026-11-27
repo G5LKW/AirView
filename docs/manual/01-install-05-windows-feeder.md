@@ -44,7 +44,7 @@ tray; the first time it opens the status page's **Settings** in your browser (an
 With `/SERVER=` the installer also configures the feeder, so it starts feeding at once:
 
 ```text
-AirView-Feeder-Setup-1.0.0.exe /S /SERVER=feed.example.org /PIN=sha256/... /ENROL=TOKEN /NAME=home1
+AirView-Feeder-Setup-1.0.1.exe /S /SERVER=feed.example.org /PIN=sha256/... /ENROL=TOKEN /NAME=home1
     /LAT=51.4775 /LON=-0.4614 /ALT=35m /AGL=8m /PRIVACY=hidden
 ```
 
@@ -105,7 +105,7 @@ reinstall then continues as the same station.
 
 ## 1.6.2 Portable ZIP
 
-1. Unzip `AirView-Feeder-1.0.0-windows-amd64.zip` anywhere, for example to `Documents\AirView Feeder`. It
+1. Unzip `AirView-Feeder-1.0.1-windows-amd64.zip` anywhere, for example to `Documents\AirView Feeder`. It
    contains `airview-feeder.exe`, `airview-feeder-tray.exe`, `Install service.cmd`, `Remove service.cmd` and
    `README.txt`.
 2. Double-click `airview-feeder-tray.exe`. Without a service, the tray runs the feeder itself while you are

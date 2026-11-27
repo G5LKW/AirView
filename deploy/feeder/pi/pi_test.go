@@ -641,7 +641,7 @@ func TestPipedRunRegeneratesScript(t *testing.T) {
 		t.Fatalf("regenerated script looks wrong:\n%.400s", body)
 	}
 	r := runScript(t, slash(regen), nil, "--version")
-	if r.code != 0 || !strings.Contains(r.out, "airview-feeder installer 1.0.0") {
+	if r.code != 0 || !strings.Contains(r.out, "airview-feeder installer 1.0.1") {
 		t.Errorf("regenerated script does not run: %d %s", r.code, r.out)
 	}
 }
@@ -684,7 +684,7 @@ func TestHelpAndVersion(t *testing.T) {
 			t.Errorf("--help lacks %s", flag)
 		}
 	}
-	if r := runScript(t, "install.sh", nil, "--version"); r.code != 0 || !strings.Contains(r.out, "1.0.0") {
+	if r := runScript(t, "install.sh", nil, "--version"); r.code != 0 || !strings.Contains(r.out, "1.0.1") {
 		t.Errorf("--version: %s", r.out)
 	}
 }

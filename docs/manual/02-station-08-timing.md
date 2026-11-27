@@ -89,7 +89,8 @@ frame. GPS status values:
 | acquiring | Fewer than three satellites: the GPS antenna needs a better view of the sky. |
 | no satellites | No satellite tracked: check the GPS antenna. |
 | antenna fault | The receiver reports a GPS antenna problem: check cable and antenna. |
-| time not valid | The receiver flags its time stamps as unusable. |
+| time not valid | The Radarcape sets bit 5 of the GPS status byte: its time stamps are emulated, not GPS-disciplined. This is the receiver's own verdict; AirView decodes it correctly. Check the Radarcape web interface GPS page (satellites in use, "Sync", "TimeUTC"). It clears by itself minutes after power-up or a GPS outage; if it persists with good satellites, restart the Radarcape. |
+| DPLL not locked | Antenna and satellites are fine but the receiver clock is not yet synchronised to GPS; usually clears by itself (see "time not valid"). |
 | not reported | Old firmware: the status frame carries no GPS detail. |
 | GPS timestamps | GPS time-stamp mode detected; no status frame seen yet. |
 | simulated | The built-in simulator stamps its frames with the host clock. |
