@@ -2,7 +2,8 @@
 //
 // Besides the live state it shows the route (offline standing data, plausibility-checked against the
 // position), an optional photo (config.navData.photos), prediction / terrain visibility / closest
-// approach, and offers the full stored trace of today and flight exports.
+// approach, ACARS / VDL2 messages of the aircraft (when the ACARS input runs), and offers the full stored
+// trace of today and flight exports.
 
 import { ui, h, setText } from '../ui.js';
 import { units } from '../units.js';
@@ -35,6 +36,8 @@ const PHASE = { ground: 'On the ground', climb: 'Climbing', cruise: 'Cruise', de
 const SIL_TEXT = ['unknown', '≤ 1e-3 /h', '≤ 1e-5 /h', '≤ 1e-7 /h'];
 const NACP_TEXT = ['unknown', '< 10 nm', '< 4 nm', '< 2 nm', '< 1 nm', '< 0.5 nm', '< 0.3 nm', '< 0.1 nm', '< 0.05 nm', '< 30 m', '< 10 m', '< 3 m'];
 const INTENT_REFRESH_MS = 15000;
+const ACARS_REFRESH_MS = 20000;
+const ACARS_SHOWN = 15;
 
 const n = (v) => typeof v === 'number' && Number.isFinite(v);
 const yesNo = (v) => (v === true ? 'Yes' : v === false ? 'No' : D);
@@ -109,6 +112,7 @@ export function createDetail(ctx, hooks) {
   let routeFor = ''; // callsign the route was fetched for
   let routeState = 'idle';
   let detailFlights = [];
+  let acarsTimer = 0;
 
   const el = h('section.mapv-detail.hidden', { 'aria-label': 'Aircraft details' });
 
@@ -155,6 +159,8 @@ export function createDetail(ctx, hooks) {
     const predBanner = h('div.det-pred.hidden', { role: 'note' }, h('span.det-pred-dot'), h('div.grow', h('b', 'Predicted position'), predText));
     const routeEl = h('div.det-route.hidden');
     const photoEl = h('div.det-photo.hidden');
+    const acarsList = h('div.det-acars-list');
+    const acarsEl = h('div.det-group.det-acars.hidden', ui.section('ACARS messages', 'list'), acarsList);
 
     const body = h('div.det-body',
       predBanner,
@@ -239,6 +245,7 @@ export function createDetail(ctx, hooks) {
         ['First seen', (x) => (x.firstSeen ? `${units.clock(x.firstSeen)} · ${units.age((ctx.live.serverNow() - x.firstSeen) / 1000)}` : D)],
         ['Last seen', (x) => (x.lastSeen ? units.age(Math.max(0, (ctx.live.serverNow() - x.lastSeen) / 1000)) + ' ago' : D)],
       ]),
+      acarsEl,
       group('Derived weather aloft', 'wind', [
         ['Wind', (x) => (n(x.windDir) && n(x.windSpd) ? `${units.deg(x.windDir)} / ${units.speed(x.windSpd)}` : D)],
         ['Outside air temp', (x) => units.temp(x.oat)],
@@ -252,7 +259,7 @@ export function createDetail(ctx, hooks) {
         h('div.det-actions', traceBtn, exportBtn)),
       body);
 
-    el.__parts = { attribEl, head, tiles, sAlt, sGs, sRssi, navEl, followBtn, traceBtn, predBanner, predText, routeEl, photoEl };
+    el.__parts = { attribEl, head, tiles, sAlt, sGs, sRssi, navEl, followBtn, traceBtn, predBanner, predText, routeEl, photoEl, acarsEl, acarsList };
     return a;
   }
 
@@ -381,6 +388,48 @@ export function createDetail(ctx, hooks) {
     }
     if (last && my === seq) render(last, !ctx.live.get(icao));
     if (my === seq) intentTimer = setTimeout(loadIntent, INTENT_REFRESH_MS);
+  }
+
+  // ---- ACARS / VDL2 messages ----
+  function acarsItem(m) {
+    const dir = m.uplink ? '↓ ground to air' : '↑ air to ground';
+    const head = h('div.det-acars-head',
+      h('span.num', units.clock(m.t)),
+      ui.badge(m.label || '?', 'blue', { tip: m.labelName || 'Label not in the built-in list (often airline-defined)' }),
+      h('span.muted', { tip: `${m.link}${m.freqMHz ? ' · ' + m.freqMHz.toFixed(3) + ' MHz' : ''}${m.station ? ' · station ' + m.station : ''}` }, m.link),
+      h('span.muted', dir),
+      m.flight ? h('span.num', m.flight) : null,
+      m.station === 'DEMO' ? ui.badge('Demo', 'other', { tip: 'Synthetic message of the demo mode, not received' }) : null);
+    const desc = m.labelName ? h('div.det-acars-desc.muted', m.labelName) : null;
+    const text = m.text ? h('pre.det-acars-text', m.text) : h('div.det-acars-desc.muted', 'No text');
+    return h('div.det-acars-msg', { tip: m.icaoFrom === 'reg' ? `Linked by registration ${m.reg}` : undefined }, head, desc, text);
+  }
+
+  async function loadACARS() {
+    clearTimeout(acarsTimer);
+    const p = el.__parts;
+    if (!icao || !p || synthetic(icao)) return;
+    const my = seq;
+    let r;
+    try {
+      r = await ctx.api.get('/api/acars', { params: { icao, limit: ACARS_SHOWN }, signal: ctx.signal, timeout: 10000 });
+    } catch (e) {
+      if (e.aborted || my !== seq || !el.__parts) return;
+      // 401/403: not this viewer's data (aggregator mode); 404: an older server. Stay hidden, stop polling.
+      if (e.status === 401 || e.status === 403 || e.status === 404) { p.acarsEl.classList.add('hidden'); return; }
+      acarsTimer = setTimeout(loadACARS, ACARS_REFRESH_MS);
+      return;
+    }
+    if (my !== seq || !el.__parts) return;
+    if (!r || !r.enabled) { p.acarsEl.classList.add('hidden'); return; }
+    const msgs = Array.isArray(r.messages) ? r.messages : [];
+    const sig = msgs.map((m) => m.id).join(',') + '|' + units.system;
+    if (p.acarsList.__s !== sig) {
+      p.acarsList.__s = sig;
+      ui.mount(p.acarsList, msgs.length ? msgs.map(acarsItem) : h('div.det-acars-desc.muted', 'No ACARS messages from this aircraft yet'));
+    }
+    p.acarsEl.classList.remove('hidden');
+    acarsTimer = setTimeout(loadACARS, ACARS_REFRESH_MS);
   }
 
   // ---- trace / export ----
@@ -512,6 +561,7 @@ export function createDetail(ctx, hooks) {
 
   function resetExtras() {
     clearTimeout(intentTimer);
+    clearTimeout(acarsTimer);
     intent = null;
     path = null;
     routeInfo = null;
@@ -550,6 +600,7 @@ export function createDetail(ctx, hooks) {
     if (!last.callsign && detail.aircraft?.callsign) loadRoute(detail.aircraft);
     initSparks(detail.trail);
     loadPhoto(last);
+    loadACARS();
     return detail;
   }
 
@@ -591,6 +642,6 @@ export function createDetail(ctx, hooks) {
     },
     /** Re-render after a unit change. */
     refresh() { if (icao && last) { if (el.__parts) el.__parts.routeEl.__s = ''; render(last, !ctx.live.get(icao)); } },
-    destroy() { disposeSparks(); clearTimeout(intentTimer); },
+    destroy() { disposeSparks(); clearTimeout(intentTimer); clearTimeout(acarsTimer); },
   };
 }

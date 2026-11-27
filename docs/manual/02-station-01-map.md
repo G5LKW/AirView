@@ -126,6 +126,7 @@ Below are tiles for altitude (with vertical rate), speed (with track), distance 
 | Autopilot / selected | Selected altitude, selected heading, QNH (Comm-B / ADS-B target state). |
 | Integrity | ADS-B version, NIC, containment radius, NACp, NACv, SIL, alert / SPI, emergency. |
 | Reception | RSSI now and average, message rate, messages, antennas and feeds that heard it, first and last seen. |
+| ACARS messages | Only with the ACARS input on (**Settings → ACARS / VDL2**): the newest 15 ACARS / VDL2 messages of this aircraft with time, label (hover for its usual meaning), link (ACARS or VDL2), direction, flight id and text. Messages without an aircraft address are matched by registration. Refreshed every 20 s. |
 | Derived weather aloft | Wind and outside air temperature computed from the aircraft's Comm-B replies. |
 
 Values the aircraft has not sent are shown as "—". With **Settings → Aviation data → Aircraft photos** on, a

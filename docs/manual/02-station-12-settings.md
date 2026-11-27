@@ -230,6 +230,22 @@ Experimental and advisory, off by default: estimates where the receiver is from 
 of aircraft with known positions, and shows the result with **Solve now**. AirView never uses it to set, confirm or
 replace the station position. The detailed tunables are in the `ssr` block of the configuration file.
 
+### ACARS / VDL2
+
+Off by default. AirView does not demodulate VHF itself: run **acarsdec** (ACARS, 129-131 MHz) or **dumpvdl2**
+(VDL Mode 2, 136 MHz) on a second SDR and send its JSON output to AirView, for example
+
+    acarsdec --output json:udp:host=127.0.0.1,port=5550 -r 0 131.525 131.725 131.825
+    dumpvdl2 --output decoded:json:udp:address=127.0.0.1,port=5550 136725000 136775000 136975000
+
+(check your decoder version's help for the exact option syntax). The UDP input listens on `127.0.0.1:5550` (this
+computer only) unless you set another address, e.g. `:5550` for a decoder on another computer; the optional TCP
+input takes newline-separated JSON from decoders in TCP client mode. The card shows the listen addresses, how many
+messages arrived from which decoder, how many were rejected and the most frequent labels. Messages are kept in
+memory only (**Messages kept**, default 2000) and appear in the aircraft detail panel of the map. They are never
+shown on public pages, because their free text can name crew or passengers. In demo mode synthetic messages
+(marked **Demo**) are generated.
+
 ### Danger zone
 
 - **Configuration file**: **Download config.json** (a backup, or to copy a setup to another station; passwords are

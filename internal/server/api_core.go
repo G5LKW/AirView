@@ -170,6 +170,9 @@ func apiPutConfig(s *Server, r *http.Request) (any, error) {
 	if !has("process") {
 		in.Process = cur.Process
 	}
+	if !has("acars") {
+		in.ACARS = cur.ACARS
+	}
 	next, notes, err := s.eng.ApplyConfig(in)
 	if err != nil {
 		return nil, err

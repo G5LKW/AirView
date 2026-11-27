@@ -20,6 +20,7 @@ import { renderStorage, renderDanger, renderAbout } from '../settings/sections-d
 import { renderUplinks } from '../settings/sections-uplinks.js';
 import { renderUpdates } from '../settings/sections-update.js';
 import { renderSSR } from '../settings/sections-ssr.js';
+import { renderACARS } from '../settings/sections-acars.js';
 import { hasRadarcape } from '../settings/links.js';
 
 const RENDER = {
@@ -27,7 +28,7 @@ const RENDER = {
   web: renderWeb, connection: renderConnection, display: renderDisplay, storage: renderStorage, demo: renderDemo,
   danger: renderDanger, about: renderAbout, uplinks: renderUplinks,
   prediction: renderPrediction, terrain: renderTerrain, navdata: renderNavData, alerts: renderAlerts, rf: renderRF,
-  updates: renderUpdates, ssr: renderSSR,
+  updates: renderUpdates, ssr: renderSSR, acars: renderACARS,
 };
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
