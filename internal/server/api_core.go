@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"math"
 	"net/http"
@@ -295,6 +296,67 @@ type aircraftInfo struct {
 	Interesting  bool                  `json:"interesting,omitempty"` // aircraft database flag
 	PIA          bool                  `json:"pia,omitempty"`
 	LADD         bool                  `json:"ladd,omitempty"`
+	// RegSource says where Registration came from: "acdb" (the imported
+	// aircraft database), "derived" (calculated from the ICAO address),
+	// "callsign" (the aircraft flies under its registration) or "history"
+	// (stored with an earlier sighting); empty when there is none.
+	RegSource string `json:"regSource,omitempty"`
+	// TypeSource says where the type designator came from: "acdb" or
+	// "history"; empty when there is none.
+	TypeSource string `json:"typeSource,omitempty"`
+	// ACDBAttribution is the installed aircraft database's attribution
+	// text, sent with the aircraft detail when a value came from it.
+	ACDBAttribution string `json:"acdbAttribution,omitempty"`
+}
+
+// fromACDB reports whether the registration or the type came from the
+// aircraft database.
+func (i *aircraftInfo) fromACDB() bool { return i.RegSource == "acdb" || i.TypeSource == "acdb" }
+
+// refSources classifies the registration and type designator buildInfo
+// settled on. The live tracker fills its registration from the address
+// tables, the aircraft database and the callsign (tracker.rebuildRef) and
+// its type only from the database, so a live value that is neither derived
+// nor the callsign's is the database's even when db is nil (flight detail).
+func refSources(info *aircraftInfo, key uint32, callsign string, live *model.Aircraft, row *store.AircraftRow, db *store.ACDBEntry) (reg, typ string) {
+	icao := key &^ modes.NonICAOFlag
+	if r := info.Registration; r != "" {
+		switch {
+		case db != nil && r == db.Reg:
+			reg = "acdb"
+		case key&modes.NonICAOFlag == 0 && r == refdata.Registration(icao):
+			reg = "derived"
+		case callsign != "" && callsignReg(callsign, key) == r:
+			reg = "callsign"
+		case live != nil && r == live.Registration:
+			reg = "acdb"
+		case row != nil && r == row.Reg:
+			reg = "history"
+		}
+	}
+	if t := info.TypeCode; t != "" {
+		switch {
+		case db != nil && t == db.Type, live != nil && t == live.TypeCode:
+			typ = "acdb"
+		case row != nil && t == row.Type:
+			typ = "history"
+		}
+	}
+	return reg, typ
+}
+
+// callsignReg returns the registration a callsign spells, or "".
+func callsignReg(callsign string, key uint32) string {
+	var ci refdata.CallsignInfo
+	if key&modes.NonICAOFlag == 0 {
+		ci = refdata.LookupCallsignFor(callsign, key&^modes.NonICAOFlag)
+	} else {
+		ci = refdata.LookupCallsign(callsign)
+	}
+	if ci.Kind != refdata.CallsignRegistration {
+		return ""
+	}
+	return ci.Registration
 }
 
 // buildInfo merges every reference source for one address. live and row may
@@ -362,6 +424,7 @@ func buildInfo(key uint32, live *model.Aircraft, row *store.AircraftRow, db *sto
 		squawk = live.Squawk
 		info.Military = info.Military || live.Military
 	}
+	info.RegSource, info.TypeSource = refSources(&info, key, callsign, live, row, db)
 	if info.TypeCode != "" {
 		if t, ok := refdata.LookupType(info.TypeCode); ok {
 			info.TypeInfo = &t
@@ -444,6 +507,7 @@ func (s *Server) aircraftDetail(r *http.Request, key uint32, flights int) (*airc
 		out.Flights = fl
 	}
 	out.Info = buildInfo(key, out.Aircraft, out.Seen, out.ACDB)
+	s.attributeACDB(r.Context(), &out.Info)
 	if al := s.eng.Alerts(); al != nil && key&modes.NonICAOFlag == 0 {
 		if list, note, ok := al.WatchNote(key); ok {
 			out.Watch = &watchInfo{List: list, Note: note}
@@ -643,4 +707,15 @@ func apiTileCacheClear(s *Server, r *http.Request) (any, error) {
 		return nil, err
 	}
 	return map[string]any{"ok": true}, nil
+}
+
+// attributeACDB sets info.ACDBAttribution when a shown value came from the
+// aircraft database. A failed read only leaves the attribution out.
+func (s *Server) attributeACDB(ctx context.Context, info *aircraftInfo) {
+	if !info.fromACDB() {
+		return
+	}
+	if a, err := s.eng.AircraftDBAttribution(ctx); err == nil {
+		info.ACDBAttribution = a
+	}
 }

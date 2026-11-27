@@ -87,7 +87,7 @@ export default {
       h('span.gm-go-face', ui.icon('target'), h('b', 'Locate me'), h('small', 'guess my coordinates')));
     const launch = h('div.gm-launch',
       goBtn,
-      h('p.gm-pitch', 'AirView never asked where you are - but every aircraft it hears gives your position away a little. Press the button and four independent methods will work out where this antenna must be standing.'),
+      h('p.gm-pitch', 'AirView never asked where you are - but every aircraft it hears gives your position away a little. Press the button and five independent methods will work out where this antenna must be standing.'),
       readyEl);
     const stepEl = h('div.gm-step.hidden');
     const againBtn = ui.button({ label: 'Run again', icon: 'refresh', size: 'sm', class: 'gm-again hidden', onClick: () => start() });
@@ -97,7 +97,7 @@ export default {
     const resultBody = h('div.gm-result');
     const resultCard = ui.card({ title: 'The verdict', icon: 'target', body: resultBody, class: 'card--accent gm-resultcard' });
     const tableHost = h('div.gm-tablehost');
-    const tableCard = ui.card({ title: 'Methods and their estimates', icon: 'list', sub: 'Four independent estimators and their fusion', body: tableHost, flush: false });
+    const tableCard = ui.card({ title: 'Methods and their estimates', icon: 'list', sub: 'Five independent estimators and their fusion', body: tableHost, flush: false });
     const howHost = h('div.gm-how');
     const howCard = ui.card({ title: 'How it works', icon: 'help', sub: 'What each method looks at, how much data it had and how to make it better', body: howHost });
     const notesEl = h('div.gm-notes');

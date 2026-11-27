@@ -329,17 +329,20 @@ func (c *Client) readRecords(conn net.Conn, br *bufio.Reader, sink model.FrameSi
 	)
 	override := c.opts.FeedID
 
-	// toLocal converts a host receive time to the local clock.
+	// toLocal converts a host receive time to the local clock. A frame is
+	// an offset observation like a heartbeat (it cannot arrive before the
+	// host received it): when none is known yet, or the known one would
+	// put the frame in the future, the offset is lowered to this frame's.
+	// Moving the offset instead of clamping each frame to time.Now keeps
+	// frames with equal host times equal and the host's spacing exact.
 	toLocal := func(hostNs int64) time.Time {
-		now := time.Now()
-		if hostNs == 0 || !haveOff {
-			return now
+		if hostNs == 0 {
+			return time.Now()
 		}
-		t := time.Unix(0, hostNs+clockOff)
-		if t.After(now) {
-			return now
+		if d := time.Now().UnixNano() - hostNs; !haveOff || d < clockOff {
+			clockOff, haveOff = d, true
 		}
-		return t
+		return time.Unix(0, hostNs+clockOff)
 	}
 
 	for {

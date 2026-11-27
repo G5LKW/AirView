@@ -60,6 +60,33 @@ export function download(href) {
   a.remove();
 }
 
+// Where a registration / type came from (aircraftInfo.regSource / typeSource): short suffix and tooltip.
+const REF_SOURCE = {
+  acdb: ['database', 'From the imported aircraft database'],
+  derived: ['from address', 'Calculated from the ICAO address; an imported aircraft database takes precedence'],
+  callsign: ['callsign', 'The aircraft transmits its registration as its callsign'],
+  history: ['history', 'Stored with an earlier sighting of this aircraft'],
+};
+const srcCache = new Map();
+
+/**
+ * Value with a muted source suffix. The suffix is shown only while the value the server classified (`classified`)
+ * still matches the shown one (`key`, default `text`); nodes are cached so live updates do not rebuild the row.
+ */
+function withSource(text, classified, src, key = text) {
+  if (!text) return D;
+  const meta = REF_SOURCE[src];
+  if (!meta || !key || key !== classified) return text;
+  const k = text + '|' + src;
+  let node = srcCache.get(k);
+  if (!node) {
+    if (srcCache.size > 64) srcCache.clear();
+    node = h('span', text, h('span.det-src', { tip: meta[1] }, ' · ' + meta[0]));
+    srcCache.set(k, node);
+  }
+  return node;
+}
+
 /**
  * @param {object} ctx page context
  * @param {{ onClose(): void, onFollow(on: boolean): void, onCenter(): void, colorOf(a): string,
@@ -116,6 +143,8 @@ export function createDetail(ctx, hooks) {
     const sRssi = sparkBox('Signal');
 
     rows = new Map();
+    const attribEl = h('p.det-attrib.muted.hidden');
+    const withAttrib = (g) => { g.append(attribEl); return g; };
     const group = (title, iconName, defs) => {
       const kv = ui.kv(defs.map(([label, , o]) => [label, D, o]));
       defs.forEach(([label, fn], i) => rows.set(title + '|' + label, { fn, set: (v) => kv.set(i, v) }));
@@ -147,18 +176,18 @@ export function createDetail(ctx, hooks) {
         ['Terrain line of sight', (x) => (typeof x.terrainVisible !== 'boolean' ? D : `${x.terrainVisible ? 'Visible' : 'Hidden by terrain'}${n(x.losMarginDeg) ? ` (${x.losMarginDeg > 0 ? '+' : ''}${units.num(x.losMarginDeg, 2, 2)}°)` : ''}`), { text: true }],
         ['Terrain forecast', () => terrainForecast(), { text: true }],
       ]),
-      group('Identity', 'plane', [
+      withAttrib(group('Identity', 'plane', [
         ['ICAO address', () => icao],
         ['Callsign', (x) => x.callsign || D],
-        ['Registration', (x) => x.reg || info?.reg || D],
-        ['Type', (x) => [x.type || info?.type, x.typeDesc || info?.typeDesc].filter(Boolean).join(' · ') || D, { text: true }],
+        ['Registration', (x) => withSource(x.reg || info?.reg, info?.reg, info?.regSource)],
+        ['Type', (x) => withSource([x.type || info?.type, x.typeDesc || info?.typeDesc].filter(Boolean).join(' · '), x.type || info?.type, info?.typeSource, info?.type), { text: true }],
         ['Operator', (x) => x.operator || info?.operator || D, { text: true }],
         ['Country', (x) => x.country || info?.country || D, { text: true }],
         ['Category', (x) => (x.category ? `${x.category} · ${CATEGORY[x.category] || 'Reserved'}` : D), { text: true }],
         ['Squawk', (x) => (x.squawk ? x.squawk + (SQUAWK[x.squawk] ? ` · ${SQUAWK[x.squawk]}` : '') : D)],
         ['Address type', (x) => ADDR[x.addrType] || x.addrType || D, { text: true }],
         ['Alert rule', (x) => (x.highlight ? `${x.highlight.label || x.highlight.ruleId} (${x.highlight.severity || 'info'})` : 'None'), { text: true }],
-      ]),
+      ])),
       group('Position & geometry', 'pin', [
         ['Position', (x) => (hasPosition(x) ? units.latlon(x.lat, x.lon) : 'No position')],
         ['Distance', (x) => units.dist(x.distKm)],
@@ -223,7 +252,7 @@ export function createDetail(ctx, hooks) {
         h('div.det-actions', traceBtn, exportBtn)),
       body);
 
-    el.__parts = { head, tiles, sAlt, sGs, sRssi, navEl, followBtn, traceBtn, predBanner, predText, routeEl, photoEl };
+    el.__parts = { attribEl, head, tiles, sAlt, sGs, sRssi, navEl, followBtn, traceBtn, predBanner, predText, routeEl, photoEl };
     return a;
   }
 
@@ -426,6 +455,8 @@ export function createDetail(ctx, hooks) {
     const rs = a.rssiAvg ?? a.rssi;
     setText(p.tiles.sig.v, n(rs) ? units.num(rs, 1, 1) : D); setText(p.tiles.sig.u, n(rs) ? 'dBFS' : '');
     setText(p.tiles.sig.s, n(a.msgRate) ? `${units.num(a.msgRate, 1, 1)} msg/s` : '');
+    const attrib = info?.acdbAttribution ? 'Aircraft database: ' + info.acdbAttribution : '';
+    if (p.attribEl.__s !== attrib) { p.attribEl.__s = attrib; setText(p.attribEl, attrib); p.attribEl.classList.toggle('hidden', !attrib); }
     // rows
     for (const r of rows.values()) {
       let v;
