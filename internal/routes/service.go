@@ -52,6 +52,7 @@ type Service struct {
 	sweep   time.Time
 
 	ovMu      sync.RWMutex
+	ovWriteMu sync.Mutex // serialises the start-up load with PutOverride / DeleteOverride (no lost update)
 	dbOv      map[string]Override
 	fileOv    map[string]Override
 	fileMod   time.Time
@@ -903,6 +904,8 @@ func path(st []Stop) [][2]float64 {
 
 func (s *Service) loadOverrides(ctx context.Context) {
 	if s.o.Store != nil {
+		s.ovWriteMu.Lock()
+		defer s.ovWriteMu.Unlock()
 		m, err := loadOverrides(ctx, s.o.Store.DB())
 		if err != nil {
 			s.log.Warn("routes: loading the overrides", "err", err)
@@ -971,6 +974,8 @@ func (s *Service) PutOverride(ctx context.Context, o Override, author string) (O
 	if err := normOverride(&o); err != nil {
 		return Override{}, err
 	}
+	s.ovWriteMu.Lock()
+	defer s.ovWriteMu.Unlock()
 	s.ovMu.RLock()
 	_, locked := s.fileOv[o.Callsign]
 	before := s.dbOv[o.Callsign]
@@ -1008,6 +1013,8 @@ func (s *Service) DeleteOverride(ctx context.Context, callsign, author string) e
 		return errors.New("routes: no store")
 	}
 	cs := Normalize(callsign)
+	s.ovWriteMu.Lock()
+	defer s.ovWriteMu.Unlock()
 	s.ovMu.RLock()
 	_, locked := s.fileOv[cs]
 	before, ok := s.dbOv[cs]
