@@ -13,7 +13,7 @@ import { adminCallActive } from './admin.js';
 import { net } from './net/store.js';
 import { pageAccess, navFor, VIEWS } from './net/model.js';
 import { loginDialog, registerDialog, logout } from './net/auth.js';
-import { BANNER_LINKS, noticeLink, onlyFactoryPlaceholder } from './settings/links.js';
+import { BANNER_LINKS, ROUTES_ONLINE_NOTE, noticeLink, onlyFactoryPlaceholder } from './settings/links.js';
 
 /** The fixed page ids (docs/ARCHITECTURE.md), with titles and icons. */
 export const PAGES = [
@@ -459,10 +459,12 @@ function renderBanners() {
     const feeds = (st.feeds || []).filter((f) => f.enabled);
     if (!st.demo && live.state !== 'offline' && feeds.length && feeds.every((f) => !f.connected) && Date.now() - (st.started || 0) > 15000) {
       // first start (Pi / PC): only the factory placeholder feed to a Radarcape named "radarcape" exists
-      const text = onlyFactoryPlaceholder(st.feeds)
+      const first = onlyFactoryPlaceholder(st.feeds);
+      const text = first
         ? 'No receiver feed is connected yet. Tell AirView where your receiver delivers its data (RTL-SDR with readsb or dump1090, Beast, SBS or a Radarcape). '
         : 'No receiver feed is connected. ';
-      list.push(['feeds', () => banner('feeds', 'warn', 'antenna', [text, bannerLink('feeds')])]);
+      list.push(['feeds', () => banner('feeds', 'warn', 'antenna', [text, bannerLink('feeds'),
+        ...(first ? ['. ', ROUTES_ONLINE_NOTE, bannerLink('routesOnline'), '.'] : [])])]);
     }
     if (!feeds.length && !st.demo) {
       list.push(['nofeeds', () => banner('nofeeds', 'warn', 'antenna', ['No feeds are enabled. ', bannerLink('nofeeds'), ' or ', bannerLink('nofeedsDemo'), '.'])]);

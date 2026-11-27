@@ -25,6 +25,9 @@ test('every banner link targets a routable page / settings section', () => {
   assert.equal(L.BANNER_LINKS.loc.href, '#/settings/station');
   assert.equal(L.BANNER_LINKS.demo.href, '#/settings/demo');
   assert.equal(L.BANNER_LINKS.locGuess.href, '#/guess');
+  assert.equal(L.BANNER_LINKS.routesOnline.href, '#/settings/navdata');
+  assert.match(L.ROUTES_ONLINE_NOTE, /adsbdb\.com/);
+  assert.match(L.ROUTES_ONLINE_NOTE, /location is not/);
 });
 
 test('settingsHref ignores unknown sections', () => {
