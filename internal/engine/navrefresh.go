@@ -19,7 +19,7 @@ import (
 
 const (
 	navFirstDelay  = time.Minute    // after start, before the first download
-	navRetry       = time.Hour      // after a failed import
+	navRetry       = time.Hour      // after a failed import (doubling up to a day)
 	navCheckEvery  = time.Minute    // how often the schedule is looked at
 	navRefreshDays = 24 * time.Hour // between conditional refreshes
 )
@@ -31,6 +31,8 @@ type navRefresh struct {
 	next     time.Time // next refresh; zero = not scheduled yet
 	missing  bool      // airports or routes never imported
 	known    bool      // missing is valid
+	running  bool      // the import in progress was started here
+	failures int       // consecutive failed automatic imports
 }
 
 // refreshOffset is the per-install time of day of the daily check, so that
@@ -93,14 +95,23 @@ func (e *Engine) autoRefresh(ctx context.Context, st *navRefresh, now time.Time)
 		return
 	}
 	e.log.Info("navdata: checking the reference data for updates", "first", st.missing)
+	st.running = true
 	st.next = nextRefreshAfter(now, e.refreshOffset())
 }
 
 // done updates the schedule after an import finished.
 func (st *navRefresh) done(failed bool, now time.Time) {
 	st.known = false // re-read the row counts
-	if failed {
+	byAuto := st.running
+	st.running = false
+	switch {
+	case failed && byAuto:
+		st.failures++
+		st.next = now.Add(min(navRetry<<min(st.failures-1, 5), 24*time.Hour))
+	case failed:
 		st.next = now.Add(navRetry)
+	default:
+		st.failures = 0
 	}
 }
 

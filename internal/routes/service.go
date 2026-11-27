@@ -802,7 +802,7 @@ func (s *Service) Detail(ctx context.Context, callsign string, o DetailOptions) 
 	if cs == "" {
 		return nil, fmt.Errorf("%w: callsign", ErrBadOverride)
 	}
-	d := &Detail{Callsign: cs, Lookupable: Lookupable(cs, "")}
+	d := &Detail{Callsign: cs, Lookupable: Lookupable(cs, ""), Hyps: []HypView{}}
 	if ov, ok := s.override(cs, s.o.Now()); ok {
 		d.Override = &ov
 	}

@@ -581,11 +581,20 @@ func (e *Engine) navLoop(ctx context.Context) {
 			st := x.nd.ImportStatus()
 			if wasRunning && !st.Running {
 				x.rt.RecheckStanding()
+				byAuto := auto.running
 				auto.done(st.Error != "", time.Now())
 				e.loadRegion(ctx)
-				if st.Error != "" {
+				switch {
+				case st.Error != "" && byAuto:
+					// an automatic check: no notice (a station without internet
+					// would get one every retry); the log and Settings show it
+					e.log.Warn("navdata: automatic reference data update failed", "err", st.Error, "retry", auto.next.Format(time.RFC3339))
+				case st.Error != "":
 					e.Notify("warn", "Reference data import failed: "+st.Error)
-				} else {
+				case byAuto:
+					e.log.Info("navdata: reference data checked for updates")
+					e.airportsAfterImport(ctx)
+				default:
 					e.Notify("info", "Reference data import finished.")
 					e.airportsAfterImport(ctx)
 				}
