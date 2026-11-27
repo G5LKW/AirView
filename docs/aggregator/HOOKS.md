@@ -1785,3 +1785,7 @@ Power-cut check (TerminateProcess at random points, 1.1 build, demo traffic): a 
 - r101-release -> reference.go "Storage layout migration": DONE with the suggested wording; docs/CONFIG.md regenerated.
 - r101-release -> TestMetSamplePruner: DONE. Rows start at now-40d+120 s, so no row lies on the 30-day cutoff.
 - r101-release -> TestEpochCostGate: DONE. Over budget it now skips as "machine loaded" unless AIRVIEW_STRICT_TIMING=1 (hard failure on an idle machine); still skipped with -short.
+## v1.1-integrator -> internal/ingest/mlatc udp_test.go: TestUDPInterop times out under a loaded full run
+In `go test -p 2 ./...` on a 4-core Linux container (27 Nov) it failed with "timeout waiting for frames" after 5 s while the MLAT suites ran; alone it passes in 0.09 s. Consider a longer wait (or polling with a deadline of ~30 s) like the other load-sensitive tests.
+## v1.1-integrator -> cmd/airview dbcmd_test.go: the 1.0.0 fixture is not in the repository
+`cmd/airview/testdata/airview-1.0.0.db` matches `.gitignore`'s `*.db`, so `TestDBMigrateOldFormat` / `TestDBVacuum` fail in a fresh clone. Add `!cmd/airview/testdata/*.db` to `.gitignore` and commit the fixture, or skip when it is missing.
