@@ -262,6 +262,11 @@ func (s *session) writeNew(r *rec) error {
 	return s.writeSeq(r.typ, seq, r.body)
 }
 
+func (s *session) isAnnounced(rxNo int) bool {
+	_, ok := s.announced[rxNo]
+	return ok
+}
+
 func (s *session) noteAnnounce(r *rec) {
 	if r.typ == avf.TReceiver || r.typ == avf.TClockEvent {
 		s.announced[r.rxNo] = r.epoch
@@ -300,6 +305,11 @@ func (s *session) pump() error {
 			keep = append(keep, r)
 		case r.typ == avf.TClockPair && s.announced[r.rxNo] != r.epoch:
 			// epoch not announced in this session yet: drop (next in 5 s)
+		case r.rxNo != 0 && !s.isAnnounced(r.rxNo):
+			// A receiver that appeared after the session started: its
+			// RECEIVER record is still in the live queue, and a receiver's
+			// first record must be RECEIVER. Send this after it.
+			keep = append(keep, r)
 		case !s.allowed(r.typ):
 		default:
 			sendSide = append(sendSide, r)

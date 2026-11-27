@@ -63,4 +63,4 @@ _(Automated runs append ideas here.)_
 - Radar locating: use Mode S roll-call replies (DF4/5/20/21, every scan, unaffected by all-call lockout) to estimate the rotation period per aircraft, then attribute them to codes; and Mode A/C replies of identified aircraft for conventional SSRs.
 - Radar locating: show located radars as a map layer (site, error ellipse, a rotating beam line), and link the RF Lab "Interrogators" census to the Settings > SSR table; consider running the locator without the full self-location (its own switch), since it needs no station timing precision.
 - Radar locating: persist located sites across restarts (today they are recomputed from the last hour after each solve).
-
+- Uplink: add a deterministic regression test for side records of a receiver that appears mid-session (the fix in `auto/radar-locate` was verified by reasoning and the existing tests; the race was not reproduced on demand).

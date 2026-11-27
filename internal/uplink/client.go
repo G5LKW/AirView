@@ -399,7 +399,7 @@ func (c *Client) handleStatus(f *model.RawFrame) {
 		return
 	}
 	body := stripSeq0(p)
-	c.pushSideLocked(&rec{typ: avf.TClockStatus, hostNs: hostNs, body: body})
+	c.pushSideLocked(&rec{typ: avf.TClockStatus, hostNs: hostNs, body: body, rxNo: rx.rxNo})
 }
 
 // handleClockEvent records a new receiver clock epoch (before the first
@@ -489,7 +489,7 @@ func (c *Client) handleGNSS(feedID string, lat, lon, altM float64, altRef string
 		altRef = model.AltRefHAE
 	}
 	body, _ := avf.AppendJSON(nil, avf.GNSSPos{RxNo: rx.rxNo, Lat: lat, Lon: lon, AltM: altM, AltRef: altRef, TMs: t.UnixMilli()})
-	c.pushSideLocked(&rec{typ: avf.TGNSSPos, hostNs: t.UnixNano(), body: body})
+	c.pushSideLocked(&rec{typ: avf.TGNSSPos, hostNs: t.UnixNano(), body: body, rxNo: rx.rxNo})
 }
 
 // --- record builders (c.mu held) ---------------------------------------------
@@ -672,7 +672,7 @@ func (c *Client) periodic() {
 			rx.inputAt = now
 			body, _ := avf.AppendJSON(nil, avf.InputStatus{RxNo: rx.rxNo, Connected: rx.info.Connected, FPS: rx.info.FPS,
 				CRCErrors: rx.info.CRCErrors, Type: rx.info.InputType, ClockClass: rx.class.String(), SinceMs: rx.info.SinceMs})
-			c.pushSideLocked(&rec{typ: avf.TInputStatus, hostNs: now.UnixNano(), body: body})
+			c.pushSideLocked(&rec{typ: avf.TInputStatus, hostNs: now.UnixNano(), body: body, rxNo: rx.rxNo})
 		}
 		// a minute ends without traffic in the next one
 		if rx.stats.minute != 0 && now.Unix() >= rx.stats.minute+65 && now.Unix() < rx.stats.minute+3600 {
