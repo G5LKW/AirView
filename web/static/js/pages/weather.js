@@ -357,6 +357,34 @@ export default {
       onData(r) { radar = r; renderAttribution(); },
     }));
 
+    // ------------------------------------------------------------------ BDS 4,5 hazard reports (GET /api/met/hazards)
+    const hazCard = ui.card({ title: 'Hazard reports from aircraft', icon: 'alert', sub: 'Mode S EHS BDS 4,5: turbulence, wind shear, microburst, icing, wake vortex (last 6 h)' });
+    const hazTable = ui.table({ empty: 'No hazard report received in the last 6 hours.', columns: [
+      { key: 't', label: 'Time', num: true, render: (r) => new Date(r.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+      { key: 'callsign', label: 'Aircraft', render: (r) => h('a', { href: '#/map/' + r.icao }, r.callsign || r.icao) },
+      { key: 'altFt', label: 'Altitude', num: true, render: (r) => (ok(r.altFt) ? units.alt(r.altFt, { fl: true }) : '–') },
+      { key: 'hazards', label: 'Reported', render: (r) => hazardText(r) || 'nil' },
+      { key: 'tempC', label: 'SAT', num: true, render: (r) => (ok(r.tempC) ? units.temp(r.tempC) : '–') },
+    ] });
+    const hazPanel = reg(panel(hazCard.body, {
+      skeleton: 120,
+      build(el) {
+        el.append(hazTable, caption('As reported by the aircraft (0 nil, 1 light, 2 moderate, 3 severe), newest first, at most one per aircraft per minute. BDS 4,5 replies carry no identifying bits, so AirView only takes a reply as 4,5 when its register inference picks it: such reports are rare and less certain than winds and temperatures, and they are never used in the profiles or the winds-aloft grid.'));
+        return (d) => hazTable.setRows(d || []);
+      },
+    }));
+    refreshers.push(source(ctx, {
+      every: 60000, panels: [hazPanel],
+      load: async (signal) => {
+        try {
+          return await api.get('/api/met/hazards', { params: { hours: 6 }, signal });
+        } catch (e) {
+          if (e.status === 401 || e.status === 403) { const err = new Error('Hazard reports are shown to the station administrator only.'); err.status = e.status; throw err; }
+          throw e;
+        }
+      },
+    }));
+
     // ------------------------------------------------------------------ layout
     const profileHost = h('div.wx-section');
     const impactHost = h('div.wx-section');
@@ -366,6 +394,7 @@ export default {
       tilesEl,
       h('div.wx-grid.wx-grid--prop', propCard, sunCard),
       h('div.wx-grid.wx-grid--2', ductCard, lineCard),
+      hazCard,
       profileHost,
       impactHost,
       attribEl));
@@ -590,4 +619,15 @@ function timelineOption(duct, units) {
       { name: 'Duct', type: 'scatter', color: colors.violet, symbol: 'diamond', symbolSize: 9, data: hrs.filter((x) => x.ducts > 0).map((x) => [x.t, x.index]) },
     ],
   };
+}
+
+/** "moderate turbulence, light icing" from a BDS 4,5 report (levels 1..3; nil omitted). */
+export function hazardText(r) {
+  const LV = ['', 'light', 'moderate', 'severe'];
+  const parts = [];
+  for (const [k, name] of [['turbulence', 'turbulence'], ['windShear', 'wind shear'], ['microburst', 'microburst'], ['icing', 'icing'], ['wakeVortex', 'wake vortex']]) {
+    const v = r[k];
+    if (typeof v === 'number' && v > 0 && v <= 3) parts.push(`${LV[v]} ${name}`);
+  }
+  return parts.join(', ');
 }
