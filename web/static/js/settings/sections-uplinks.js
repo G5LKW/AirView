@@ -187,8 +187,11 @@ export function renderUplinks(S, F) {
         ['MLAT messages', units.int(m.mlatSent)],
         ['Results on the map', units.int(m.results)],
         ['Peers', m.peerCount ? units.int(m.peerCount) : units.DASH, { tip: 'Stations this one is synchronised with (from the server\'s statistics)' }],
-        ['Frames without 12 MHz clock', units.int(m.noClock), { tip: 'Skipped: MLAT output needs a 12 MHz receiver timestamp (RTL-SDR with readsb / dump1090, Beast, Radarcape in 12 MHz mode)' }],
-      ], { columns: 2 }),
+        ['Clock', m.clockType === 'radarcape_gps' ? 'GPS (ns of the UTC day)' : m.clockType ? '12 MHz counter' : units.DASH, { tip: 'The timestamp kind this output sends; it follows the receiver (12 MHz: RTL-SDR with readsb / dump1090, Beast, Radarcape in 12 MHz mode; GPS: Radarcape with GPS lock)' }],
+        ['Frames without a timestamp', units.int(m.noClock), { tip: 'Skipped: MLAT needs receiver timestamps' }],
+        m.noGpsLock ? ['GPS frames without lock', units.int(m.noGpsLock), { tip: 'Skipped: a Radarcape in GPS mode without GPS lock (emulated time) or without UTC; MLAT needs UTC from a locked GPS' }] : null,
+        m.otherClock ? ['Frames of another clock', units.int(m.otherClock), { tip: 'Skipped: inputs with different clocks (12 MHz and GPS) cannot share one MLAT output; it follows the clock it sees and reconnects when that changes. Pick one input under Inputs.' }] : null,
+      ].filter(Boolean), { columns: 2 }),
       m.state === 'backoff' ? h('div.row-wrap', ui.button({ label: 'Retry now', icon: 'refresh', size: 'sm', onClick: () => retry(m) })) : null);
   }
   async function claim(u) {

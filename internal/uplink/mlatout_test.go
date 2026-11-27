@@ -20,13 +20,14 @@ import (
 // answers with zlib (client direction compressed), inflates the client's
 // chunked stream and records every message.
 type fakeMLATServer struct {
-	t     *testing.T
-	ln    net.Listener
-	mu    sync.Mutex
-	hello map[string]any
-	msgs  []map[string]json.RawMessage
-	conn  net.Conn
-	split bool
+	t      *testing.T
+	ln     net.Listener
+	mu     sync.Mutex
+	hello  map[string]any
+	hellos []map[string]any
+	msgs   []map[string]json.RawMessage
+	conn   net.Conn
+	split  bool
 }
 
 func startFakeMLAT(t *testing.T, split bool) *fakeMLATServer {
@@ -43,10 +44,16 @@ func startFakeMLAT(t *testing.T, split bool) *fakeMLATServer {
 func (s *fakeMLATServer) port() int { return s.ln.Addr().(*net.TCPAddr).Port }
 
 func (s *fakeMLATServer) serve() {
-	c, err := s.ln.Accept()
-	if err != nil {
-		return
+	for {
+		c, err := s.ln.Accept()
+		if err != nil {
+			return
+		}
+		go s.handle(c)
 	}
+}
+
+func (s *fakeMLATServer) handle(c net.Conn) {
 	br := bufio.NewReader(c)
 	line, err := br.ReadString('\n')
 	if err != nil {
@@ -58,6 +65,7 @@ func (s *fakeMLATServer) serve() {
 	}
 	s.mu.Lock()
 	s.hello, s.conn = h, c
+	s.hellos = append(s.hellos, h)
 	s.mu.Unlock()
 	rep, _ := json.Marshal(map[string]any{"compress": "zlib", "split_sync": s.split, "motd": "test server"})
 	c.Write(append(rep, '\n'))
@@ -276,5 +284,76 @@ func TestSplitMLAT(t *testing.T) {
 	ml := SplitMLAT(ups)
 	if len(avf) != 1 || len(beast) != 1 || len(ml) != 1 || ml[0].User != "me" || ml[0].Privacy {
 		t.Fatalf("%v %v %v", avf, beast, ml)
+	}
+}
+
+// TestMLATOutGPSClock: a Radarcape in GPS mode (class gps_utc) takes part
+// with clock_type "radarcape_gps": the output reconnects with that type when
+// only GPS frames arrive, sends nanoseconds of the UTC day moved to the start
+// of the frame (MLATC.md §5.1, wrapping at midnight), and skips GPS frames
+// without lock.
+func TestMLATOutGPSClock(t *testing.T) {
+	srv := startFakeMLAT(t, true)
+	m, err := NewManager(Options{Logf: t.Logf, SDRoot: func() bool { return false }, Inject: &captureSink{},
+		Position: func() (float64, float64, float64, bool) { return 52.25, 3.92, 30, true }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer m.Close()
+	m.ApplyMLAT([]MLATUplink{{ID: "net", Host: "127.0.0.1", Port: srv.port()}})
+	waitFor(t, 5*time.Second, "connected", func() bool { s := m.MLATStatus(); return len(s) == 1 && s[0].State == StateConnected })
+	srv.mu.Lock()
+	ct := srv.hello["clock_type"]
+	srv.mu.Unlock()
+	if ct != "dump1090" {
+		t.Fatalf("first hello before any frame: %v", ct)
+	}
+	const icao = 0x40621D
+	gps := func(ns int64, cls model.ClockClass, data []byte) model.RawFrame {
+		// Recv two minutes ahead of the session start: no frame of the session's clock for over a minute
+		return model.RawFrame{Recv: time.Now().Add(2 * time.Minute), Kind: model.FrameModeSLong, Data: data, FeedID: "rc", GPSNs: ns, ClockCls: cls}
+	}
+	srv.send(`{"start_sending":["40621d"]}`)
+	waitFor(t, 3*time.Second, "requested", func() bool { return m.MLATStatus()[0].Requested == 1 })
+	m.HandleFrame(gps(1_000_000_000, model.ClockGPSUTC, df17(icao, meEven)))
+	m.HandleFrame(gps(1_000_000_000, model.ClockGPSUTC, df17(icao, meEven)))
+	waitFor(t, 5*time.Second, "reconnect as radarcape_gps", func() bool {
+		srv.mu.Lock()
+		defer srv.mu.Unlock()
+		return len(srv.hellos) == 2 && srv.hellos[1]["clock_type"] == "radarcape_gps"
+	})
+	waitFor(t, 3*time.Second, "connected again", func() bool {
+		s := m.MLATStatus()[0]
+		return s.State == StateConnected && s.ClockType == "radarcape_gps"
+	})
+	if s := m.MLATStatus()[0]; s.OtherClock == 0 {
+		t.Fatalf("other-clock frames not counted: %+v", s)
+	}
+	srv.send(`{"start_sending":["40621d"]}`)
+	waitFor(t, 3*time.Second, "requested again", func() bool { return m.MLATStatus()[0].Requested == 1 })
+	before := srv.count("ssync")
+	m.HandleFrame(gps(1_000_000_000, model.ClockGPSUTC, df17(icao, meEven)))
+	m.HandleFrame(gps(50_000, model.ClockGPSUTC, df17(icao, meOdd))) // 50 µs after midnight: wraps to the previous day
+	m.HandleFrame(gps(2_000_000_000, model.ClockGPSEmul, df17(icao, meEven)))
+	waitFor(t, 3*time.Second, "ssync", func() bool { return srv.count("ssync") >= before+2 })
+	srv.mu.Lock()
+	var ts []uint64
+	for _, msg := range srv.msgs {
+		if v, ok := msg["ssync"]; ok {
+			var ss struct {
+				T uint64 `json:"t"`
+			}
+			json.Unmarshal(v, &ss)
+			ts = append(ts, ss.T)
+		}
+	}
+	srv.mu.Unlock()
+	got := ts[len(ts)-2:]
+	if got[0] != 1_000_000_000-120_000 || got[1] != uint64(model.NsPerDay)-70_000 {
+		t.Fatalf("GPS stamps %v", got)
+	}
+	time.Sleep(300 * time.Millisecond)
+	if s := m.MLATStatus()[0]; s.NoGPSLock != 1 || srv.count("ssync") != before+2 {
+		t.Fatalf("emulated GPS frame: %+v, %d ssync", s, srv.count("ssync")-before)
 	}
 }

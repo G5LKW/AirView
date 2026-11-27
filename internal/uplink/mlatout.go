@@ -46,15 +46,21 @@ import (
 //     server asks for (start_sending / stop_sending) the DF17 airborne
 //     positions as sync pairs (or single ssync messages when the server
 //     offers split_sync) and the other Mode S replies as mlat messages, with
-//     the receiver's 12 MHz timestamps (clock_type "dump1090").
+//     the receiver's timestamps moved to the start of the frame (MLATC.md
+//     §5.1): 12 MHz counters as clock_type "dump1090", a Radarcape's GPS
+//     timestamps as clock_type "radarcape_gps" (nanoseconds of the UTC day).
 //   - receives results (ECEF) and injects them into the local tracker as
 //     external MLAT positions; they are never forwarded anywhere.
 //
-// Limits: only receivers with a 12 MHz timestamp (RTL-SDR with readsb or
-// dump1090, Beast, Radarcape in 12 MHz mode) can take part; frames without
-// one are counted and skipped. A Radarcape in GPS mode needs the external
-// mlat-client. The receiver position is required by every MLAT server and
-// is sent (that is what MLAT needs); the UI says so.
+// Clocks: the handshake names one clock type, so one MLAT output carries
+// one kind of timestamp. It follows the clock of its inputs: before the
+// first timed frame it connects as "dump1090"; when the frames are of the
+// other kind and none of the session's kind arrived for a minute it
+// reconnects with the right type. GPS timestamps are only sent while the
+// receiver reports GPS lock with UTC (class gps_utc); emulated (no lock) and
+// GPS-time stamps are counted and skipped. Frames without any timestamp are
+// counted and skipped. The receiver position is required by every MLAT
+// server and is sent (that is what MLAT needs); the UI says so.
 
 // DefaultMLATPort is the usual port of an mlat-server.
 const DefaultMLATPort = 31090
@@ -125,12 +131,19 @@ type MLATStatus struct {
 	MOTD      string    `json:"motd,omitempty"`
 	Denied    []string  `json:"denied,omitempty"`
 
-	Seen       int     `json:"seen"`      // aircraft announced
-	Requested  int     `json:"requested"` // aircraft the server asked for
-	SyncSent   uint64  `json:"syncSent"`
-	MLATSent   uint64  `json:"mlatSent"`
-	Results    uint64  `json:"results"`
-	NoClock    uint64  `json:"noClock"` // frames without a 12 MHz timestamp (skipped)
+	Seen      int    `json:"seen"`      // aircraft announced
+	Requested int    `json:"requested"` // aircraft the server asked for
+	SyncSent  uint64 `json:"syncSent"`
+	MLATSent  uint64 `json:"mlatSent"`
+	Results   uint64 `json:"results"`
+	NoClock   uint64 `json:"noClock"` // frames of requested aircraft without a usable timestamp (skipped)
+	// ClockType is the clock type of the current / last session: "dump1090"
+	// (12 MHz) or "radarcape_gps".
+	ClockType string `json:"clockType,omitempty"`
+	// OtherClock counts frames whose clock is not the session's (mixed inputs).
+	OtherClock uint64 `json:"otherClock,omitempty"`
+	// NoGPSLock counts GPS-format frames without GPS lock / UTC (skipped).
+	NoGPSLock  uint64  `json:"noGpsLock,omitempty"`
 	BytesSent  uint64  `json:"bytesSent"`
 	PeerCount  int     `json:"peerCount,omitempty"` // from the server's stats
 	OutlierPct float64 `json:"outlierPercent,omitempty"`
@@ -139,6 +152,7 @@ type MLATStatus struct {
 
 type mlatCounters struct {
 	syncSent, mlatSent, results, noClock, bytesSent, connects atomic.Uint64
+	otherClock, noGPSLock                                     atomic.Uint64
 }
 
 type mlatAc struct {
@@ -161,6 +175,7 @@ type mlatClient struct {
 
 	inputs atomic.Pointer[[]string]
 	up     atomic.Bool
+	detect atomic.Int32 // clockKind of the latest timed input frame
 
 	mu        sync.Mutex
 	cfg       MLATUplink
@@ -168,8 +183,11 @@ type mlatClient struct {
 	ac        map[uint32]*mlatAc
 	req       map[uint32]bool
 	split     bool
-	lines     []byte // JSON lines waiting for the writer
-	clockMsg  bool   // a clock_reset is due
+	lines     []byte    // JSON lines waiting for the writer
+	clockMsg  bool      // a clock_reset is due
+	sessClock clockKind // clock type of the current session
+	ownClock  int64     // Unix ms of the last frame with the session's clock
+	reclock   bool      // the inputs' clock differs: reconnect with the right type
 	state     string
 	since     time.Time
 	lastErr   string
@@ -195,8 +213,30 @@ const (
 	mlatPosFreshMs   = 10_000
 	mlatChunk        = 32 << 10
 	mlatIdleTimeout  = 90 * time.Second
-	ticks12ModeS     = 768 // start-of-frame correction of a 12 MHz Mode S stamp (MLATC.md §5.1)
+	ticks12ModeS     = 768     // start-of-frame correction of a 12 MHz Mode S stamp (MLATC.md §5.1)
+	gpsShortNs       = 64_000  // start-of-frame correction of a GPS stamp, 56-bit reply (8 µs preamble + 56 µs)
+	gpsLongNs        = 120_000 // ... 112-bit reply (8 + 112 µs)
+	mlatReclockAfter = 60_000  // ms without a frame of the session's clock before reconnecting
 )
+
+// clockKind is the timestamp kind of a frame / session.
+type clockKind int32
+
+const (
+	clockNone  clockKind = iota
+	clock12MHz           // clock_type "dump1090"
+	clockGPS             // clock_type "radarcape_gps"
+)
+
+func (k clockKind) handshake() string {
+	if k == clockGPS {
+		return "radarcape_gps"
+	}
+	return "dump1090"
+}
+
+// errReclock ends a session whose clock type no longer matches the inputs.
+var errReclock = errors.New("the receiver clock changed; reconnecting with the matching clock type")
 
 func newMLATClient(o *Options, cfg MLATUplink) *mlatClient {
 	c := &mlatClient{o: o, uid: cfg.ID, cfg: cfg.clone(), state: StateIdle, since: o.Now(),
@@ -259,6 +299,43 @@ func ticks12(f *model.RawFrame) (uint64, bool) {
 	return 0, false
 }
 
+// frameTime returns the clock kind of a frame and its start-of-frame
+// timestamp in the units of that clock (MLATC.md §5.1). noLock is set for a
+// GPS-format stamp without GPS lock / UTC.
+func frameTime(f *model.RawFrame) (k clockKind, t uint64, noLock bool) {
+	if ts, ok := ticks12(f); ok {
+		if ts > ticks12ModeS {
+			t = ts - ticks12ModeS
+		}
+		return clock12MHz, t, false
+	}
+	gps := f.GPSNs >= 0 || f.ClockCls.GPS()
+	if !gps {
+		return clockNone, 0, false
+	}
+	if f.ClockCls != model.ClockGPSUTC {
+		return clockNone, 0, true
+	}
+	ns := f.GPSNs
+	if ns < 0 {
+		if f.Ticks == 0 {
+			return clockNone, 0, false
+		}
+		ns = int64(f.Ticks % uint64(model.NsPerDay))
+	}
+	if ns >= model.NsPerDay {
+		return clockNone, 0, false
+	}
+	off := int64(gpsShortNs)
+	if f.Kind == model.FrameModeSLong {
+		off = gpsLongNs
+	}
+	return clockGPS, uint64((ns - off + model.NsPerDay) % model.NsPerDay), false
+}
+
+// detected is the clock kind of the latest timed frame of the inputs.
+func (c *mlatClient) detectedClock() clockKind { return clockKind(c.detect.Load()) }
+
 // handleFrame turns one local frame into protocol messages (never blocks).
 func (c *mlatClient) handleFrame(f *model.RawFrame) {
 	if !c.up.Load() || f.MLAT || feed.IsMLATTimestamp(f.Clock12MHz) || f.Late {
@@ -271,7 +348,10 @@ func (c *mlatClient) handleFrame(f *model.RawFrame) {
 	if err := modes.DecodeOpts(f.Data, &m, modes.Options{NoCommB: true}); err != nil || m.CRC == modes.CRCBad || m.CRC == modes.CRCUnknown {
 		return
 	}
-	ts, timed := ticks12(f)
+	kind, t, noLock := frameTime(f)
+	if kind != clockNone {
+		c.detect.Store(int32(kind))
+	}
 	nowMs := f.Recv.UnixMilli()
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -293,14 +373,21 @@ func (c *mlatClient) handleFrame(f *model.RawFrame) {
 	if !c.req[m.ICAO] {
 		return
 	}
-	if !timed {
+	switch {
+	case noLock:
+		c.ctr.noGPSLock.Add(1)
+		return
+	case kind == clockNone:
 		c.ctr.noClock.Add(1)
 		return
+	case kind != c.sessClock:
+		c.ctr.otherClock.Add(1)
+		if nowMs-c.ownClock > mlatReclockAfter {
+			c.reclock = true
+		}
+		return
 	}
-	t := uint64(0)
-	if ts > ticks12ModeS {
-		t = ts - ticks12ModeS
-	}
+	c.ownClock = nowMs
 	hx := hex.EncodeToString(f.Data)
 	switch {
 	case airbornePos && m.CRC == modes.CRCOK:
@@ -453,6 +540,10 @@ func (c *mlatClient) run(ctx context.Context) {
 			bo.reset()
 		}
 		d := bo.next()
+		if errors.Is(err, errReclock) {
+			d = 0
+			bo.reset()
+		}
 		var den *errDenied
 		if errors.As(err, &den) && den.wait > d {
 			d = den.wait
@@ -471,7 +562,7 @@ func (c *mlatClient) run(ctx context.Context) {
 }
 
 // hello builds the handshake line.
-func (c *mlatClient) hello(cfg MLATUplink) []byte {
+func (c *mlatClient) hello(cfg MLATUplink, clock clockKind) []byte {
 	user := cfg.User
 	if user == "" {
 		user = "airview"
@@ -481,7 +572,7 @@ func (c *mlatClient) hello(cfg MLATUplink) []byte {
 		"compress": []string{"zlib", "none"}, "selective_traffic": true, "heartbeat": true,
 		"return_results": true, "return_result_format": "ecef", "return_stats": true, "udp_transport": false,
 		"uuid": c.uuid, "user": user, "lat": round5(cfg.Lat), "lon": round5(cfg.Lon), "alt": math.Round(cfg.AltM),
-		"clock_type": "dump1090", "privacy": cfg.Privacy,
+		"clock_type": clock.handshake(), "privacy": cfg.Privacy,
 	}
 	b, _ := json.Marshal(h)
 	b = append(b, bytes.Repeat([]byte(" "), 128)...)
@@ -510,7 +601,11 @@ func (c *mlatClient) session(ctx context.Context, cfg MLATUplink) error {
 	stop := context.AfterFunc(ctx, func() { nc.Close() })
 	defer stop()
 	_ = nc.SetDeadline(time.Now().Add(20 * time.Second))
-	if _, err := nc.Write(c.hello(cfg)); err != nil {
+	clock := c.detectedClock()
+	if clock == clockNone {
+		clock = clock12MHz
+	}
+	if _, err := nc.Write(c.hello(cfg, clock)); err != nil {
 		return err
 	}
 	br := bufio.NewReaderSize(nc, 64<<10)
@@ -541,6 +636,7 @@ func (c *mlatClient) session(ctx context.Context, cfg MLATUplink) error {
 	_ = nc.SetDeadline(time.Time{})
 	c.mu.Lock()
 	c.compress, c.split, c.motd, c.denied = rep.Compress, rep.SplitSync, rep.MOTD, nil
+	c.sessClock, c.ownClock, c.reclock = clock, c.o.Now().UnixMilli(), false
 	c.lines = c.lines[:0]
 	c.req = map[uint32]bool{}
 	for _, a := range c.ac {
@@ -574,9 +670,12 @@ func (c *mlatClient) session(ctx context.Context, cfg MLATUplink) error {
 			}
 			c.housekeeping(now, full)
 			c.mu.Lock()
-			out := c.lines
+			out, reclock := c.lines, c.reclock
 			c.lines = nil
 			c.mu.Unlock()
+			if reclock {
+				return errReclock
+			}
 			if len(out) == 0 {
 				continue
 			}
@@ -802,5 +901,14 @@ func (c *mlatClient) Status() MLATStatus {
 		NextRetry: c.nextRetry, Compress: c.compress, SplitSync: c.split, MOTD: c.motd, Denied: slices.Clone(c.denied),
 		Seen: len(c.ac), Requested: len(c.req), SyncSent: c.ctr.syncSent.Load(), MLATSent: c.ctr.mlatSent.Load(),
 		Results: c.ctr.results.Load(), NoClock: c.ctr.noClock.Load(), BytesSent: c.ctr.bytesSent.Load(),
-		PeerCount: c.peers, OutlierPct: c.outliers, Connects: c.ctr.connects.Load()}
+		PeerCount: c.peers, OutlierPct: c.outliers, Connects: c.ctr.connects.Load(),
+		OtherClock: c.ctr.otherClock.Load(), NoGPSLock: c.ctr.noGPSLock.Load(), ClockType: c.statusClock()}
+}
+
+// statusClock is the clock type of the current session ("" before the first).
+func (c *mlatClient) statusClock() string {
+	if c.sessClock == clockNone {
+		return ""
+	}
+	return c.sessClock.handshake()
 }
