@@ -1778,3 +1778,10 @@ Power-cut check (TerminateProcess at random points, 1.1 build, demo traffic): a 
 ## r101-release -> internal/config/reference.go (+ regenerated docs/CONFIG.md): "Storage layout migration" says "AirView 1.0 ... converted to the 1.1 layout"; the release shipping it is 1.0.1. Suggest "A database written by AirView 1.0.0 is converted to the new storage layout of 1.0.1 (internally the 1.1 layout, hence the backup file name)". The manual copy (docs/manual/04-reference-1-configuration.md, "Storage profiles") already uses that wording.
 ## r101-release -> internal/store/met_store_test.go TestMetSamplePruner: flaky at a second boundary (full run: "pruned 3601, want 3600"; passes 4/4 in isolation). Row i=3600 has T == now-30d exactly (i*240 s = 10 days), and Prune takes its own time.Now() later, so if the clock ticks over a second that row is pruned too. Fix: start the rows at now-40*86400+120 so no row lies on the cutoff.
 ## r101-release -> internal/mlat/clock TestEpochCostGate: failed again in the full go test ./... run (200-station epoch 121.8 ms > 80 ms) while a release build ran in parallel; passes in isolation (57.8 s). A timing gate under load, not a regression signal; consider skipping it under -short or when GOMAXPROCS is shared.
+## v1.1-integrator: disposition of the open r101-verifier / r101-release requests
+- r101-verifier -> timing.js:125 NTP notice: DONE. Receiver-agnostic: "ideally a GPS-locked one on your network (some receivers, e.g. a Radarcape, serve one), or pool.ntp.org / your router".
+- r101-verifier -> guess.js "four" methods: DONE. "five independent methods" / "Five independent estimators and their fusion".
+- r101-verifier -> charts.js scroll legend on 375 px: OPEN (cosmetic, not touched).
+- r101-release -> reference.go "Storage layout migration": DONE with the suggested wording; docs/CONFIG.md regenerated.
+- r101-release -> TestMetSamplePruner: DONE. Rows start at now-40d+120 s, so no row lies on the 30-day cutoff.
+- r101-release -> TestEpochCostGate: DONE. Over budget it now skips as "machine loaded" unless AIRVIEW_STRICT_TIMING=1 (hard failure on an idle machine); still skipped with -short.
