@@ -1,0 +1,51 @@
+[Unit]
+Description=AirView ADS-B statistics and mapping station
+Documentation=http://localhost/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=airview
+Group=airview
+# Settings: /etc/airview/airview.jsonc (operator file, wins over the web UI) and AIRVIEW_*
+# variables (e.g. in a drop-in: systemctl edit airview). Reference: airview config env,
+# /etc/airview/airview.example.jsonc. Secrets can come from files: AIRVIEW_<NAME>_FILE=/path.
+Environment=AIRVIEW_CONFIG=/etc/airview/airview.jsonc
+Environment=AIRVIEW_DATA=/var/lib/airview
+# Report configuration problems in the journal before the start (errors in the operator file
+# also stop the start itself; a damaged config.json is repaired by AirView).
+ExecStartPre=-/opt/airview/airview config check -q
+ExecStart=/opt/airview/airview -headless -data /var/lib/airview
+WorkingDirectory=/var/lib/airview
+Restart=always
+RestartSec=5
+# A clean stop writes every statistic still held in memory (with the low-wear storage profile up
+# to 15 minutes of heat-map increments) before the database is closed; give it time on a slow card.
+TimeoutStopSec=120
+
+# Allow binding port 80 without running as root.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+# Hardening.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/airview
+
+# Be gentle on a Pi: lower I/O priority than interactive work.
+Nice=5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target

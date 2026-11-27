@@ -1,0 +1,45 @@
+AirView - Licence Agreement
+===========================
+
+Please read these terms before installing AirView or the AirView Feeder
+("the Software").
+
+1. Use. You may install and use the Software on any number of computers you
+   own or control, for private or commercial purposes, and you may make
+   copies of the installer for that purpose.
+
+2. Your data. The Software stores its configuration, history and identity
+   on your own computer (see the "Where things are" section of the README
+   that is installed with it). The AirView Feeder sends receiver data only
+   to the aggregators you configure. The privacy notice installed in the
+   documentation folder explains what an aggregator can see and what is
+   shown publicly; by default your station is not shown on any public map.
+
+3. Radio reception. You are responsible for complying with the laws of
+   your country on the reception and use of aeronautical radio signals and
+   on the sharing of the data received.
+
+4. Not for navigation or safety. The Software is for information and
+   hobby use. It must not be used for navigation, air traffic control,
+   collision avoidance or any purpose where its failure could lead to
+   injury, death or damage.
+
+5. No warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+   KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+6. Third-party components. The Software includes open-source components
+   under their own licences (BSD, MIT, ISC, Apache-2.0 and SIL Open Font
+   Licence). Their notices are in THIRD-PARTY-NOTICES.txt in the
+   installation folder. Nothing in these terms limits your rights under
+   those licences.
+
+7. Uninstalling. You can remove the Software at any time with Settings >
+   Apps. Your configuration and data are kept unless you choose to delete
+   them.
+
+If you do not agree to these terms, do not install the Software.

@@ -1,0 +1,129 @@
+# AirView aggregator with Docker Compose.
+#
+#   cp docker-compose.example.yml docker-compose.yml   # then edit the marked values
+#   docker compose build                               # or use a published image
+#   docker compose up -d
+#   docker compose logs -f airview                     # first start prints a one-time setup code
+#   docker compose exec airview airview admin init     # or create the admin on the command line
+#
+# HTTPS: either start the bundled Caddy (automatic Let's Encrypt certificate;
+# needs ports 80/443 and DNS for AIRVIEW_DOMAIN pointing here):
+#   AIRVIEW_DOMAIN=feed.example.org docker compose --profile proxy up -d
+# or use a reverse proxy on the host (deploy/server/proxy/) against 127.0.0.1:8080.
+#
+# Configuration: AIRVIEW_* variables below (one per setting, docs/CONFIG.md),
+# optionally plus an operator file (uncomment the airview.jsonc mount and
+# AIRVIEW_CONFIG). Validate: docker compose run --rm airview config check
+#
+# Backup (cold, consistent):
+#   docker compose stop airview
+#   docker run --rm -v airview_airview-data:/data:ro -v "$PWD":/backup alpine \
+#     tar czf /backup/airview-backup-$(date -u +%Y%m%dT%H%M%SZ).tar.gz -C /data .
+#   docker compose start airview
+# Restore: stop, then extract into an empty volume the same way (tar xzf ... -C /data),
+# and chown -R 65532:65532 /data in that helper container.
+#
+# Upgrade: docker compose pull (or build) && docker compose up -d
+# (take a backup first; the data volume is kept).
+#
+# Firewall: Docker publishes ports past ufw. Publish only what must be public
+# (deploy/server/FIREWALL.md).
+
+name: airview
+
+services:
+  airview:
+    build:
+      context: .
+      args:
+        VERSION: ""            # e.g. 1.2.3 (shown by airview -version)
+    image: airview:latest
+    restart: unless-stopped
+    environment:
+      AIRVIEW_MODE: aggregator
+      AIRVIEW_AGGREGATOR_NAME: "My AirView Network"            # <- edit
+      AIRVIEW_AGGREGATOR_PUBLIC_HOST: feed.example.org         # <- edit: host name feeders connect to
+      # Only the reverse proxies on the network below may set X-Forwarded-For/-Proto.
+      AIRVIEW_AGGREGATOR_TRUSTED_PROXIES: "172.30.160.0/24"
+      AIRVIEW_AGGREGATOR_ADMISSION: invite
+      # Secrets from files (Docker secrets), e.g. the merged-output token:
+      # AIRVIEW_AGGREGATOR_OUTPUT_TOKEN_FILE: /run/secrets/airview_output_token
+      # Operator file (read-only mount below):
+      # AIRVIEW_CONFIG: /etc/airview/airview.jsonc
+      # Go heap target below the container memory limit (optional):
+      # GOMEMLIMIT: 3GiB
+    volumes:
+      - airview-data:/data
+      # - ./airview.jsonc:/etc/airview/airview.jsonc:ro
+      # AVF/1 with a CA certificate instead of the self-signed one
+      # (AIRVIEW_AGGREGATOR_TLS_CERT / _TLS_KEY pointing into this directory):
+      # - ./avf-tls:/etc/airview/tls:ro
+    # secrets: [airview_output_token]
+    ports:
+      # HTTP for a reverse proxy on the host only. With the bundled Caddy
+      # (profile "proxy") this line can go.
+      - "127.0.0.1:8080:8080"
+      # Feeder ports: public.
+      - "30160:30160"          # AVF/1 (AirView feeders, TLS)
+      - "30004:30004"          # Beast compat (readsb beast_reduce_plus_out; map only)
+      - "31090:31090"          # mlat-client
+      # - "31090:31090/udp"    # only with AIRVIEW_AGGREGATOR_MLAT_UDP=true
+    networks:
+      airview-net:
+        ipv4_address: 172.30.160.10
+    # Hardening: read-only root file system, no capabilities, no privilege gain.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    stop_grace_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 4g
+
+  # Optional HTTPS front end: docker compose --profile proxy up -d
+  caddy:
+    image: caddy:2
+    profiles: [proxy]
+    restart: unless-stopped
+    depends_on: [airview]
+    # Automatic HTTPS for AIRVIEW_DOMAIN, proxying to AirView. Caddy streams
+    # server-sent events (/api/events) without buffering by itself.
+    command: ["caddy", "reverse-proxy", "--from", "${AIRVIEW_DOMAIN:-feed.example.org}", "--to", "airview:8080"]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      airview-net:
+        ipv4_address: 172.30.160.20
+
+networks:
+  airview-net:
+    ipam:
+      config:
+        - subnet: 172.30.160.0/24
+
+volumes:
+  airview-data:
+  caddy-data:
+  caddy-config:
+
+# secrets:
+#   airview_output_token:
+#     file: ./secrets/output-token.txt

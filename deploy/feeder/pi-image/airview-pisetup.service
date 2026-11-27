@@ -1,0 +1,21 @@
+# AirView Feeder image: first-boot setup page on port 8099 (cmd/airview-piimage/pisetup).
+# Installed by /boot/firmware/airview/firstboot.sh; disables itself once the
+# feeder is configured (and never starts again once feeder.json exists).
+[Unit]
+Description=AirView Feeder first-boot setup page (http://<host>.local:8099/)
+After=network-online.target time-sync.target
+Wants=network-online.target
+ConditionPathExists=!/etc/airview-feeder/feeder.json
+
+[Service]
+Type=simple
+# Root: it runs the feeder installer (user, /opt, systemd units).
+ExecStart=/opt/airview-image/airview-pisetup -listen :8099
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

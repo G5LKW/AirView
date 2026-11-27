@@ -1,0 +1,102 @@
+/* Aircraft database page (js/pages/aircraft.js). Tokens come from tokens.css; shared pieces from components.css. */
+
+.ac-card > .card-body { padding: 0; }
+.ac-card .tab-list { padding: var(--s-2) var(--s-3) 0; overflow-x: auto; }
+.ac-card .tab-panel { padding: var(--s-4); }
+
+.ac-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); }
+.ac-search { flex: 1 1 280px; min-width: 200px; max-width: 460px; }
+.ac-search-sm { flex: 0 1 190px; min-width: 140px; }
+.ac-select { max-width: 190px; }
+.ac-hint { font-size: var(--fs-sm); }
+.ac-note { padding: 8px 12px; border-radius: var(--r-2); font-size: var(--fs-sm); color: var(--amber); background: var(--amber-a); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.3); }
+
+/* tables */
+.ac-table { border: 1px solid var(--line); background: var(--inset); transition: opacity var(--t-fast) var(--ease); }
+.ac-table.is-busy { opacity: 0.55; }
+.ac-table tr.ac-click { cursor: pointer; }
+.ac-table tr.ac-noclick { cursor: default; }
+.ac-table tr.ac-state-row td, .ac-table tr.ac-state-row:hover td { background: none; white-space: normal; padding: var(--s-4); border-bottom: 0; }
+.ac-table td.ac-wide { max-width: 230px; }
+.ac-table td.ac-wide .ellipsis { display: block; }
+.ac-table td.ac-text { white-space: normal; min-width: 240px; color: var(--text-2); }
+.ac-table td .muted.ac-typedesc { font-size: var(--fs-xs); margin-left: 6px; }
+.ac-flights-table { max-height: 264px; }
+
+.ac-icao { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 600; color: var(--blue-hi); letter-spacing: 0.02em; }
+.ac-live-dot { display: inline-block; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--text-4); opacity: 0.35; }
+tr.is-live .ac-live-dot, .ac-live-dot.on { background: var(--green); opacity: 1; box-shadow: 0 0 8px rgba(52, 211, 153, 0.9); }
+.ac-country { display: inline-flex; align-items: center; gap: 7px; max-width: 190px; vertical-align: bottom; }
+.ac-badges { display: inline-flex; flex-wrap: wrap; gap: 4px; vertical-align: middle; }
+
+.ac-pager { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; min-height: 30px; }
+.ac-pager .select { width: auto; flex: none; }
+.ac-toolbar .select { width: auto; }
+.ac-pager-info { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-sm); }
+
+/* records */
+.ac-records .stat.ac-click { cursor: pointer; transition: box-shadow var(--t-fast) var(--ease); }
+.ac-records .stat.ac-click:hover { box-shadow: var(--glow); }
+.ac-records .stat-value { font-size: 22px; }
+
+/* aircraft-database tab */
+.ac-source p { color: var(--text-2); font-size: var(--fs-sm); line-height: 1.5; margin: 0; }
+.kv dd.ac-wrap { white-space: normal; text-align: left; overflow-wrap: anywhere; line-height: 1.45; }
+.ac-progress { display: flex; flex-direction: column; gap: 8px; padding: var(--s-3); border-radius: var(--r-2); background: var(--inset); border: 1px solid var(--line-2); }
+.ac-progress-detail { font-size: var(--fs-xs); min-height: 14px; }
+.ac-error-text { color: #ff8b97; font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.ac-indeterminate > i { width: 35% !important; animation: ac-slide 1.3s ease-in-out infinite alternate; }
+@keyframes ac-slide { from { margin-left: 0; } to { margin-left: 65%; } }
+.ac-lookup-out:empty { display: none; }
+
+/* detail drawer */
+.ac-drawer { display: flex; flex-direction: column; gap: var(--s-4); }
+.ac-hero { display: flex; align-items: flex-start; gap: var(--s-4); flex-wrap: wrap; padding: var(--s-4); border-radius: var(--r-3); border: 1px solid var(--line-2);
+  background: radial-gradient(120% 160% at 0% 0%, rgba(47, 125, 255, 0.28), transparent 60%), linear-gradient(135deg, var(--bg-2), var(--bg-1)); }
+.ac-hero-main { flex: 1 1 220px; min-width: 0; }
+.ac-hero-icao { font-size: var(--fs-3xl); font-weight: 600; line-height: 1; letter-spacing: 0.04em; color: var(--text); text-shadow: 0 0 24px rgba(47, 125, 255, 0.7); }
+.ac-hero-sub { margin-top: 8px; color: var(--text-2); font-size: var(--fs-md); overflow-wrap: anywhere; }
+.ac-hero-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.ac-live { padding: var(--s-3); border-radius: var(--r-2); background: var(--green-a); box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.3); display: flex; flex-direction: column; gap: 8px; }
+.ac-detail-grid { gap: var(--s-4) var(--s-5); }
+.ac-detail-grid .kv dd { overflow-wrap: anywhere; }
+.ac-drawer .tab-panel { padding-top: var(--s-3); }
+
+.ac-flight { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-3); border-radius: var(--r-3); border: 1px solid var(--line-2); background: var(--inset); }
+.ac-flight-head { display: flex; flex-direction: column; gap: var(--s-3); }
+.ac-flight-body { display: flex; flex-direction: column; gap: var(--s-3); }
+.ac-flight-body:empty { display: none; }
+.ac-map-wrap { position: relative; border-radius: var(--r-2); overflow: hidden; border: 1px solid var(--line); }
+.ac-map { height: 320px; background: #050c1b; }
+.ac-map-legend { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2) var(--s-3); font-size: var(--fs-xs); }
+.ac-ramp { flex: 0 0 120px; height: 8px; border-radius: 4px; }
+.ac-legend-marks { display: inline-flex; align-items: center; gap: 5px; color: var(--text-3); margin-left: auto; }
+.ac-legend-marks i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-left: 8px; box-sizing: border-box; }
+.ac-legend-marks .m-start { background: var(--green); }
+.ac-legend-marks .m-end { background: #fff; border: 2px solid var(--red); }
+.ac-legend-marks .m-far { background: var(--amber); }
+.ac-legend-marks .m-rx { background: #fff; border: 2px solid var(--blue); }
+.ac-profiles { gap: var(--s-4); }
+.ac-cap { margin-top: 6px; font-size: var(--fs-xs); line-height: 1.45; color: var(--text-3); }
+
+/* MapLibre chrome inside the mini map (map.css is only loaded by the Live Map) */
+.ac-map .maplibregl-ctrl-attrib { background: rgba(3, 8, 20, 0.72); color: var(--text-3); font: 10px/1.5 var(--font-ui); }
+.ac-map .maplibregl-ctrl-attrib.maplibregl-compact { background: rgba(3, 8, 20, 0.85); border-radius: 14px; }
+.ac-map .maplibregl-ctrl-attrib a { color: var(--text-2); }
+.ac-map .maplibregl-ctrl-attrib-button { filter: invert(1) hue-rotate(180deg); opacity: 0.8; }
+.ac-map .maplibregl-ctrl-group { background: var(--panel-solid); border: 1px solid var(--line-2); box-shadow: none; }
+.ac-map .maplibregl-ctrl-group button + button { border-top: 1px solid var(--line); }
+.ac-map .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1) hue-rotate(180deg) brightness(1.4); }
+.ac-popup .maplibregl-popup-content { padding: 5px 9px; border-radius: var(--r-1); background: var(--panel-solid-hi); color: var(--text); border: 1px solid var(--line-2); font-family: var(--font-mono); font-size: 11px; white-space: nowrap; box-shadow: var(--shadow-1); }
+.ac-popup .maplibregl-popup-tip { display: none; }
+
+@media (max-width: 720px) {
+  .ac-card .tab-panel { padding: var(--s-3); }
+  .ac-search { max-width: none; flex-basis: 100%; }
+  .ac-select { max-width: none; flex: 1 1 130px; }
+  .ac-hero-icao { font-size: var(--fs-2xl); }
+  .ac-hero-side { align-items: flex-start; }
+  .ac-map { height: 250px; }
+  .ac-legend-marks { margin-left: 0; }
+  .ac-table td.ac-wide { max-width: 150px; }
+}

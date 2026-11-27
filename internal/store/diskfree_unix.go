@@ -1,0 +1,15 @@
+//go:build !windows
+
+package store
+
+import "golang.org/x/sys/unix"
+
+// diskFree returns the bytes available to an unprivileged process on the
+// file system that holds dir.
+func diskFree(dir string) (uint64, error) {
+	var st unix.Statfs_t
+	if err := unix.Statfs(dir, &st); err != nil {
+		return 0, err
+	}
+	return uint64(st.Bavail) * uint64(st.Bsize), nil
+}

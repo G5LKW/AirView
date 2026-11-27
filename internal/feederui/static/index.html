@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>AirView Feeder</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <img src="favicon.svg" alt="" width="28" height="28">
+    <div>
+      <h1>AirView Feeder</h1>
+      <div class="sub" id="ident">loading...</div>
+    </div>
+  </div>
+  <div class="overall" id="overall"><span class="dot"></span><span>Connecting to the feeder...</span></div>
+</header>
+
+<main>
+  <div class="banner hidden" id="banner"></div>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Aggregators</h2>
+    </div>
+    <div id="uplinks" class="rows"><p class="muted">No aggregator configured yet. Add one under Settings.</p></div>
+    <div id="beast-outputs" class="rows hidden"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Receivers</h2></div>
+    <div id="receivers" class="rows"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Claim this feeder</h2></div>
+    <p class="muted">A claim code links this feeder to your account on the aggregator. Enter it on the aggregator's
+      <b>Claim</b> page within 24 hours. The code works once; keep it to yourself.</p>
+    <div class="form-row">
+      <label>Aggregator <select id="claim-uplink"></select></label>
+      <label>Receiver <select id="claim-rx"></select></label>
+      <button class="btn primary" id="claim-btn" type="button">Get claim code</button>
+    </div>
+    <div class="claim hidden" id="claim-out"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>MLAT results</h2></div>
+    <div id="results" class="kv"></div>
+  </section>
+
+  <section class="card" id="update-card">
+    <div class="card-head"><h2>Software updates</h2></div>
+    <p><a href="/update">Check for and install updates</a> <span id="update-version" class="muted"></span> <span id="update-state" class="muted"></span></p>
+    <p class="muted">The update page works on the feeder's own computer only (open it as localhost there). A headless feeder updates itself on its timer.</p>
+  </section>
+
+  <section class="card">
+    <details id="settings-box">
+      <summary><h2>Settings</h2></summary>
+      <form id="settings" autocomplete="off">
+        <p class="muted" id="settings-file"></p>
+        <div id="settings-locked" class="note hidden"></div>
+        <h3>Receiver</h3>
+        <div id="set-receivers"></div>
+        <h3>Aggregator</h3>
+        <div id="set-uplinks"></div>
+        <button class="btn ghost" type="button" id="add-uplink">Add aggregator</button>
+        <h3>Software updates</h3>
+        <div id="set-update" class="kv"></div>
+        <p class="muted" id="set-update-note"></p>
+        <h3>MLAT results output</h3>
+        <div class="grid">
+          <label>Beast port (0 = off)<input type="number" min="0" max="65535" data-k="results.beastPort"></label>
+          <label>Push to readsb (host:port)<input type="text" placeholder="127.0.0.1:30104" data-k="results.readsbAddr"></label>
+        </div>
+        <div class="form-row end">
+          <span id="save-msg" class="muted"></span>
+          <button class="btn primary" type="submit">Save and apply</button>
+        </div>
+      </form>
+    </details>
+  </section>
+</main>
+<footer class="foot" id="foot"></footer>
+<script src="app.js"></script>
+</body>
+</html>

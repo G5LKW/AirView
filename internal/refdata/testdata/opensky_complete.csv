@@ -1,0 +1,11 @@
+'icao24','timestamp','acars','adsb','built','categoryDescription','country','engines','firstFlightDate','firstSeen','icaoAircraftClass','lineNumber','manufacturerIcao','manufacturerName','model','modes','nextReg','notes','operator','operatorCallsign','operatorIata','operatorIcao','owner','prevReg','regUntil','registered','registration','selCal','serialNumber','status','typecode','vdl'
+'000000','2017-10-19 18:30:18',0,0,,'',,'',,,'','','','',unknow,0,'','','','','','','','',,,'','','','','',0
+'000001','2016-11-27 00:10:39',0,0,,'',,'',,,L1P,'',SHIJIAZHUANG,'',Antonov 2,0,'','','','','','',Private,'',,,SP-FGR,'','','',AN2,0
+'000002','2018-05-29 02:00:00',0,0,,Light (< 15500 lbs),,'',,,'','','','','',0,'','','','','','','','',,,'','','','','',0
+a5cfe8,'2022-08-12 19:00:00',0,0,'1966-01-01','',United States,CONT MOTOR 0-200 SERIES,,,L1P,'',REIMS,Cessna,'150G',0,'','','','','','',Kimberly Jack L,'','2030-01-31',,N4739X,'','15064789','',C150,0
+a5cff6,'2021-12-15 19:00:00',0,0,'2002-01-01','',United States,ROLLS-ROYC 250-C47B,,,H1T,'',NUSANTARA,Bell,'407',0,'','','','','','',Tvpx Aircraft Solutions Inc Trustee,'','2029-05-31',,N474A,'','53545','',B407,0
+a5cffb,'2023-03-02 19:00:00',0,0,,'',United States,CFM INTL CFM56-3B,,,'','','',Boeing,'737-448',0,'','','','','','',Frontera Flight Holdings Inc,'','2030-03-31',,N474AE,'','24474','','',0
+3c6444,'2020-01-01 00:00:00',0,0,'2010-01-01','',Germany,'',,,L2J,'',AIRBUS,Airbus,'A319-112',0,'','two-line
+note, with a comma','Lufthansa, ''Deutsche'' AG',LUFTHANSA,LH,DLH,'','',,,d-aibd,'','4455','',a319,0
+zzzzzz,'2020-01-01 00:00:00',0,0,,'',,'',,,'','','','',broken,0
+'4ca242','2020-01-01 00:00:00',0,0

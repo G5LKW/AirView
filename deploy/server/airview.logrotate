@@ -1,0 +1,22 @@
+# AirView application log. Installed as /etc/logrotate.d/airview.
+#
+# AirView caps /var/lib/airview/airview.log itself (process.logMaxMb, 64 MiB in aggregator mode:
+# a full file moves to airview.log.1, older ones to .2 .. process.logFiles, 10 by default).
+# logrotate keeps a dated, compressed history on top:
+# copytruncate leaves the file AirView holds open in place (AirView appends,
+# so it continues at the new end), and dateext names never clash with
+# AirView's own airview.log.1. The journal (journalctl -u airview) has the
+# same messages; see /opt/airview/README.md for its retention.
+/var/lib/airview/airview.log {
+    su airview airview
+    daily
+    maxsize 20M
+    rotate 14
+    dateext
+    dateformat -%Y%m%d-%s
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+}

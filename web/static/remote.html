@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#02040a">
+<title>AirView · Remote</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<style>
+  /* Thin shell for remote-web mode: a slim bar + the host's AirView site in a full-size frame. */
+  body { display: grid; grid-template-rows: 40px minmax(0, 1fr); height: 100dvh; }
+  .rbar {
+    position: relative; z-index: 2; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 12px; min-width: 0;
+    background: linear-gradient(180deg, rgba(4, 9, 22, 0.96), rgba(5, 13, 32, 0.92)); border-bottom: 1px solid var(--line-2);
+  }
+  .rbar img { width: 22px; height: 22px; flex: none; }
+  .rbar-name { font-weight: 650; font-size: 13px; }
+  .rbar-name b { color: var(--blue-hi); font-weight: 650; }
+  .rbar-sep { width: 1px; height: 18px; background: var(--line-2); flex: none; }
+  .rbar-state { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: var(--fs-sm); color: var(--text-2); }
+  .rbar-state .host { font-family: var(--font-mono); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rbar .spacer { flex: 1 1 auto; }
+  .rframe-wrap { position: relative; min-height: 0; z-index: 1; }
+  .rframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--bg-0); }
+  .rmsg { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(2, 4, 10, 0.88); z-index: 2; }
+  .rmsg .card { max-width: 460px; }
+  .rmsg p { color: var(--text-2); }
+  .rmsg code { font-size: var(--fs-sm); color: var(--text); background: var(--inset); border: 1px solid var(--line); padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere; }
+  @media (max-width: 560px) { .rbar-name, .rbar-sep, .btn .lbl { display: none; } }
+</style>
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+<header class="rbar">
+  <img src="img/logo.svg" alt="">
+  <span class="rbar-name">Air<b>View</b></span>
+  <span class="rbar-sep"></span>
+  <div class="rbar-state"><span class="dot" id="dot"></span><span id="stateText">Connecting to</span><span class="host" id="host">&hellip;</span></div>
+  <span class="spacer"></span>
+  <button class="btn btn--sm btn--ghost" id="reload" type="button" title="Reload the host site">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.500-3.500L4 9M4 4v5h5M4 13a8 8 0 0 0 14.500 3.500L20 15M20 20v-5h-5"/></svg><span class="lbl">Reload</span>
+  </button>
+  <button class="btn btn--sm btn--danger" id="disconnect" type="button" title="Stop showing the host site and return this app to standalone mode">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.300 7a8 8 0 1 0 11.400 0"/></svg><span class="lbl">Disconnect</span>
+  </button>
+</header>
+<main class="rframe-wrap">
+  <iframe class="rframe" id="frame" title="AirView host" allow="fullscreen; clipboard-write" referrerpolicy="no-referrer"></iframe>
+  <div class="rmsg hidden" id="msg" role="alert">
+    <section class="card card--accent">
+      <div class="card-head"><div class="card-title" id="msgTitle"></div></div>
+      <div class="card-body">
+        <p id="msgText"></p>
+        <p><code id="msgUrl"></code></p>
+        <div class="row gap-3 mt-4">
+          <button class="btn btn--primary" id="retry" type="button">Try again</button>
+          <button class="btn" id="disconnect2" type="button">Disconnect</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+<script type="module">
+// remote.html?url=http://host:port/  - shown by the desktop app in remote-web mode.
+// "Disconnect" switches the LOCAL server back to standalone mode (PUT /api/config) and opens the local UI.
+const $ = (id) => document.getElementById(id);
+const frame = $('frame');
+let target = null;
+let probeTimer = 0;
+let failures = 0;
+
+function parseTarget(raw) {
+  if (!raw) return null;
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+    if (u.origin === location.origin) return null; // would frame this shell inside itself
+    if (!u.pathname) u.pathname = '/';
+    return u;
+  } catch { return null; }
+}
+
+async function localConfig() {
+  const r = await fetch('/api/config', { cache: 'no-store', headers: { Accept: 'application/json' } });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'HTTP ' + r.status);
+  return r.json();
+}
+
+function setState(kind, text) {
+  $('dot').className = 'dot ' + kind;
+  $('stateText').textContent = text;
+}
+
+function showMessage(title, text, showRetry = true) {
+  $('msgTitle').textContent = title;
+  $('msgText').textContent = text;
+  $('msgUrl').textContent = target ? target.href : '';
+  $('msgUrl').parentElement.classList.toggle('hidden', !target);
+  $('retry').classList.toggle('hidden', !showRetry);
+  $('msg').classList.remove('hidden');
+}
+
+/** Reachability probe: an opaque no-cors request resolves when the host answers at all and rejects when it does not. */
+async function probe() {
+  clearTimeout(probeTimer);
+  if (!target) return;
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 5000);
+  try {
+    await fetch(new URL('api/status', target).href, { mode: 'no-cors', cache: 'no-store', signal: ctl.signal });
+    failures = 0;
+    setState('ok', 'Connected to');
+    if (!$('msg').classList.contains('hidden') && $('msg').dataset.kind === 'down') { $('msg').classList.add('hidden'); load(); }
+  } catch {
+    failures++;
+    setState(failures > 1 ? 'bad' : 'warn', failures > 1 ? 'Cannot reach' : 'Reconnecting to');
+    if (failures === 2) {
+      $('msg').dataset.kind = 'down';
+      showMessage('Host not reachable', 'The AirView host is not answering. Check that it is running and that this computer can reach it over the network. This page keeps trying.');
+    }
+  } finally {
+    clearTimeout(t);
+  }
+  probeTimer = setTimeout(probe, failures ? 4000 : 15000);
+}
+
+function load() {
+  if (!target) return;
+  $('msg').classList.add('hidden');
+  $('msg').dataset.kind = '';
+  if (frame.getAttribute('src')) {
+    // Force a real reload of the same URL: blank the frame first, then point it back.
+    frame.src = 'about:blank';
+    setTimeout(() => { frame.src = target.href; }, 50);
+  } else {
+    frame.src = target.href;
+  }
+}
+
+async function disconnect() {
+  for (const b of [$('disconnect'), $('disconnect2')]) b.disabled = true;
+  try {
+    const cfg = await localConfig();
+    cfg.mode = 'standalone';
+    const r = await fetch('/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(cfg) });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'HTTP ' + r.status);
+    location.replace('./#/settings');
+  } catch (e) {
+    for (const b of [$('disconnect'), $('disconnect2')]) b.disabled = false;
+    $('msg').dataset.kind = 'error';
+    showMessage('Could not disconnect', 'The local AirView server refused the change: ' + e.message, false);
+  }
+}
+
+async function init() {
+  target = parseTarget(new URLSearchParams(location.search).get('url'));
+  if (!target) {
+    // No (valid) ?url= given: fall back to the host configured on the local server.
+    try {
+      const cfg = await localConfig();
+      const host = (cfg.remote?.host || '').trim();
+      if (host) {
+        const port = cfg.remote.httpPort || 80;
+        target = parseTarget(`http://${host.includes(':') && !host.startsWith('[') ? `[${host}]` : host}${port === 80 ? '' : ':' + port}/`);
+      }
+    } catch { /* handled below */ }
+  }
+  if (!target) {
+    setState('bad', 'No host');
+    $('host').textContent = '';
+    $('msg').dataset.kind = 'error';
+    showMessage('No AirView host configured', 'This window is in remote-web mode but no valid host address was given. Disconnect to return to the local AirView and set the host under Settings.', false);
+    return;
+  }
+  $('host').textContent = target.host;
+  document.title = `AirView · ${target.host}`;
+  setState('warn', 'Connecting to');
+  frame.addEventListener('load', () => { if (frame.src && frame.src !== 'about:blank' && failures === 0) setState('ok', 'Connected to'); });
+  load();
+  probe();
+}
+
+$('reload').addEventListener('click', () => { failures = 0; load(); probe(); });
+$('retry').addEventListener('click', () => { failures = 0; load(); probe(); });
+$('disconnect').addEventListener('click', disconnect);
+$('disconnect2').addEventListener('click', disconnect);
+init();
+</script>
+</body>
+</html>

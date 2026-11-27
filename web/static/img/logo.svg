@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AirView">
+  <defs>
+    <linearGradient id="av-g" x1="8" y1="6" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8ccbff"/>
+      <stop offset=".55" stop-color="#2f7dff"/>
+      <stop offset="1" stop-color="#0b3bff"/>
+    </linearGradient>
+    <radialGradient id="av-b" cx="40" cy="52" r="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#12409c"/>
+      <stop offset=".55" stop-color="#071a45"/>
+      <stop offset="1" stop-color="#02040a"/>
+    </radialGradient>
+    <linearGradient id="av-s" x1="32" y1="32" x2="48" y2="12" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22d3ee" stop-opacity="0"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity=".6"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#av-b)"/>
+  <rect x=".75" y=".75" width="62.5" height="62.5" rx="14.25" fill="none" stroke="url(#av-g)" stroke-opacity=".6" stroke-width="1.5"/>
+  <path d="M32 32V10a22 22 0 0 1 19.050 11z" fill="url(#av-s)"/>
+  <circle cx="32" cy="32" r="22" fill="none" stroke="url(#av-g)" stroke-width="2.2"/>
+  <circle cx="32" cy="32" r="13" fill="none" stroke="#5aa2ff" stroke-opacity=".45" stroke-width="1.3"/>
+  <path d="M32 6.500v5M32 52.500v5M6.500 32h5M52.500 32h5" stroke="#5aa2ff" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M45 19 36.800 43.600 32.300 33.700 22.400 29.200z" fill="#fff"/>
+  <path d="M45 19 32.300 33.700 36.800 43.600z" fill="#b9dcff"/>
+</svg>

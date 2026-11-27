@@ -1,0 +1,89 @@
+# AirView server (aggregator or standalone station), headless.
+# Installed by deploy/server/install.sh as /etc/systemd/system/airview.service.
+#
+# Local changes belong in a drop-in, not in this file (upgrades replace it):
+#   sudo systemctl edit airview
+# e.g. to set AIRVIEW_* variables or secrets read from files:
+#   [Service]
+#   Environment=AIRVIEW_AGGREGATOR_PUBLIC_HOST=feed.example.org
+#   Environment=AIRVIEW_AGGREGATOR_OUTPUT_TOKEN_FILE=/etc/airview/output-token
+[Unit]
+Description=AirView ADS-B network server
+Documentation=file:///opt/airview/README.md
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=airview
+Group=airview
+# Settings: /etc/airview/airview.jsonc (operator file, wins over the web UI and
+# config.json) and AIRVIEW_* variables (win over the file). Reference:
+# /etc/airview/airview.example.jsonc and "airview config env".
+Environment=AIRVIEW_CONFIG=/etc/airview/airview.jsonc
+Environment=AIRVIEW_DATA=/var/lib/airview
+# No soft Go heap limit by default: the 384 MiB limit AirView applies on
+# linux/arm64 is meant for a Raspberry Pi station and would make the garbage
+# collector thrash on an arm64 aggregator. To bound memory, set both in a
+# drop-in, e.g. MemoryMax=6G and Environment=GOMEMLIMIT=5GiB.
+Environment=GOMEMLIMIT=off
+# Report configuration problems in the journal before the start. Errors in the
+# operator file stop the start itself; config.json is repaired by AirView.
+ExecStartPre=-/opt/airview/airview config check -q
+ExecStart=/opt/airview/airview -headless -data /var/lib/airview
+WorkingDirectory=/var/lib/airview
+Restart=always
+RestartSec=5
+# Leave time to flush the batched database writes on stop.
+TimeoutStopSec=60
+KillMode=mixed
+
+# Logging: stdout/stderr go to the journal (journalctl -u airview). AirView also
+# keeps /var/lib/airview/airview.log (size-capped; archived by logrotate).
+# Under systemd AirView copies only warnings and errors to the journal unless
+# process.journalLevel says otherwise; a server keeps every line there
+# ("sudo airview logs").
+Environment=AIRVIEW_PROCESS_JOURNAL_LEVEL=info
+SyslogIdentifier=airview
+LogRateLimitIntervalSec=30s
+LogRateLimitBurst=20000
+
+# Port 80 without root. The feeder ports (30160, 30004, 31090) need nothing.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+# 1,000+ feeders each hold one or two TCP connections, plus web clients.
+LimitNOFILE=65536
+TasksMax=4096
+
+# Hardening (systemd-analyze security airview).
+NoNewPrivileges=true
+UMask=0027
+ProtectSystem=strict
+ReadWritePaths=/var/lib/airview
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RemoveIPC=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+DevicePolicy=closed
+
+[Install]
+WantedBy=multi-user.target

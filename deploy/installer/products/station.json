@@ -1,0 +1,37 @@
+{
+  "id": "AirView",
+  "name": "AirView",
+  "publisher": "AirView",
+  "comments": "ADS-B / Mode S statistics and mapping station. AirView opens in its own window and keeps its settings and history in your user profile.",
+  "mainExe": "airview.exe",
+  "defaultDir": "{pf}\\AirView",
+  "startMenuFolder": "AirView",
+  "licence": "LICENSE.txt",
+  "shortcuts": [
+    {
+      "name": "AirView",
+      "target": "{app}\\airview.exe",
+      "description": "ADS-B / Mode S statistics and mapping",
+      "desktop": true
+    },
+    {
+      "name": "AirView documentation",
+      "target": "{app}\\docs",
+      "description": "Operator guide, feeder guide and privacy notice"
+    }
+  ],
+  "firewall": {
+    "rule": "AirView web interface",
+    "program": "{app}\\airview.exe",
+    "port": 80,
+    "default": false
+  },
+  "launch": {
+    "target": "{app}\\airview.exe",
+    "caption": "&Launch AirView"
+  },
+  "dataDirs": [
+    "{app}\\data",
+    "{userappdata}\\AirView"
+  ]
+}

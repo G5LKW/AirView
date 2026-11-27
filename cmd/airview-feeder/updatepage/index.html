@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AirView Feeder updates</title>
+<link rel="stylesheet" href="/update/page.css">
+</head>
+<body>
+<main>
+  <p class="back"><a href="/">&larr; Status page</a></p>
+  <h1>Software updates</h1>
+  <p class="muted">Signed updates published by your aggregator. Every download is checked against the release key before it is installed, and a version that does not start cleanly is rolled back automatically.</p>
+
+  <section class="card" aria-labelledby="h-state">
+    <h2 id="h-state">This feeder</h2>
+    <dl class="kv">
+      <dt>Installed version</dt><dd id="u-version">&hellip;</dd>
+      <dt>Platform</dt><dd id="u-target">&hellip;</dd>
+      <dt>Last check</dt><dd id="u-checked">&hellip;</dd>
+      <dt>Available</dt><dd id="u-available">&hellip;</dd>
+      <dt>Last update</dt><dd id="u-last">&hellip;</dd>
+    </dl>
+    <p id="u-note" class="note" hidden></p>
+    <p id="u-error" class="err" role="alert" hidden></p>
+    <div class="row">
+      <button id="b-check" type="button">Check now</button>
+      <button id="b-install" type="button" class="primary" hidden>Install now</button>
+      <span id="u-busy" class="muted" hidden>Working&hellip;</span>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="h-set">
+    <h2 id="h-set">Settings</h2>
+    <label class="check"><input type="checkbox" id="s-auto"> Install updates automatically</label>
+    <label class="field">Channel
+      <select id="s-channel">
+        <option value="stable">stable</option>
+        <option value="beta">beta</option>
+      </select>
+    </label>
+    <div class="row">
+      <button id="b-save" type="button">Save</button>
+      <span id="s-msg" class="muted" role="status"></span>
+    </div>
+    <p class="muted small">These are the <code>autoUpdate</code> and <code>update.channel</code> settings of the configuration file; an <code>AIRVIEW_FEEDER_*</code> environment variable or a command-line option overrides them (the setting is then marked as locked).</p>
+  </section>
+</main>
+<script src="/update/page.js"></script>
+</body>
+</html>

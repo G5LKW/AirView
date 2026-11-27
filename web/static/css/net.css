@@ -1,0 +1,183 @@
+/* Network (aggregator) mode: station picker, account pages, admin console, the map's View selector.
+   Loaded by index.html in every mode; nothing here applies to standalone pages (all selectors are net-* or
+   the map's net bar, which is hidden in standalone mode). */
+
+/* ---------- station picker popover ---------- */
+.net-pick { width: min(320px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 6px; padding: 8px; }
+.net-pick-list { max-height: min(60vh, 420px); overflow: auto; display: flex; flex-direction: column; gap: 1px; }
+.net-pick-head { font-size: var(--fs-2xs); font-weight: 650; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-3); padding: 6px 8px 2px; }
+.net-pick-row {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 34px; padding: 0 8px; border: 0; border-radius: var(--r-2);
+  background: transparent; color: var(--text-2); font: inherit; text-align: left; cursor: pointer;
+}
+.net-pick-row:hover { background: var(--hover); color: var(--text); }
+.net-pick-row.on { background: var(--selected); color: #fff; }
+.net-pick-row .grow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.net-pick-row code { font-size: var(--fs-2xs); }
+.net-pick-empty { padding: 10px 8px; }
+.net-pick-foot { display: flex; justify-content: flex-end; border-top: 1px solid var(--line); padding-top: 6px; }
+
+/* ---------- pages ---------- */
+.net-narrow { max-width: 920px; }
+.net-narrow > .card + .card, .net-narrow > section + section { margin-top: var(--s-4); }
+.net-tiles { margin-bottom: var(--s-4); }
+.net-grid, .net-network-grid { align-items: start; }
+.net-cards { --min: 300px; }
+.net-privacy-note { display: flex; gap: 8px; align-items: flex-start; margin-top: var(--s-5); font-size: var(--fs-sm); max-width: 900px; }
+.net-privacy-note svg.icon { flex: none; width: 15px; height: 15px; margin-top: 2px; color: var(--blue-hi); }
+.net-warn, .net-note {
+  display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: var(--r-2); font-size: var(--fs-sm);
+  border: 1px solid rgba(251, 191, 36, 0.35); background: var(--amber-a); color: var(--text);
+}
+.net-note { border-color: var(--line-2); background: var(--blue-a08); }
+.net-warn svg.icon, .net-note svg.icon { flex: none; width: 16px; height: 16px; margin-top: 1px; color: var(--amber); }
+.net-note svg.icon { color: var(--blue-hi); }
+.net-station > .net-note { margin-bottom: var(--s-4); }
+.net-consent { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: var(--r-2); border: 1px solid var(--line-2); background: var(--inset); }
+.net-consent > svg.icon { flex: none; width: 20px; height: 20px; color: var(--blue-hi); margin-top: 2px; }
+.net-consent p { margin: 0 0 8px; color: var(--text-2); }
+.net-consent-body { min-width: 0; flex: 1; }
+.net-consent-body > :last-child { margin-bottom: 0; }
+.net-consent ul { margin: 0 0 8px; padding-left: 18px; color: var(--text-2); }
+.net-consent li { margin: 2px 0; }
+.net-consent b { color: var(--text); }
+.net-consent.compact { padding: 8px 10px; font-size: 12.5px; }
+.net-snippet { display: block; white-space: pre-wrap; word-break: break-all; padding: 10px 12px; border-radius: var(--r-2); background: var(--inset); border: 1px solid var(--line-2); font-family: var(--mono, ui-monospace, monospace); font-size: 12.5px; }
+.net-snippet-row { display: flex; gap: 8px; align-items: flex-start; }
+.net-snippet-row .net-snippet { flex: 1; min-width: 0; }
+.net-mlatq-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--text-2); }
+.net-mlatq-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: -2px; }
+.net-linkgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.net-linkgrid .btn { justify-content: flex-start; }
+.net-latlon { display: grid; grid-template-columns: 1fr 1fr 110px; gap: 8px; }
+.net-filters { flex-wrap: wrap; align-items: flex-end; }
+.net-filters .field { min-width: 120px; }
+.net-field-btn { padding-bottom: 2px; }
+.net-login-links { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-sm); }
+
+/* uptime timeline */
+.net-timeline { position: relative; height: 18px; border-radius: 4px; background: var(--red-a); border: 1px solid var(--line); overflow: hidden; }
+.net-timeline i { position: absolute; top: 0; bottom: 0; background: transparent; }
+.net-timeline i.on { background: linear-gradient(180deg, rgba(52, 211, 153, 0.75), rgba(52, 211, 153, 0.45)); }
+
+/* authenticator and recovery codes */
+.net-totp { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: start; }
+.net-qr { background: #fff; border-radius: 10px; padding: 0; line-height: 0; width: max-content; box-shadow: 0 0 0 1px var(--line-2); }
+.net-qr svg { width: 196px; height: 196px; display: block; border-radius: 10px; }
+.net-secret { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.06em; word-break: break-all; color: var(--text); }
+.net-recovery { display: flex; flex-direction: column; gap: 12px; }
+.net-recovery-warn { display: flex; gap: 10px; align-items: flex-start; color: var(--amber); font-size: var(--fs-sm); }
+.net-recovery-warn svg.icon { flex: none; width: 16px; height: 16px; margin-top: 1px; }
+.net-recovery-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; padding: 12px; border-radius: var(--r-2); background: var(--inset); border: 1px solid var(--line); }
+.net-recovery-grid code { font-family: var(--font-mono); font-size: 13.5px; letter-spacing: 0.05em; color: var(--text); }
+.net-token { display: block; padding: 10px 12px; border-radius: var(--r-2); background: var(--inset); border: 1px solid var(--line); font-family: var(--font-mono); font-size: 12.5px; word-break: break-all; color: var(--text); }
+
+@media (max-width: 720px) {
+  .net-totp { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .net-totp > .col { justify-self: stretch; }
+  .net-latlon { grid-template-columns: 1fr 1fr; }
+  .net-latlon > :last-child { grid-column: span 2; }
+  .net-recovery-grid { grid-template-columns: minmax(0, 1fr); }
+  .net-filters > .input-wrap { flex: 1 1 100%; }
+}
+
+/* ---------- Live Map: View selector (map/network.js) ---------- */
+.mapv-netbar {
+  position: absolute; top: 12px; left: 12px; z-index: var(--z-map-ui); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  max-width: calc(100% - 84px);
+}
+.mapv-netbar.hidden { display: none; }
+.mapv.has-detail .mapv-netbar { left: 384px; max-width: calc(100% - 384px - 72px); }
+.mapv-views { background: rgba(6, 14, 32, 0.82); border-color: var(--line-2); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); }
+.mapv-views button { gap: 6px; }
+.mapv-views button span { max-width: 18ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mapv-onlymine { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(6, 14, 32, 0.82); font-size: var(--fs-sm); }
+.mapv-onlymine.hidden { display: none; }
+.mapv-viewst.hidden { display: none; }
+.mapv-map:has(.mapv-netbar:not(.hidden)) .mapv-chips { top: 56px; }
+/* MLAT quality layer button and legend (map/network.js) */
+.mapv-mlatq { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(6, 14, 32, 0.82); color: var(--text-2); font-size: var(--fs-sm); cursor: pointer; }
+.mapv-mlatq svg.icon { width: 15px; height: 15px; }
+.mapv-mlatq[aria-pressed='true'] { color: var(--text); border-color: var(--blue-hi); }
+.mapv-mlatq.hidden, .mapv-mlatq-legend.hidden { display: none; }
+.mapv-mlatq-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 5px 10px; border-radius: var(--r-2); border: 1px solid var(--line-2); background: rgba(6, 14, 32, 0.82); color: var(--text-2); font-size: var(--fs-xs); max-width: 100%; }
+.mapv-mlatq-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; opacity: 0.8; }
+.mapv-mlatq-title { color: var(--text); flex-basis: 100%; }
+.mapv-panel-note { font-size: var(--fs-xs); color: var(--text-3); margin: 6px 0 0; }
+.light-map .mapv-views, .light-map .mapv-onlymine, .light-map .mapv-mlatq, .light-map .mapv-mlatq-legend { background: rgba(6, 14, 32, 0.88); }
+
+@media (max-width: 720px) {
+  .mapv-views button span { display: none; }
+  .mapv-views button[aria-pressed='true'] span { display: inline; max-width: 12ch; }
+  .mapv.has-detail .mapv-netbar { left: 12px; }
+  .mapv-mlatq span { display: none; }
+}
+
+/* ---------- Settings: values fixed by the operator configuration (settings/form.js markLocked) ---------- */
+.set-locked-hint { color: var(--amber); }
+.set-locked-hint svg.icon { width: 12px; height: 12px; vertical-align: -2px; }
+
+/* ---------- MLAT console and Timing & MLAT section (mlat/console.js, mlat/owner.js) ---------- */
+.mlat-tiles .stat-value { font-variant-numeric: tabular-nums; }
+.mlat-gradebar { display: flex; height: 18px; border-radius: 4px; overflow: hidden; background: var(--line); font-size: var(--fs-xs); font-weight: 600; }
+.mlat-gradebar > span { display: flex; align-items: center; justify-content: center; color: #04102a; min-width: 2px; }
+.mlat-label { font-size: var(--fs-xs); color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; }
+.mlat-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: 0; }
+.mlat-bad { color: var(--red); font-weight: 600; }
+tr.mlat-row-warn td:first-child { box-shadow: inset 3px 0 0 var(--amber); }
+.mlat-console .table-wrap { overflow-x: auto; }
+.mlat-console code.muted { font-size: var(--fs-xs); }
+.mlat-console .net-filters { flex-wrap: wrap; }
+@media (max-width: 720px) {
+  .mlat-tiles.cols-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Station Location (phase 3, net/locationview.js) */
+.net-locplot-wrap { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: flex-start; }
+.net-locplot { width: 100%; max-width: 260px; height: auto; flex: none; }
+.net-locplot-wrap .legend { flex-direction: column; align-items: flex-start; gap: var(--s-2); min-width: 0; }
+.net-notices { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.net-notice { display: flex; gap: var(--s-2); align-items: flex-start; font-size: var(--fs-sm); }
+.net-notice svg.icon { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--blue-hi); }
+.net-notice.ok svg.icon { color: var(--green); }
+.net-notice.warn svg.icon { color: var(--amber); }
+.net-notice .muted { flex: none; white-space: nowrap; }
+.net-notice-banner { margin-bottom: var(--s-4); }
+.net-details > summary { cursor: pointer; color: var(--text-2); margin-bottom: var(--s-2); }
+.net-hist { display: grid; grid-template-columns: max-content 1fr max-content; gap: var(--s-1) var(--s-3); align-items: center; font-size: var(--fs-sm); }
+.net-hist .bar { height: 10px; border-radius: 3px; background: var(--cyan); min-width: 2px; }
+@media (max-width: 520px) {
+  .net-notice { flex-wrap: wrap; }
+  .net-locplot { max-width: 100%; }
+}
+
+/* ---------- phase 4-5: pager, sortable headers, share links, MLAT console cards (WP-W45-web) ---------- */
+.net-pager { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 4px; font-size: var(--fs-sm); }
+.net-pager .select { width: auto; }
+.net-pager--single { display: none; }
+.net-pager-info { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.net-paged .table-wrap { overflow-x: auto; }
+.net-th-sort {
+  display: inline-flex; align-items: center; gap: 2px; padding: 0; border: 0; background: transparent; color: inherit;
+  font: inherit; font-weight: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; white-space: nowrap;
+}
+.net-th-sort:hover, .net-th-sort[aria-sort='ascending'], .net-th-sort[aria-sort='descending'] { color: var(--text); }
+.net-th-ind { color: var(--blue-hi); }
+.net-err-text { color: var(--red, #f87171); font-size: var(--fs-xs); overflow-wrap: anywhere; }
+.mlat-score { display: inline-flex; align-items: center; gap: 6px; min-width: 110px; }
+.mlat-score > i { display: block; height: 6px; border-radius: 3px; background: linear-gradient(90deg, #f97316, #22c55e); min-width: 2px; max-width: 70px; }
+.mlat-verify-banner a { color: var(--text); text-decoration: underline; }
+.net-share-url { display: block; overflow-wrap: anywhere; user-select: all; }
+.net-share-qr { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.net-share-qr .net-qr svg { width: 168px; height: 168px; }
+.share-page .share-map { height: min(62vh, 640px); min-height: 280px; border-radius: 0 0 var(--r-3, 10px) var(--r-3, 10px); overflow: hidden; }
+.share-page .share-list { max-height: min(62vh, 640px); overflow: auto; }
+.share-page .share-counts { font-size: var(--fs-sm); }
+.share-page .share-grid { align-items: stretch; margin-bottom: var(--s-4); }
+@media (max-width: 720px) {
+  .share-page .share-map { height: 52vh; }
+  .share-page .share-list { max-height: none; }
+  .net-pager { justify-content: space-between; }
+  .net-pager .grow { display: none; }
+}.net-grid > * { min-width: 0; }
+.net-grid .field-hint, .modal .field-hint { overflow-wrap: anywhere; }

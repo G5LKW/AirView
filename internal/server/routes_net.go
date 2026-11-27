@@ -1,0 +1,225 @@
+package server
+
+import "time"
+
+// Network routes (aggregator mode, docs/aggregator/DESIGN.md §8, §11):
+//
+//   - /api/public/*, /data/*.json and /healthz: public surfaces built only
+//     from internal/privacy/publicdto types (no receiver data of any
+//     kind). They also answer in standalone mode (projections of the local
+//     picture), except where noted.
+//   - /api/me/*: the owner's own stations (exact data), the Feed Check page
+//     (matched by the visitor's IP) and claiming.
+//   - /api/admin/*: the operator console; exact-data views are audited.
+//   - /api/uplinks: the uplink manager's status (standalone and
+//     aggregator).
+//
+// They are appended to the route table in init, so the mux, the route
+// lint, the tests and docs/API.md see them like every other route.
+
+const (
+	grpPublic  = "Public network (aggregator mode)"
+	grpMe      = "My stations (aggregator mode)"
+	grpNetAdm  = "Network administration (aggregator mode)"
+	grpUplinks = "Uplinks"
+)
+
+// ttlStations is the cache time of the public station list.
+const ttlStations = 10 * time.Second
+
+func init() {
+	routes = append(routes, netRoutes...)
+}
+
+var pSID = Param{"station", "SID of one of the viewer's own stations (admins: any station); the station's geometry is added"}
+
+var netRoutes = []Route{
+	// ------------------------------------------------------------ public
+	{Method: "GET", Path: healthPath, Group: grpPublic, Access: AccessPublic, Raw: rawHealth,
+		Summary: "Health check for load balancers, service managers and monitors.",
+		Returns: "`{\"ok\":bool,\"status\":\"ok|degraded|unavailable\",\"mode\",\"version\",\"uptimeS\",\"checks\":{\"engine\":\"ok\",\"registry\":\"ok\",\"admin\"?:\"setup pending\"},\"adminReady\"?:bool}`; `200` while the engine runs (`degraded` when an aggregator service is missing), `503` otherwise.",
+		Notes:   "Never rate-limited or cached; no database query; no station data."},
+	{Method: "GET", Path: "/api/public/status", Group: grpPublic, Access: AccessPublic, API: apiPublicStatus,
+		Summary: "Public application status: version, mode, network name, live counters and which public surfaces are enabled.",
+		Notes:   "No feeds, receiver position, data port, NTP or paths. `GET /api/status` answers this shape to public viewers in aggregator mode."},
+	{Method: "GET", Path: "/api/public/aircraft", Group: grpPublic, Access: AccessPublic, API: apiPublicAircraft, Cache: ttlLive,
+		Summary: "The merged live picture without receiver data (`publicdto.Snapshot`).",
+		Notes:   "No distance, bearing, elevation, signal level, receiver list or station flag; MLAT positions carry `mlatGrade` / `mlatSigmaM`. With `aggregator.islandGuard` on, low aircraft heard only by hidden-pin stations are rounded to 0.05° (`coarse:true`). `403` when `aggregator.publicMap` is off (public viewers)."},
+	{Method: "GET", Path: "/api/public/aircraft/{icao}", Group: grpPublic, Access: AccessPublic, API: apiPublicAircraftDetail, Sample: "/api/public/aircraft/{live}",
+		Summary: "One aircraft of the public picture: live state, live trail without signal levels, reference data.",
+		Params:  []Param{{"smooth", "`1` returns the trail smoothed by the tracking filter"}},
+		Notes:   "Trail points are `[tMs, lat, lon, altFt|null, gsKt|null, null, src]` (the signal column is always null)."},
+	{Method: "GET", Path: "/api/public/trails", Group: grpPublic, Access: AccessPublic, API: apiPublicTrails, Cache: ttlLive, Sample: "/api/public/trails?minutes=5",
+		Summary: "Live trails of the public picture (signal column null).",
+		Params: []Param{{"minutes", "trail length, 1..240 (default `config.ui.trailMinutes`); public answers cover at most the last 10 minutes"},
+			{"bbox", "`south,west,north,east`: only aircraft whose newest point is inside (west > east crosses the antimeridian)"}},
+		Notes: "At most 120 points per aircraft (evenly thinned, first and last kept). Full trails of one aircraft: `GET /api/public/aircraft/{icao}`."},
+	{Method: "GET", Path: "/api/public/events", Group: grpPublic, Access: AccessPublic, Raw: rawPublicEvents, NoAuto: true,
+		Summary: "The public live stream (Server-Sent Events): `aircraft` (`publicdto.Snapshot`), `status` (`publicdto.Status`) and public `notice` events.",
+		Params:  []Param{{Name: "delta", Desc: "`1`: send one keyframe (`aircraft` with `seq`), then `delta` events `{seq, base, now, counts, upd, del}`: `upd` holds new aircraft in full and only the changed members of the others (a removed member is `null`), `del` the aircraft that left. Values are quantised (positions 1e-5°, altitudes 25 ft, `lastSeen` 5 s). After a lost frame the server sends a new keyframe; a client that sees `base` differ from its last `seq` reconnects."}, {Name: "bbox", Desc: "`south,west,north,east` (west > east crosses the antimeridian): a viewport stream. The first event is `stream` `{id, bbox}`; then only aircraft inside the box are sent. Delta streams send aircraft entering the view in full in `upd` and aircraft leaving it (outside the box grown by 10 %) in `del`; `counts` stay global. Aircraft without a position are never sent."}, {Name: "view", Desc: "`1`: a viewport stream of the whole world, narrowed later with `POST /api/events/view`"}, {Name: "replace", Desc: "stream id of a previous stream of this client: it is closed first, so a reconnect with a new viewport is not refused by the one-public-stream-per-address limit"}},
+		Notes:   "Same framing as `GET /api/events`. In aggregator mode one public stream per client address (IPv4 address or IPv6 /64) and at most `aggregator.limits.maxPublicSse` in total. Every picture is encoded once and shared by all streams, and the same picture is never sent twice. Public viewers of `GET /api/events` may use `delta=1` too (the web UI does)."},
+	{Method: "POST", Path: "/api/events/view", Group: grpPublic, Access: AccessPublic, Raw: rawEventsView, NoAuto: true,
+		Summary: "Change the viewport of a live stream opened with `bbox` or `view=1` (no new keyframe).",
+		Params:  []Param{{Name: "id", Desc: "stream token from the stream's `stream` event"}, {Name: "bbox", Desc: "`south,west,north,east`; empty = the whole world"}},
+		Returns: "`204`; `404` unknown token; `400` bad box.",
+		Notes:   "The token is the only credential (only the stream's reader knows it). The next delta brings the aircraft that entered the new view in full and removes those that left it. Clients debounce map moves (about 500 ms)."},
+	{Method: "GET", Path: "/api/public/stations", Group: grpPublic, Access: AccessPublic, API: apiPublicStations, Cache: ttlStations,
+		Summary: "Stations that opted in to a public pin or public statistics (`publicdto.StationList`).",
+		Notes:   "A pin is the stored keyed point inside a 0.5° (`region`) or 0.1° (`cell01`) cell, never the exact position. Stations with a hidden pin appear only with opted-in statistics and then without SID. `approved` / `online` count every approved station. Empty in standalone mode; `403` when `aggregator.publicStats` is off (public viewers)."},
+	{Method: "GET", Path: "/api/public/summary", Group: grpPublic, Access: AccessPublic, API: apiPublicSummary, Cache: ttlLive,
+		Summary: "The network landing page in numbers (`publicdto.Summary`): station counts, aircraft, MLAT aircraft, message rate.",
+		Notes:   "`stationCounts` counts approved stations: `total`, `online` (data in the last 2 minutes) and `public` (with a public pin). `mlat` (network P50/P95/P99 error) is null until the MLAT engine publishes it. `403` when `aggregator.publicStats` is off (public viewers)."},
+	{Method: "GET", Path: "/api/public/stats", Group: grpPublic, Access: AccessPublic, API: apiPublicStats, Cache: ttlLive,
+		Summary: "The network in numbers: approved and online stations and the live counters.",
+		Notes:   "`403` when `aggregator.publicStats` is off (public viewers)."},
+	{Method: "GET", Path: "/api/public/mlat", Group: grpPublic, Access: AccessPublic, API: apiPublicMLAT, Cache: ttlStations,
+		Summary: "The network's empirical MLAT accuracy over the last hour (hold-out aircraft against their ADS-B reference) and its 1° cells (`publicdto.MLATCoverage`).",
+		Notes:   "`quality` is null below 20 samples. A cell is listed only with at least 20 samples from at least 5 contributing stations; no station identity. Empty when the MLAT engine does not run. `403` when `aggregator.publicStats` is off (public viewers)."},
+	{Method: "GET", Path: "/api/public/join", Group: grpPublic, Access: AccessPublic, API: apiPublicJoin, Cache: ttlStations,
+		Summary: "What a new feeder needs to join this network: host name, open listener ports (AVF/1, Beast, mlat-client), admission and registration policy, the backup retention named in the deletion notice and the privacy-notice link.",
+		Returns: "`{network, name?, host, avfPort, beastPort, mlatPort, mlat, admission, registration, backupDays, privacyNotice}`; a closed listener is `0` (`mlatPort` is also `0` while the MLAT engine is off).",
+		Notes:   "Operator facts only, no station data. `host` is `aggregator.publicHost` (`\"\"` = use the host name the page was loaded from; the server never echoes a request header). In standalone mode `{\"network\":false}` with every other field empty."},
+	{Method: "GET", Path: "/data/aircraft.json", Group: grpPublic, Access: AccessPublic, API: apiTarAircraft, Cache: ttlLive,
+		Summary: "The public picture in the tar1090 / readsb `aircraft.json` shape.",
+		Notes:   "No `rssi`, no per-aircraft message counts, no receiver fields. Predicted (coasting) aircraft are exported at their last real position. `404` when `aggregator.tarJson` (or `publicMap`) is off (public viewers in aggregator mode)."},
+	{Method: "GET", Path: "/data/receiver.json", Group: grpPublic, Access: AccessPublic, API: apiTarReceiver,
+		Summary: "tar1090 `receiver.json`.",
+		Notes:   "Aggregator mode: no position, or the centroid of the public pins (1 decimal) when at least 3 stations have one. Standalone mode: the configured receiver position."},
+
+	// --------------------------------------------------------------- owner
+	{Method: "GET", Path: "/api/me", Group: grpMe, Access: AccessOwner, NetOnly: true, API: apiMe, NoAuto: true,
+		Summary: "The logged-in account and its stations (exact data)."},
+	{Method: "GET", Path: "/api/me/stations", Group: grpMe, Access: AccessOwner, NetOnly: true, API: apiMeStations, NoAuto: true,
+		Summary: "The own stations with exact location, privacy settings, admission and live state."},
+	{Method: "GET", Path: "/api/me/stations/{sid}", Group: grpMe, Access: AccessOwner, Station: StationPath, NetOnly: true, API: apiMeStation, NoAuto: true,
+		Summary: "One own station: exact data, location estimates, the public pin preview (exactly as others see it), live links and statistics.",
+		Notes:   "`404` for unknown stations and for stations of other accounts."},
+	{Method: "POST", Path: "/api/me/stations/{sid}", Group: grpMe, Access: AccessOwner, Station: StationPath, NetOnly: true, API: apiMeStationUpdate, NoAuto: true,
+		Summary: "Change an own station's name, privacy (pin precision, show name, public statistics) or declared position.",
+		Body:    "`{\"name\"?:\"...\",\"pin\"?:\"hidden|region|cell01\",\"showName\"?:bool,\"publicStats\"?:bool,\"declared\"?:{\"lat\",\"lon\",\"alt\",\"altRef\":\"msl|hae\"} | null}` (members that are missing keep their value; `declared:null` clears it)"},
+	{Method: "PUT", Path: "/api/me/stations/{sid}/privacy", Group: grpMe, Access: AccessOwner, Station: StationPath, NetOnly: true, API: apiMePrivacy, NoAuto: true,
+		Summary: "Set an own station's public pin precision, name display and public statistics.",
+		Body:    "`{\"pin\"?:\"hidden|region|cell01\",\"showName\"?:bool,\"publicStats\"?:bool}`", Returns: "the station (OwnerStation)"},
+	{Method: "PUT", Path: "/api/me/stations/{sid}/name", Group: grpMe, Access: AccessOwner, Station: StationPath, NetOnly: true, API: apiMeName, NoAuto: true,
+		Summary: "Rename an own station.", Body: "`{\"name\":\"...\"}` (at most 64 characters)", Returns: "the station (OwnerStation)"},
+	{Method: "PUT", Path: "/api/me/stations/{sid}/location", Group: grpMe, Access: AccessOwner, Station: StationPath, NetOnly: true, API: apiMeLocation, NoAuto: true,
+		Summary: "Declare an own station's antenna position (cross-checked by the survey); `{\"clear\":true}` removes it.",
+		Body:    "`{\"lat\":..,\"lon\":..,\"alt\":metres,\"altRef\":\"msl|hae\"}`", Returns: "the station (OwnerStation)"},
+	{Method: "POST", Path: "/api/me/stations/{sid}/location/confirm", Group: grpMe, Access: AccessOwner, Station: StationPath, NetOnly: true, API: apiMeLocationConfirm, NoAuto: true,
+		Summary: "Use a location estimate (survey, GNSS) as the station's position for MLAT (owner confirmation, DESIGN §10.1).",
+		Body:    "`{\"estimate\":\"<id from location.estimates>\"}`", Returns: "the station (OwnerStation)"},
+	{Method: "POST", Path: "/api/me/stations/{sid}/unclaim", Group: grpMe, Access: AccessOwner, Station: StationPath, NetOnly: true, API: apiMeUnclaim, NoAuto: true,
+		Summary: "Release an own station (it keeps feeding; it can be claimed again).", Returns: "`{\"ok\":true}`"},
+	{Method: "GET", Path: "/api/me/stations/{sid}/stats", Group: grpMe, Access: AccessOwner, Station: StationPath, NetOnly: true, API: apiMeStationStats, NoAuto: true,
+		Summary: "Live statistics of an own station: frames, positions, aircraft this minute, late frames, live links, last seen."},
+	{Method: "GET", Path: "/api/me/stations/{sid}/mlat", Group: grpMe, Access: AccessOwner, Station: StationPath, NetOnly: true, API: apiMeStationMLAT, NoAuto: true, AccountLimited: true,
+		Summary: "Timing and MLAT of an own station: position source used for MLAT, clock state (class, anchor state, σθ, drift, short-frame offset, jitter, steps, events), sync peers, MLAT contributions and residuals, timed frames per minute and result eligibility.",
+		Notes:   "Peers are weekly tags unique to the viewing station (no SIDs) with a distance band (`near` < 50 km, `mid` 50-150 km, `far` > 150 km); never a name, bearing, position or clock figure. The band is computed from the viewing station's position frozen at its first request of the ISO week (the tag period), so moving the station does not change it. `driftPpm` is rounded to whole ppm in owner views. Owners are limited to 30 requests in a burst and one every 2 s on average (429 with Retry-After). `summary`: peers, synced peers, contributions per hour, timed frames per minute, result eligibility and results received (null when the listener does not report it). `history`: the station's last 2 h at one sample per minute (σθ, drift, clock outliers, residual bias, contributions). Event times are Unix ms. `running:false` when the MLAT engine does not run."},
+	{Method: "GET", Path: "/api/me/stations/{sid}/mlat/longterm", Group: grpMe, Access: AccessOwner, Station: StationPath, NetOnly: true, API: apiMeStationMLATLongterm, NoAuto: true,
+		Summary: "History of an own station's MLAT participation over days, one point per hour: timed frames, groups, fixes and outliers per minute, synced peers, synced share, σθ, residual RMS and drift.",
+		Notes:   "Only the station's own figures; no peer, no network or hold-out data.",
+		Params:  []Param{{"days", "1..90 (default 7)"}}},
+	{Method: "GET", Path: "/api/me/stations/{sid}/connections", Group: grpMe, Access: AccessOwner, Station: StationPath, NetOnly: true, API: apiMeConnections, NoAuto: true,
+		Summary: "Connection log of an own station (newest first; addresses only as daily-salted hashes).",
+		Params:  []Param{{"days", "1..30 (default 7)"}, {"limit", "1..1000 (default 200)"}}},
+	{Method: "GET", Path: "/api/me/aircraft", Group: grpMe, Access: AccessOwner, Station: StationQuery, NetOnly: true, API: apiMeAircraft, NoAuto: true,
+		Summary: "The live picture for an owner: `mine` and `stations` (own SIDs) per aircraft, geometry for the selected own station.",
+		Params:  []Param{pSID, {"only", "`mine` = only aircraft heard by the own stations"}}},
+	{Method: "GET", Path: "/data/me/aircraft.json", Group: grpMe, Access: AccessOwner, NetOnly: true, API: apiMeTarAircraft, NoAuto: true,
+		Summary: "tar1090 `aircraft.json` of the aircraft the own stations heard in the last 60 s (session-scoped)."},
+	{Method: "GET", Path: "/api/me/check", Group: grpMe, Access: AccessPublic, NetOnly: true, API: apiMeCheck, NoAuto: true,
+		Summary: "Feed Check: the live feeder links coming from the visitor's own address (exact IPv4, or the same IPv6 /64).",
+		Notes:   "No login needed; only non-locating link data: protocol, the last 6 characters of the UUID, warnings (no UUID, two UUIDs on one address), connected since, msg/s, pos/s, kB/s, RTT, clock class, MLAT sync, and whether the station can be claimed. Never cached."},
+	{Method: "POST", Path: "/api/me/claim", Group: grpMe, Access: AccessOwner, NetOnly: true, API: apiMeClaim, NoAuto: true,
+		Summary: "Claim a station: a native feeder with its claim code, a compat feeder with its full UUID from the feeder's own address.",
+		Body:    "`{\"code\":\"ABCD-EFGH\"}` or `{\"uuid\":\"...\"}`",
+		Notes:   "`429` with `Retry-After` after 5 attempts per 10 minutes per address or 20 per day per account. Error messages are safe to show."},
+	{Method: "GET", Path: "/api/me/export", Group: grpMe, Access: AccessOwner, NetOnly: true, Raw: rawMeExport, NoAuto: true, ContentType: "application/zip",
+		Summary: "Export the account's data (JSON files in a zip).", Returns: "`application/zip`"},
+	{Method: "DELETE", Path: "/api/me/account", Group: grpMe, Access: AccessOwner, NetOnly: true, Raw: rawMeDelete, NoAuto: true,
+		Summary: "Delete the own account and its stations' data now; the session ends.",
+		Body:    "none, or `{\"confirm\":\"DELETE\"}`", Returns: "`{\"ok\":true}`"},
+
+	// --------------------------------------------------------------- admin
+	{Method: "GET", Path: "/api/admin/stations", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, API: apiAdminStations, NoAuto: true,
+		Summary: "The station registry with exact positions and owners: `{\"stations\":[...],\"total\":n,\"counts\":{...}}`.",
+		Notes:   "Audited (`station.list`).",
+		Params: []Param{{"q", "matches SID, name, feeder ID or UUID"}, {"admission", "`approved` | `pending` | `denied` | `revoked`"},
+			{"kind", "`avf` | `beast` | `mlatc` | `host`"}, {"unclaimed", "`1` = without owner"},
+			{"online", "`1` / `0`: only stations with / without data in the last 2 minutes"}, {"after", "paging: station index"},
+			{"offset", "paging: rows to skip"}, {"limit", "1..5000 (default 500)"},
+			{"sort", "order before paging: `name` | `sid` | `kind` | `admission` | `online` | `lastSeen` | `trust` | `created` | `owner` (default: registry order)"},
+			{"dir", "`asc` (default) | `desc`"}}},
+	{Method: "GET", Path: "/api/admin/stations/{sid}", Group: grpNetAdm, Access: AccessAdmin, Station: StationPath, NetOnly: true, API: apiAdminStation, NoAuto: true,
+		Summary: "One station with exact data, estimates, live links (with addresses) and statistics.",
+		Notes:   "Every call is written to the audit log (`station.reveal`)."},
+	{Method: "POST", Path: "/api/admin/stations/{sid}", Group: grpNetAdm, Access: AccessAdmin, Station: StationPath, NetOnly: true, Admin: true, API: apiAdminStationUpdate, NoAuto: true,
+		Summary: "Change a station: admission, owner, name, trust, anchor, never-anchor flag.",
+		Body:    "`{\"admission\"?:\"approved|pending|denied|revoked\",\"ownerId\"?:n (0 = none),\"name\"?:\"...\",\"trustDelta\"?:n,\"anchor\"?:bool,\"neverAnchor\"?:bool}` (`neverAnchor`: the MLAT clock filter never uses the station as a time anchor and demotes it if it is one; a negative trust has the same effect)"},
+	{Method: "PUT", Path: "/api/admin/stations/{sid}", Group: grpNetAdm, Access: AccessAdmin, Station: StationPath, NetOnly: true, Admin: true, API: apiAdminStationUpdate, NoAuto: true,
+		Summary: "Edit a station (same body as the POST).", Body: "`{\"name\"?,\"trust\"?:n (absolute),\"owner\"?:id or user name}`"},
+	{Method: "POST", Path: "/api/admin/stations/{sid}/admission", Group: grpNetAdm, Access: AccessAdmin, Station: StationPath, NetOnly: true, Admin: true, API: apiAdminAdmission, NoAuto: true,
+		Summary: "Approve, hold, deny or revoke a station.", Body: "`{\"admission\":\"approved|pending|denied|revoked\"}`"},
+	{Method: "POST", Path: "/api/admin/stations/{sid}/reveal", Group: grpNetAdm, Access: AccessAdmin, Station: StationPath, NetOnly: true, Admin: true, API: apiAdminReveal, NoAuto: true,
+		Summary: "A station's exact position and current address (audited `station.reveal`).",
+		Returns: "`{\"lat\",\"lon\",\"alt\",\"source\",\"sigmaM\",\"ip\"?}`"},
+	{Method: "DELETE", Path: "/api/admin/stations/{sid}", Group: grpNetAdm, Access: AccessAdmin, Station: StationPath, NetOnly: true, Admin: true, API: apiAdminStationDelete, NoAuto: true,
+		Summary: "Delete a station and its data (queued; survives restarts).", Body: "`{\"reason\":\"...\"}` (optional)", Returns: "`{\"ok\":true}`"},
+	{Method: "POST", Path: "/api/admin/feeders/{id}/revoke", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, Admin: true, API: apiAdminRevokeFeeder, NoAuto: true,
+		Summary: "Revoke a native feeder key (all its stations).", Returns: "`{\"ok\":true}`"},
+	{Method: "GET", Path: "/api/admin/tokens", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, API: apiAdminTokens, NoAuto: true,
+		Summary: "Enrol tokens (without secrets)."},
+	{Method: "POST", Path: "/api/admin/tokens", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, Admin: true, API: apiAdminMintToken, NoAuto: true,
+		Summary: "Mint an enrol token; the secret is shown once.",
+		Body:    "`{\"label\":\"...\",\"maxUses\":1,\"days\":7}`", Returns: "the token fields plus `token` (the secret, shown once)"},
+	{Method: "DELETE", Path: "/api/admin/tokens/{id}", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, Admin: true, API: apiAdminRevokeToken, NoAuto: true,
+		Summary: "Revoke an enrol token.", Returns: "`{\"ok\":true}`"},
+	{Method: "GET", Path: "/api/admin/audit", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, API: apiAdminAudit, NoAuto: true,
+		Summary: "Audit log, newest first.",
+		Params: []Param{{"sid", "only this station"}, {"action", "only actions starting with this"}, {"before", "paging: entries with a smaller id"},
+			{"limit", "1..1000 (default 200)"}}},
+	{Method: "POST", Path: "/api/admin/retention", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, Admin: true, API: apiAdminRetention, NoAuto: true,
+		Summary: "Run the retention jobs now; returns their report."},
+	{Method: "GET", Path: "/api/admin/links", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, API: apiAdminLinks, NoAuto: true,
+		Summary: "Every live feeder link of every listener, with addresses.",
+		Notes:   "Audited (`links.view`)."},
+	{Method: "GET", Path: "/api/admin/ingest/beast", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, API: apiAdminBeast, NoAuto: true,
+		Summary: "The Beast listener (30004): totals and every link."},
+	{Method: "POST", Path: "/api/admin/ingest/beast/{link}/disconnect", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, Admin: true, API: apiAdminBeastDisconnect, NoAuto: true,
+		Summary: "Close one Beast link.", Returns: "`{\"ok\":true}`"},
+	{Method: "GET", Path: "/api/admin/network", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, API: apiAdminNetwork, NoAuto: true,
+		Summary: "Operator view of the aggregator: listeners (ports, addresses, errors), ingest statistics, tracker lock statistics, lanes, flight_station rows."},
+	{Method: "GET", Path: "/api/admin/mlat", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, API: apiAdminMLAT, NoAuto: true,
+		Summary: "MLAT engine counters: every stage (groups, clusters, solves, publishes, drops), clock filter, reference store, tracker, planner, k_atm.",
+		Notes:   "Every `/api/admin/mlat*` route answers `{\"running\":false}` when the MLAT engine does not run."},
+	{Method: "GET", Path: "/api/admin/mlat/quality", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, API: apiAdminMLATQuality, NoAuto: true,
+		Summary: "MLAT self-validation: hold-out error (fix and track), σ calibration, NEES, week-on-week alarm.",
+		Params:  []Param{{"window", "minutes 1..10080 (default 60)"}, {"cells", "`1` adds the error map"}}},
+	{Method: "GET", Path: "/api/admin/mlat/history", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, API: apiAdminMLATHistory, NoAuto: true,
+		Summary: "MLAT console history, one sample per minute for up to 24 h: hold-out error (fix and track N, P50, P95, cross-track P95, share within 1σ over the preceding 10 minutes), stage rates per minute (groups, clusters, solves, accepted, rejected, published, results, drops), clock filter (stations, synced, components, epoch cost), worker load.",
+		Notes:   "Columns of equal length, oldest first. Rates are `null` for the first sample and after the engine restarted. Kept in memory only (lost on restart).",
+		Params:  []Param{{"minutes", "1..1440 (default 360)"}}},
+	{Method: "GET", Path: "/api/admin/mlat/longterm", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, API: apiAdminMLATLongterm, NoAuto: true,
+		Summary: "MLAT network history over days, one point per hour from the persisted minute tables: frames, groups, fixes and outliers per minute, synced stations, and the hold-out error per hour (N, P50, P95 from the summed error histograms of every cell).",
+		Params:  []Param{{"days", "1..90 (default 7)"}}},
+	{Method: "GET", Path: "/api/admin/mlat/stations", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, API: apiAdminMLATStations, NoAuto: true,
+		Summary: "Per-station clock quality and MLAT residuals for every station the MLAT engine knows (class, anchor state, synced, σθ, drift, β short, jitter, steps, peers, contributions, used / excluded / outlier %, residual bias, σ scale, bias flag, timed frames per minute). No positions."},
+	{Method: "GET", Path: "/api/admin/mlat/sync", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, API: apiAdminMLATSync, NoAuto: true,
+		Summary: "Clock-sync matrix: per station and peer (SIDs) co-observations in the last 30 s, RMS residual, relative frequency, same clock domain.",
+		Notes:   "`stations` lists every SID of the matrix with name, clock class, anchor state and sync state (the heat-map axis)."},
+	{Method: "GET", Path: "/api/admin/mlat/crlb", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, API: apiAdminMLATCRLB, NoAuto: true,
+		Summary: "Expected horizontal MLAT σ (Cramér-Rao bound) at 3000 ft, FL100 and FL300 on a 0.25° grid from the located stations and their timing.",
+		Notes:   "`summary` per target height: cells, P50 / P90 / minimum σ_h and the area (km²) per grade (A ≤ 50 m, B ≤ 150 m, C ≤ 500 m, D ≤ 2 km).",
+		Params:  []Param{{"refresh", "`1` recomputes now (otherwise cached for 10 minutes; seconds of CPU for a large network)"}}},
+	{Method: "GET", Path: "/api/admin/stations/{sid}/mlat", Group: grpNetAdm, Access: AccessAdmin, Station: StationPath, NetOnly: true, API: apiAdminStationMLAT, NoAuto: true,
+		Summary: "Timing and MLAT of any station (as the owner view, peers by SID)."},
+	{Method: "GET", Path: "/api/admin/aircraft/{icao}", Group: grpNetAdm, Access: AccessAdmin, NetOnly: true, API: apiAdminAircraft, NoAuto: true,
+		Summary: "One aircraft with the full receiver list (every station that heard it in the last 60 s)."},
+
+	// ------------------------------------------------------------- uplinks
+	{Method: "GET", Path: "/api/uplinks", Group: grpUplinks, Access: AccessAdmin, Raw: rawUplinks, NoAuto: true,
+		Summary: "Uplinks of this station to aggregators: feeder ID, UUID and per-uplink state (no secrets).",
+		Notes:   "`503` when the uplink manager is not running."},
+	{Method: "POST", Path: "/api/uplinks", Group: grpUplinks, Access: AccessAdmin, Admin: true, Raw: rawUplinks, NoAuto: true,
+		Summary: "Uplink actions: `{\"action\":\"claim\",\"id\":\"...\",\"rxNo\":0}` returns a claim code (shown once), `{\"action\":\"retry\",\"id\":\"...\"}` restarts a stopped uplink."},
+}

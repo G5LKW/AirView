@@ -1,0 +1,9 @@
+#!/bin/sh
+# AirView Raspberry Pi image: cloud-init vendor-data.
+#
+# cloud-init (NoCloud, seed /boot/firmware) runs this once, in its final
+# stage, after the settings Raspberry Pi Imager put into user-data and
+# network-config (user, SSH, Wi-Fi, host name, time zone) were applied.
+# Imager replaces user-data but leaves this file alone.
+# What it does and how to undo it: /boot/firmware/airview/README.txt
+exec /bin/sh /boot/firmware/airview/firstboot.sh

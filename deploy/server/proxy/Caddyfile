@@ -1,0 +1,51 @@
+# Caddy in front of AirView: automatic HTTPS (Let's Encrypt / ZeroSSL), HTTP->HTTPS
+# redirect, HTTP/2 and HTTP/3. Copy to /etc/caddy/Caddyfile (or import it from
+# there), replace feed.example.org, then: sudo systemctl reload caddy
+#
+# AirView side (installed with: install.sh --proxy, or by hand in
+# /etc/airview/airview.jsonc):
+#   "http":       { "port": 8080, "bindAddr": "127.0.0.1" },
+#   "aggregator": { "trustedProxies": ["127.0.0.1/32", "::1/128"] }
+# The feeder ports (30160 AVF/1 with its own TLS, 30004 Beast, 31090 mlat-client)
+# are plain TCP and do NOT go through Caddy; open them in the firewall
+# (FIREWALL.md). For a CA certificate on 30160 see avf-cert-sync.sh.
+
+feed.example.org {
+	# Caddy sets X-Forwarded-For (replacing whatever the client sent, because no
+	# trusted_proxies are configured here), X-Forwarded-Proto and
+	# X-Forwarded-Host. AirView honours them only from trustedProxies, uses
+	# X-Forwarded-Proto=https for Secure session cookies, and logs no client
+	# addresses in aggregator mode.
+	reverse_proxy 127.0.0.1:8080 {
+		# Live map updates are server-sent events (/api/events): pass them on
+		# immediately (Caddy also does this by itself for text/event-stream).
+		flush_interval -1
+		transport http {
+			# Aircraft-database upload (/api/db/acdb/upload, up to 600 MB) can be slow.
+			response_header_timeout 10m
+		}
+	}
+
+	# AirView compresses its own responses; no "encode" directive needed.
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+
+	log {
+		# Access logs contain client IP addresses. For a public aggregator keep
+		# them off or short-lived (see the privacy notice, DESIGN §8.5).
+		output discard
+	}
+}
+
+# Behind a CDN or another proxy (e.g. Cloudflare), Caddy must trust that hop:
+#   {
+#       servers {
+#           trusted_proxies static 173.245.48.0/20 103.21.244.0/22 ...
+#           client_ip_headers X-Forwarded-For
+#       }
+#   }
+# and AirView needs only the local hop (127.0.0.1/32, ::1/128): Caddy passes the
+# already-resolved client address on.

@@ -1,0 +1,126 @@
+{
+  "id": "AirViewFeeder",
+  "name": "AirView Feeder",
+  "publisher": "AirView",
+  "comments": "Feeds local ADS-B / Mode S receivers to AirView aggregators. Finish the setup on the status page (http://127.0.0.1:8099/) or the tray icon's Settings.",
+  "mainExe": "airview-feeder-tray.exe",
+  "defaultDir": "{pf}\\AirView Feeder",
+  "startMenuFolder": "AirView Feeder",
+  "licence": "LICENSE.txt",
+  "finishNote": "Next: the feeder still needs your network's aggregator. Unless you gave one to Setup, open the status page (Start menu > AirView Feeder > Status page, or the tray icon > Settings) and enter the aggregator address from your network operator.",
+  "vars": {
+    "service": "AirViewFeeder",
+    "tray": "AirView Feeder Tray",
+    "datadir": "{commonappdata}\\AirView Feeder",
+    "updateurl": "",
+    "manifestkey": ""
+  },
+  "shortcuts": [
+    {
+      "name": "AirView Feeder",
+      "target": "{app}\\airview-feeder-tray.exe",
+      "icon": "{app}\\airview-feeder.ico",
+      "description": "Tray icon: status, pause, logs, settings"
+    },
+    {
+      "name": "Read me",
+      "target": "{app}\\README.txt",
+      "description": "Where the feeder keeps its files, and its commands"
+    }
+  ],
+  "urlShortcuts": [
+    {
+      "name": "Status page",
+      "url": "http://127.0.0.1:8099/",
+      "icon": "{app}\\airview-feeder.ico"
+    }
+  ],
+  "service": {
+    "name": "{service}",
+    "default": true,
+    "install": {
+      "exe": "{app}\\airview-feeder.exe",
+      "args": ["service", "install", "-name", "{service}", "-now", "-data", "{datadir}", "-config", "{datadir}\\feeder.json"],
+      "timeoutSec": 120
+    },
+    "remove": {
+      "exe": "{app}\\airview-feeder.exe",
+      "args": ["service", "remove", "-name", "{service}"],
+      "timeoutSec": 120
+    }
+  },
+  "tray": {
+    "exe": "{app}\\airview-feeder-tray.exe",
+    "runValue": "{tray}",
+    "default": true,
+    "quit": {
+      "exe": "{app}\\airview-feeder.exe",
+      "args": ["tray", "-signal", "quit", "-name", "{service}"],
+      "timeoutSec": 30
+    }
+  },
+  "firewall": {
+    "rule": "AirView Feeder status page",
+    "program": "{app}\\airview-feeder.exe",
+    "port": 8099,
+    "default": false
+  },
+  "configure": {
+    "trigger": "SERVER",
+    "command": {
+      "exe": "{app}\\airview-feeder.exe",
+      "args": ["setup", "-non-interactive", "-data", "{datadir}", "-config", "{datadir}\\feeder.json"],
+      "timeoutSec": 120
+    },
+    "params": [
+      {"switch": "SERVER", "flag": "-server"},
+      {"switch": "PIN", "flag": "-pin"},
+      {"switch": "ENROL", "flag": "-enrol"},
+      {"switch": "NAME", "flag": "-name"},
+      {"switch": "LAT", "flag": "-lat"},
+      {"switch": "LON", "flag": "-lon"},
+      {"switch": "ALT", "flag": "-alt"},
+      {"switch": "AGL", "flag": "-agl"},
+      {"switch": "PRIVACY", "flag": "-privacy"},
+      {"switch": "TIMESTAMPS", "flag": "-timestamps", "bool": true},
+      {"switch": "NOTIMESTAMPS", "flag": "-no-timestamps", "bool": true},
+      {"switch": "NOLOCATION", "flag": "-no-location", "bool": true}
+    ]
+  },
+  "postInstall": [
+    {
+      "what": "writing the release signing key (update.keys)",
+      "when": ["{manifestkey}"],
+      "exe": "{app}\\airview-feeder.exe",
+      "args": ["config", "set", "-data", "{datadir}", "-config", "{datadir}\\feeder.json", "update.keys={manifestkey}"],
+      "timeoutSec": 60
+    },
+    {
+      "what": "writing the release manifest URL (update.manifestUrl)",
+      "when": ["{manifestkey}", "{updateurl}"],
+      "exe": "{app}\\airview-feeder.exe",
+      "args": ["config", "set", "-data", "{datadir}", "-config", "{datadir}\\feeder.json", "update.manifestUrl={updateurl}"],
+      "timeoutSec": 60
+    },
+    {
+      "what": "sealing the update trust anchors for administrators (HKLM)",
+      "when": ["{manifestkey}"],
+      "machineOnly": true,
+      "exe": "{app}\\airview-feeder.exe",
+      "args": ["update", "-data", "{datadir}", "-config", "{datadir}\\feeder.json", "-seal"],
+      "timeoutSec": 60
+    }
+  ],
+  "launch": {
+    "target": "{app}\\airview-feeder-tray.exe",
+    "caption": "Start the &tray icon now"
+  },
+  "dataDirs": [
+    "{datadir}"
+  ],
+  "purgeData": {
+    "exe": "{app}\\airview-feeder.exe",
+    "args": ["uninstall-helper", "-data", "{datadir}", "-config", "{datadir}\\feeder.json", "-purge", "-yes"],
+    "timeoutSec": 60
+  }
+}

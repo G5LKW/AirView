@@ -1,0 +1,2440 @@
+// AirView configuration file (JSON with comments).
+//
+// This example lists every setting with its default value. Copy it to
+// airview.jsonc in the data directory, or point -config / AIRVIEW_CONFIG at
+// it (for example /etc/airview/airview.jsonc), and keep only the settings
+// you change: anything not listed keeps the value from config.json (the
+// file the web UI saves) or the default. Settings listed here override
+// config.json and are shown as locked in the UI; AirView never writes this
+// file. Every setting can also be given as an environment variable
+// (shown with each setting), which overrides this file.
+//
+// Comments (// and /* */) and trailing commas are allowed.
+// Check a file with:  airview config check -config <file>
+// Full reference:     docs/CONFIG.md
+{
+  // Layout version of the file (informational in this file).
+  "version": 1,
+  // Run mode: "standalone" (local receiver, map and statistics), "aggregator"
+  // (multi-station network server, see the aggregator section), "remote-data"
+  // (desktop app fed from another AirView's hub port) or "remote-web"
+  // (desktop window showing another AirView's website).
+  // Environment: AIRVIEW_MODE.
+  "mode": "standalone",
+  // Configures the built-in web server.
+  "http": {
+    // Default 80; if busy the server falls back to 8080, 8081.. then an
+    // ephemeral port.
+    // Environment: AIRVIEW_HTTP_PORT.
+    "port": 80,
+    // bindAddr "" = all interfaces. "127.0.0.1" = local only.
+    // Environment: AIRVIEW_HTTP_BIND_ADDR.
+    "bindAddr": "",
+    // Admin password protecting settings changes from other computers. Stored
+    // as "sha256:<salt>:<hash>". In the operator file or
+    // AIRVIEW_HTTP_ADMIN_PASSWORD_HASH you may give "plain:<password>"
+    // instead; it is hashed when loaded and never written to config.json. ""
+    // = no password (changes allowed from everywhere).
+    // Environment: AIRVIEW_HTTP_ADMIN_PASSWORD_HASH. Secret: redacted in the
+    // UI and by 'airview config print'; AIRVIEW_HTTP_ADMIN_PASSWORD_HASH_FILE
+    // reads it from a file.
+    "adminPasswordHash": "",
+    // Cache map tiles on disk via /tilecache/.
+    // Environment: AIRVIEW_HTTP_TILE_CACHE.
+    "tileCache": true,
+    // allowInsecureLogin (aggregator mode) accepts passwords, TOTP codes and
+    // the setup token from remote clients over plain HTTP. Off by default:
+    // credentials are accepted only over HTTPS (a trusted reverse proxy that
+    // sets X-Forwarded-Proto) or from the machine itself.
+    // Environment: AIRVIEW_HTTP_ALLOW_INSECURE_LOGIN.
+    "allowInsecureLogin": false,
+    // allowOpenAdmin (standalone mode, no admin password) makes every client
+    // admin, also those outside the private networks. Off by default: without
+    // a password only this machine and private-network (RFC 1918, IPv6 ULA,
+    // link-local) clients are admin.
+    // Environment: AIRVIEW_HTTP_ALLOW_OPEN_ADMIN.
+    "allowOpenAdmin": false,
+    // sseGzipMax caps the live streams (/api/live) that are gzip-compressed
+    // at once; each holds a compressor of about 800 KiB (0..100000; 0 =
+    // automatic: 12 in standalone mode, every stream in aggregator mode).
+    // Streams above the cap are sent uncompressed.
+    // Environment: AIRVIEW_HTTP_SSE_GZIP_MAX.
+    "sseGzipMax": 0
+  },
+  // Describes the receiving station.
+  "receiver": {
+    // Display name of this station.
+    // Environment: AIRVIEW_RECEIVER_NAME.
+    "name": "My Station",
+    // E.g. "Radarcape EVO 2CH".
+    // Environment: AIRVIEW_RECEIVER_MODEL.
+    "model": "",
+    // False until the user (or the guesser) sets coordinates.
+    // Environment: AIRVIEW_RECEIVER_LOCATED.
+    "located": false,
+    // Latitude in WGS84 degrees (north positive).
+    // Environment: AIRVIEW_RECEIVER_LAT.
+    "lat": 0,
+    // Longitude in WGS84 degrees (east positive).
+    // Environment: AIRVIEW_RECEIVER_LON.
+    "lon": 0,
+    // groundElevM is the terrain elevation at the site, metres above mean sea
+    // level.
+    // Environment: AIRVIEW_RECEIVER_GROUND_ELEV_M.
+    "groundElevM": 0
+  },
+  // The physical antennas and their RF chains (at most 16).
+  // Environment: AIRVIEW_ANTENNAS (JSON list) or AIRVIEW_ANTENNAS_<n>_<FIELD>
+  // per element.
+  "antennas": [
+    {
+      // Stable slug, unique.
+      // Environment: AIRVIEW_ANTENNAS_0_ID.
+      "id": "vertical",
+      // Display name of the antenna.
+      // Environment: AIRVIEW_ANTENNAS_0_NAME.
+      "name": "Vertical",
+      // Ant* constants.
+      // Environment: AIRVIEW_ANTENNAS_0_TYPE.
+      "type": "vertical",
+      // Receiver RF channel index this antenna is plugged into (0-based), -1
+      // = n/a.
+      // Environment: AIRVIEW_ANTENNAS_0_CHANNEL.
+      "channel": 0,
+      // Peak gain.
+      // Environment: AIRVIEW_ANTENNAS_0_GAIN_DBI.
+      "gainDbi": 5,
+      // Feed-point height above ground, metres.
+      // Environment: AIRVIEW_ANTENNAS_0_HEIGHT_AGL_M.
+      "heightAglM": 8,
+      // Directional parameters (yagi/patch). Azimuth is the boresight in
+      // degrees true.
+      // Environment: AIRVIEW_ANTENNAS_0_AZIMUTH_DEG.
+      "azimuthDeg": 0,
+      // Boresight elevation above horizon.
+      // Environment: AIRVIEW_ANTENNAS_0_TILT_DEG.
+      "tiltDeg": 0,
+      // -3 dB horizontal beamwidth.
+      // Environment: AIRVIEW_ANTENNAS_0_H_BEAMWIDTH_DEG.
+      "hBeamwidthDeg": 0,
+      // -3 dB vertical beamwidth.
+      // Environment: AIRVIEW_ANTENNAS_0_V_BEAMWIDTH_DEG.
+      "vBeamwidthDeg": 30,
+      // Front-to-back ratio of a directional antenna in dB.
+      // Environment: AIRVIEW_ANTENNAS_0_FRONT_TO_BACK_DB.
+      "frontToBackDb": 0,
+      // Yagi element count (informational / used to estimate beamwidth when
+      // 0)
+      // Environment: AIRVIEW_ANTENNAS_0_ELEMENTS.
+      "elements": 0,
+      // "vertical" (ADS-B) | "horizontal".
+      // Environment: AIRVIEW_ANTENNAS_0_POLARIZATION.
+      "polarization": "vertical",
+      // Feedline loss before the first amplifier.
+      // Environment: AIRVIEW_ANTENNAS_0_CABLE_LOSS_DB.
+      "cableLossDb": 0,
+      // Gain of the low-noise amplifier in dB (0 = none).
+      // Environment: AIRVIEW_ANTENNAS_0_LNA_GAIN_DB.
+      "lnaGainDb": 0,
+      // Noise figure of the low-noise amplifier in dB.
+      // Environment: AIRVIEW_ANTENNAS_0_LNA_NOISE_FIG_DB.
+      "lnaNoiseFigDb": 0,
+      // Insertion loss of filters before the first amplifier in dB.
+      // Environment: AIRVIEW_ANTENNAS_0_FILTER_LOSS_DB.
+      "filterLossDb": 0,
+      // Free-text notes.
+      // Environment: AIRVIEW_ANTENNAS_0_NOTES.
+      "notes": "",
+      // UI colour for this antenna's overlays (hex)
+      // Environment: AIRVIEW_ANTENNAS_0_COLOR.
+      "color": "#38bdf8"
+    }
+  ],
+  // The data inputs (at most 32).
+  // Environment: AIRVIEW_FEEDS (JSON list) or AIRVIEW_FEEDS_<n>_<FIELD> per
+  // element.
+  "feeds": [
+    {
+      // Stable slug, unique.
+      // Environment: AIRVIEW_FEEDS_0_ID.
+      "id": "beast",
+      // Display name of the feed.
+      // Environment: AIRVIEW_FEEDS_0_NAME.
+      "name": "Local Beast (readsb/dump1090 :30005)",
+      // Connect this feed (false keeps the entry without using it).
+      // Environment: AIRVIEW_FEEDS_0_ENABLED.
+      "enabled": true,
+      // Protocol: "beast", "avr", "sbs", "json" (HTTP polling of
+      // aircraft.json), "hub" (another AirView) or "demo" (simulator).
+      // Environment: AIRVIEW_FEEDS_0_TYPE.
+      "type": "beast",
+      // Host name or IP address of the data source (Beast/AVR/SBS/hub feeds).
+      // Environment: AIRVIEW_FEEDS_0_HOST.
+      "host": "localhost",
+      // TCP port of the data source; 0 = the usual port of the feed type
+      // (Beast 10003, AVR 10002, SBS 30003, hub 30154).
+      // Environment: AIRVIEW_FEEDS_0_PORT.
+      "port": 30005,
+      // For FeedJSON.
+      // Environment: AIRVIEW_FEEDS_0_URL.
+      "url": "",
+      // antennaId is the antenna this feed's frames are attributed to when
+      // the protocol does not carry a channel number. "" = unknown/combined.
+      // Environment: AIRVIEW_FEEDS_0_ANTENNA_ID.
+      "antennaId": "",
+      // mlatOnly marks a feed that only carries MLAT results.
+      // Environment: AIRVIEW_FEEDS_0_MLAT_ONLY.
+      "mlatOnly": false,
+      // Free-text notes.
+      // Environment: AIRVIEW_FEEDS_0_NOTES.
+      "notes": "",
+      // noForward keeps this feed's data off every uplink (DESIGN §1). Feeds
+      // with MLATOnly are never forwarded regardless of this flag.
+      // Environment: AIRVIEW_FEEDS_0_NO_FORWARD.
+      "noForward": false,
+      // Overrides the detected receiver clock class sent on uplinks ("" =
+      // detect). One of "none", "gps_utc", "gps_gpst", "gps_emul", "hw12",
+      // "sdr12", "sdr12_hires", "sbs20".
+      // Environment: AIRVIEW_FEEDS_0_CLOCK_CLASS.
+      "clockClass": "",
+      // Tunes an rtltcp feed (Feed.SDR). Zero = default.
+      "sdr": {
+        // gain is "max" (default: the highest manual gain step), "auto" (the
+        // tuner's AGC, not recommended for Mode S) or a manual gain in dB
+        // such as "40.2".
+        // Environment: AIRVIEW_FEEDS_0_SDR_GAIN.
+        "gain": "",
+        // ppm is the oscillator frequency correction (-500..500).
+        // Environment: AIRVIEW_FEEDS_0_SDR_PPM.
+        "ppm": 0,
+        // biasTee switches on the antenna supply of dongles that have one.
+        // Environment: AIRVIEW_FEEDS_0_SDR_BIAS_TEE.
+        "biasTee": false,
+        // sampleRate is the complex sample rate in samples per second
+        // (default 2400000, 2000000..3200000).
+        // Environment: AIRVIEW_FEEDS_0_SDR_SAMPLE_RATE.
+        "sampleRate": 0,
+        // spawn starts the user's own rtl_tcp as a child process (found on
+        // PATH or next to the program, or at RTLTCPPath). AirView never ships
+        // or downloads rtl_tcp.
+        // Environment: AIRVIEW_FEEDS_0_SDR_SPAWN.
+        "spawn": false,
+        // rtltcpPath is the rtl_tcp executable for Spawn ("" = search).
+        // Environment: AIRVIEW_FEEDS_0_SDR_RTLTCP_PATH.
+        "rtltcpPath": "",
+        // device is the dongle index passed to a spawned rtl_tcp (0..31).
+        // Environment: AIRVIEW_FEEDS_0_SDR_DEVICE.
+        "device": 0,
+        // acceptUnverifiedAp passes address/parity replies whose address was
+        // not confirmed by a recent all-call or ADS-B message (default
+        // false).
+        // Environment: AIRVIEW_FEEDS_0_SDR_ACCEPT_UNVERIFIED_AP.
+        "acceptUnverifiedAp": false
+      }
+    }
+  ],
+  // Configures the SNTP reference used for timing analysis.
+  "ntp": {
+    // Sample an NTP server to measure the host clock offset (timing
+    // analysis).
+    // Environment: AIRVIEW_NTP_ENABLED.
+    "enabled": false,
+    // Host or host:port; "" = disabled.
+    // Environment: AIRVIEW_NTP_SERVER.
+    "server": "",
+    // Sampling interval, default 64.
+    // Environment: AIRVIEW_NTP_INTERVAL_SEC.
+    "intervalSec": 64
+  },
+  // Configures free weather data ingestion (Open-Meteo, no API key).
+  "weather": {
+    // Download free weather data (Open-Meteo, no API key) for the station
+    // location.
+    // Environment: AIRVIEW_WEATHER_ENABLED.
+    "enabled": true,
+    // Refresh period, default 15.
+    // Environment: AIRVIEW_WEATHER_INTERVAL_MIN.
+    "intervalMin": 15,
+    // RainViewer precipitation radar layer on the map.
+    // Environment: AIRVIEW_WEATHER_RADAR_OVERLAY.
+    "radarOverlay": false
+  },
+  // Configures the data port that other AirView instances log in to.
+  "hub": {
+    // Open the hub data port that other AirView instances (remote-data mode)
+    // log in to.
+    // Environment: AIRVIEW_HUB_ENABLED.
+    "enabled": false,
+    // Default 30154.
+    // Environment: AIRVIEW_HUB_PORT.
+    "port": 30154,
+    // Shared secret for the HMAC challenge login; "" = open.
+    // Environment: AIRVIEW_HUB_PASSWORD. Secret: redacted in the UI and by
+    // 'airview config print'; AIRVIEW_HUB_PASSWORD_FILE reads it from a file.
+    "password": ""
+  },
+  // Is used by the desktop app in remote-data / remote-web modes.
+  "remote": {
+    // AirView host (e.g. the Raspberry Pi)
+    // Environment: AIRVIEW_REMOTE_HOST.
+    "host": "",
+    // Host's hub port, default 30154.
+    // Environment: AIRVIEW_REMOTE_DATA_PORT.
+    "dataPort": 30154,
+    // Host's website port, default 80.
+    // Environment: AIRVIEW_REMOTE_HTTP_PORT.
+    "httpPort": 80,
+    // Hub password.
+    // Environment: AIRVIEW_REMOTE_PASSWORD. Secret: redacted in the UI and by
+    // 'airview config print'; AIRVIEW_REMOTE_PASSWORD_FILE reads it from a
+    // file.
+    "password": "",
+    // Adopt the host's receiver/antenna settings.
+    // Environment: AIRVIEW_REMOTE_USE_HOST_RECEIVER.
+    "useHostReceiver": true
+  },
+  // Controls database retention and how the database writes to disk (the
+  // storage profile, see storage.go).
+  "storage": {
+    // Min seconds between stored trail points per aircraft (default 5)
+    // Environment: AIRVIEW_STORAGE_TRAIL_INTERVAL_SEC.
+    "trailIntervalSec": 5,
+    // Stored position trails (default 30)
+    // Environment: AIRVIEW_STORAGE_TRAIL_RETENTION_DAYS.
+    "trailRetentionDays": 30,
+    // Flight/session rows (default 730, 0 = forever)
+    // Environment: AIRVIEW_STORAGE_FLIGHT_RETENTION_DAYS.
+    "flightRetentionDays": 730,
+    // Per-minute stats (default 90); hourly/daily rollups are kept forever.
+    // Environment: AIRVIEW_STORAGE_MINUTE_RETENTION_DAYS.
+    "minuteRetentionDays": 90,
+    // profile selects how often the database writes to disk and how much
+    // memory its caches use: "auto" ("" is the same; server in aggregator
+    // mode, low-wear when the data directory is on an SD/MMC card or on a
+    // small ARM board, else standard), "standard", "low-wear" (fewest disk
+    // writes, for SD cards) or "server". No profile changes what is stored or
+    // shown; the power-cut loss windows are listed in docs/CONFIG.md.
+    // Environment: AIRVIEW_STORAGE_PROFILE.
+    "profile": "",
+    // backupBeforeMigrate controls the backup taken before the database is
+    // converted to a new storage layout: "auto" ("" is the same; a backup
+    // when the disk has room for it, else migrate without one), "always" (no
+    // migration without a backup) or "never".
+    // Environment: AIRVIEW_STORAGE_BACKUP_BEFORE_MIGRATE.
+    "backupBeforeMigrate": "",
+    // ("storage.tuning") overrides single values of the storage profile.
+    // Every value 0 keeps the profile's value; the defaults suit every
+    // installation, these exist for measurements and unusual hardware.
+    "tuning": {
+      // flushSec is the group-commit interval of the database writer in
+      // seconds (1..600; 0 = profile: standard 10, low-wear 30, server 5).
+      // Environment: AIRVIEW_STORAGE_TUNING_FLUSH_SEC.
+      "flushSec": 0,
+      // incFlushSec is how often the coverage, signal and elevation
+      // statistics of the current day are written (15..3600 s; 0 = profile:
+      // standard 60, low-wear 300). Pages always show the unwritten part.
+      // Environment: AIRVIEW_STORAGE_TUNING_INC_FLUSH_SEC.
+      "incFlushSec": 0,
+      // heatFlushSec is how often the antenna heat map increments are written
+      // (15..3600 s; 0 = profile: standard 300, low-wear 900).
+      // Environment: AIRVIEW_STORAGE_TUNING_HEAT_FLUSH_SEC.
+      "heatFlushSec": 0,
+      // aircraftFlushSec is how often the all-time aircraft rows (messages,
+      // positions, last seen) of the aircraft in view are rewritten (60..3600
+      // s; 0 = profile: standard 300, low-wear 900). A new aircraft is
+      // written within 15 s, and the aircraft list, the aircraft details and
+      // the export write what is pending first, so they always show rows at
+      // most a minute old.
+      // Environment: AIRVIEW_STORAGE_TUNING_AIRCRAFT_FLUSH_SEC.
+      "aircraftFlushSec": 0,
+      // checkpointSec is the longest time between two WAL checkpoints
+      // (10..3600 s; 0 = profile: standard 300, low-wear 600, server 60).
+      // Environment: AIRVIEW_STORAGE_TUNING_CHECKPOINT_SEC.
+      "checkpointSec": 0,
+      // walSoftMB is the WAL size in MiB that triggers a checkpoint before
+      // checkpointSec has passed (1..1024; 0 = profile: standard 40, low-wear
+      // 48, server 64).
+      // Environment: AIRVIEW_STORAGE_TUNING_WAL_SOFT_MB.
+      "walSoftMB": 0,
+      // cacheMB is the page cache of the database writer in MiB (1..4096; 0 =
+      // profile: standard 16, low-wear 8 (4 on 32-bit), server 64).
+      // Environment: AIRVIEW_STORAGE_TUNING_CACHE_MB.
+      "cacheMB": 0,
+      // readConns is the number of database reader connections (1..64; 0 =
+      // profile: standard 4, low-wear 2 (3 with 2 GiB RAM or more), server
+      // 8).
+      // Environment: AIRVIEW_STORAGE_TUNING_READ_CONNS.
+      "readConns": 0,
+      // mmapMB is the memory-mapped I/O size of the database in MiB
+      // (1..65536, -1 = off; 0 = profile: standard 256, low-wear 64, server
+      // 1024; off on 32-bit systems, and by default on Windows, where a
+      // mapping keeps the file from shrinking).
+      // Environment: AIRVIEW_STORAGE_TUNING_MMAP_MB.
+      "mmapMB": 0
+    }
+  },
+  // Holds shared UI defaults (per-browser preferences live in localStorage).
+  "ui": {
+    // "aviation" (ft/kt/nm) | "metric" | "imperial".
+    // Environment: AIRVIEW_UI_UNITS.
+    "units": "aviation",
+    // Live map trail length, default 15.
+    // Environment: AIRVIEW_UI_TRAIL_MINUTES.
+    "trailMinutes": 15,
+    // E.g. [100,200,300,400].
+    // Environment: AIRVIEW_UI_RANGE_RINGS_KM.
+    "rangeRingsKm": [100,200,300,400],
+    // Seconds until a silent aircraft leaves the live list (default 60)
+    // Environment: AIRVIEW_UI_AIRCRAFT_TTL_S.
+    "aircraftTtlS": 60,
+    // "airview-dark" default.
+    // Environment: AIRVIEW_UI_MAP_STYLE.
+    "mapStyle": "airview-dark",
+    // "altitude" | "speed" | "signal" | "source".
+    // Environment: AIRVIEW_UI_COLOR_TRAILS_BY.
+    "colorTrailsBy": "altitude"
+  },
+  // Enables the built-in traffic simulator (no receiver needed).
+  "demo": {
+    // Feed the built-in traffic simulator instead of (or besides) a receiver.
+    // Environment: AIRVIEW_DEMO_ENABLED.
+    "enabled": false,
+    // Simulated aircraft count, default 60.
+    // Environment: AIRVIEW_DEMO_AIRCRAFT.
+    "aircraft": 60
+  },
+  // Controls the trajectory filter (internal/trajectory): coasting aircraft
+  // on the live map and predicted paths.
+  "prediction": {
+    // Run the tracking filter (default true)
+    // Environment: AIRVIEW_PREDICTION_ENABLED.
+    "enabled": true,
+    // coastSec is how long an aircraft without new positions is shown at its
+    // predicted position (default 60, 5..120). Predicted positions start
+    // PredictAfterSec (4 s) after the last real position.
+    // Environment: AIRVIEW_PREDICTION_COAST_SEC.
+    "coastSec": 60,
+    // pathSec is the default horizon of predicted paths (default 120,
+    // 10..900).
+    // Environment: AIRVIEW_PREDICTION_PATH_SEC.
+    "pathSec": 120,
+    // ShowPaths: the map draws the predicted path of the selected aircraft
+    // (default true).
+    // Environment: AIRVIEW_PREDICTION_SHOW_PATHS.
+    "showPaths": true
+  },
+  // Controls the terrain line-of-sight analysis (internal/terrain).
+  "terrain": {
+    // Default true.
+    // Environment: AIRVIEW_TERRAIN_ENABLED.
+    "enabled": true,
+    // radiusKm of the analysis around the receiver (default 450, 50..1000).
+    // Environment: AIRVIEW_TERRAIN_RADIUS_KM.
+    "radiusKm": 450,
+    // zoom of the elevation tiles: 0 = automatic (default), else 6..12.
+    // Environment: AIRVIEW_TERRAIN_ZOOM.
+    "zoom": 0,
+    // kFactor is the effective earth radius factor for radio line of sight
+    // (default 4/3, 0.5..10).
+    // Environment: AIRVIEW_TERRAIN_K_FACTOR.
+    "kFactor": 1.3333333333333333,
+    // autoPrefetch downloads the elevation tiles (AWS Terrain Tiles, about
+    // 30-40 MB for 450 km) and runs the analysis automatically once the
+    // receiver is located (default true). Off = only on request.
+    // Environment: AIRVIEW_TERRAIN_AUTO_PREFETCH.
+    "autoPrefetch": true
+  },
+  // Controls aviation reference data (internal/navdata). Nothing is
+  // downloaded automatically: imports run only on request.
+  "navData": {
+    // Airports layer offered on the map (default true)
+    // Environment: AIRVIEW_NAV_DATA_AIRPORTS_OVERLAY.
+    "airportsOverlay": true,
+    // routesOnline looks unknown callsigns up at adsbdb.com (sends the
+    // callsign to a third party; default false). Without it only the imported
+    // offline standing data is used.
+    // Environment: AIRVIEW_NAV_DATA_ROUTES_ONLINE.
+    "routesOnline": false,
+    // photos shows aircraft photos from planespotters.net (sends the ICAO
+    // address; default false). Requires PhotoContact.
+    // Environment: AIRVIEW_NAV_DATA_PHOTOS.
+    "photos": false,
+    // Contact URL or e-mail sent in the User-Agent (required by
+    // planespotters.net)
+    // Environment: AIRVIEW_NAV_DATA_PHOTO_CONTACT.
+    "photoContact": ""
+  },
+  // Controls the alert rules engine (internal/alerts).
+  "alerts": {
+    // Evaluate rules (default true)
+    // Environment: AIRVIEW_ALERTS_ENABLED.
+    "enabled": true,
+    // Alerts may play a sound in the UI (default true)
+    // Environment: AIRVIEW_ALERTS_SOUND.
+    "sound": true,
+    // webhooks allows rules to POST to their webhook URL (default true; off =
+    // no webhook is sent).
+    // Environment: AIRVIEW_ALERTS_WEBHOOKS.
+    "webhooks": true
+  },
+  // Controls the RF / protocol statistics (internal/rfstat).
+  "rfStat": {
+    // Default true.
+    // Environment: AIRVIEW_RF_STAT_ENABLED.
+    "enabled": true
+  },
+  // uplinks feed this station to AirView aggregators over AVF/1 (standalone
+  // and aggregator modes; omitted from config.json when empty).
+  // Environment: AIRVIEW_UPLINKS (JSON list) or AIRVIEW_UPLINKS_<n>_<FIELD>
+  // per element.
+  "uplinks": [
+    // Example entry (remove the // to use it):
+    // {
+    //   // id is a stable slug, unique among the uplinks.
+    //   // Environment: AIRVIEW_UPLINKS_0_ID.
+    //   "id": "club",
+    //   // host is the aggregator's host name or IP address.
+    //   // Environment: AIRVIEW_UPLINKS_0_HOST.
+    //   "host": "airview.example.org",
+    //   // port is the aggregator's AVF/1 port (default 30160).
+    //   // Environment: AIRVIEW_UPLINKS_0_PORT.
+    //   "port": 30160,
+    //   // serverPin is the expected server key: "sha256/<base64 SHA-256 of the
+    //   // certificate's SubjectPublicKeyInfo>". "" verifies the certificate against
+    //   // the system roots instead.
+    //   // Environment: AIRVIEW_UPLINKS_0_SERVER_PIN.
+    //   "serverPin": "",
+    //   // enrolToken is the admin-minted enrol token for an "invite" aggregator. It
+    //   // is a secret: config redaction treats it like the hub password.
+    //   // Environment: AIRVIEW_UPLINKS_0_ENROL_TOKEN. Secret: redacted in the UI
+    //   // and by 'airview config print'; AIRVIEW_UPLINKS_0_ENROL_TOKEN_FILE reads
+    //   // it from a file.
+    //   "enrolToken": "<enrol token from the aggregator admin>",
+    //   // inputs lists the local feed IDs (Config.Feeds[].ID) forwarded on this
+    //   // uplink. Empty = every enabled feed that delivers timed frames.
+    //   // Environment: AIRVIEW_UPLINKS_0_INPUTS.
+    //   "inputs": [],
+    //   // sendLocation sends the receiver position in the RECEIVER record (default
+    //   // true). Off = the aggregator must locate the station itself.
+    //   // Environment: AIRVIEW_UPLINKS_0_SEND_LOCATION.
+    //   "sendLocation": true,
+    //   // shareGnss forwards the receiver's own GNSS position (Radarcape type '5'
+    //   // frames) as GNSS_POS records (default false).
+    //   // Environment: AIRVIEW_UPLINKS_0_SHARE_GNSS.
+    //   "shareGnss": false,
+    //   // timestamps sends receiver timestamps (default true). Off = no MLAT and no
+    //   // timing-based self-location: only untimed data is sent.
+    //   // Environment: AIRVIEW_UPLINKS_0_TIMESTAMPS.
+    //   "timestamps": true,
+    //   // returnMlat asks for MLAT results for aircraft this station helped to
+    //   // locate (default true).
+    //   // Environment: AIRVIEW_UPLINKS_0_RETURN_MLAT.
+    //   "returnMlat": true,
+    //   // Size of the on-disk spool written while the aggregator is unreachable, in
+    //   // MiB. 0 = RAM ring only; -1 = automatic (0 on an SD-card root, 256 on
+    //   // other Linux hosts, 1024 on Windows).
+    //   // Environment: AIRVIEW_UPLINKS_0_SPOOL_MB.
+    //   "spoolMb": -1,
+    //   // Requested precision of this station's public map pin: "hidden" (default,
+    //   // no pin), "region" or "cell01".
+    //   // Environment: AIRVIEW_UPLINKS_0_PIN.
+    //   "pin": "hidden",
+    //   // publicStats publishes non-locating statistics of this station (default
+    //   // false).
+    //   // Environment: AIRVIEW_UPLINKS_0_PUBLIC_STATS.
+    //   "publicStats": false,
+    //   // showName shows the station name publicly (default false).
+    //   // Environment: AIRVIEW_UPLINKS_0_SHOW_NAME.
+    //   "showName": false,
+    //   // federate is used by an aggregator only (phase 5 federation): besides the
+    //   // host station, forward every approved network station as its own receiver.
+    //   // Default false.
+    //   // Environment: AIRVIEW_UPLINKS_0_FEDERATE.
+    //   "federate": false,
+    //   // disabled keeps the entry but does not connect.
+    //   // Environment: AIRVIEW_UPLINKS_0_DISABLED.
+    //   "disabled": false,
+    //   // type is UplinkAVF ("avf", default when empty: an AirView aggregator over
+    //   // AVF/1) or UplinkBeast ("beast": "also feed others", a Beast output to a
+    //   // third-party aggregator such as readsb on port 30004; DESIGN §12.1 phase
+    //   // 5). For a Beast entry the port defaults to 30004, timestamps applies, and
+    //   // serverPin, enrolToken, spoolMb, shareGnss, returnMlat, sendLocation, pin,
+    //   // publicStats, showName and federate do not apply.
+    //   // Environment: AIRVIEW_UPLINKS_0_TYPE.
+    //   "type": "",
+    //   // format is the Beast output format (Beast only): beast_reduce_plus_out
+    //   // (default), beast_reduce_out or beast_out.
+    //   // Environment: AIRVIEW_UPLINKS_0_FORMAT.
+    //   "format": "",
+    //   // uuid is the station UUID sent to a Beast aggregator (Beast only; "" = a
+    //   // random UUID generated for this uplink). An identifier at that aggregator,
+    //   // not a password: shown to the owner, never public.
+    //   // Environment: AIRVIEW_UPLINKS_0_UUID.
+    //   "uuid": "",
+    //   // reduceMs is the Beast reduce interval (Beast only; default 250, 50..5000
+    //   // ms; ignored for beast_out).
+    //   // Environment: AIRVIEW_UPLINKS_0_REDUCE_MS.
+    //   "reduceMs": 0
+    // }
+  ],
+  // Holds the global tunables of the AVF/1 uplink client (internal/uplink;
+  // DESIGN §5.2, §20.3). They apply to every uplink.
+  "uplinkTuning": {
+    // ringSec is the span of the in-memory ring of unacknowledged data
+    // (default 600, 60..3600 s).
+    // Environment: AIRVIEW_UPLINK_TUNING_RING_SEC.
+    "ringSec": 600,
+    // ringMb is the size of that ring (default 12, 1..512 MiB).
+    // Environment: AIRVIEW_UPLINK_TUNING_RING_MB.
+    "ringMb": 12,
+    // backfillQueueMb is the in-memory backfill queue (default 24, 1..1024
+    // MiB).
+    // Environment: AIRVIEW_UPLINK_TUNING_BACKFILL_QUEUE_MB.
+    "backfillQueueMb": 24,
+    // ResumeWindowSec: unacknowledged data younger than this is resent live
+    // after a reconnect, older data as backfill (default 30, 5..300 s).
+    // Environment: AIRVIEW_UPLINK_TUNING_RESUME_WINDOW_SEC.
+    "resumeWindowSec": 30,
+    // backfillMinKBps is the backfill rate floor (default 64, 1..100000
+    // KiB/s).
+    // Environment: AIRVIEW_UPLINK_TUNING_BACKFILL_MIN_K_BPS.
+    "backfillMinKBps": 64,
+    // backoffMinSec is the first reconnect delay (default 1, 1..60 s).
+    // Environment: AIRVIEW_UPLINK_TUNING_BACKOFF_MIN_SEC.
+    "backoffMinSec": 1,
+    // backoffMaxSec is the longest reconnect delay (default 60, 5..3600 s).
+    // Environment: AIRVIEW_UPLINK_TUNING_BACKOFF_MAX_SEC.
+    "backoffMaxSec": 60,
+    // livenessSec reconnects after this long without PING or ACK (default 30,
+    // 5..600 s).
+    // Environment: AIRVIEW_UPLINK_TUNING_LIVENESS_SEC.
+    "livenessSec": 30,
+    // spoolSegmentMb is the size of one disk spool segment (default 4, 1..64
+    // MiB).
+    // Environment: AIRVIEW_UPLINK_TUNING_SPOOL_SEGMENT_MB.
+    "spoolSegmentMb": 4
+  },
+  // Is the configuration of aggregator mode (DESIGN §1). It is used only
+  // when Config.Mode is ModeAggregator. Registry data, keys, owners, claims
+  // and enrol tokens are mutable secrets that live in stations.db, not here.
+  // Missing JSON fields take their default (see UnmarshalJSON), so a config
+  // file needs to list only the settings it changes.
+  "aggregator": {
+    // name is the network's display name.
+    // Environment: AIRVIEW_AGGREGATOR_NAME.
+    "name": "AirView Network",
+    // publicHost is the host name feeders use to reach this aggregator
+    // (embedded in install one-liners). "" = taken from the HTTP request.
+    // Environment: AIRVIEW_AGGREGATOR_PUBLIC_HOST.
+    "publicHost": "",
+    // privacyNoticeUrl is the address of the operator's published privacy
+    // notice (template: docs/aggregator/PRIVACY-NOTICE.md), linked from the
+    // registration form, the feeder page and the consent texts: an http(s)
+    // URL or a path on this server starting with "/" ("" = no link).
+    // Environment: AIRVIEW_AGGREGATOR_PRIVACY_NOTICE_URL.
+    "privacyNoticeUrl": "",
+    // Listener ports; 0 disables a listener. AVF/1 (default 30160)
+    // Environment: AIRVIEW_AGGREGATOR_AVF_PORT.
+    "avfPort": 30160,
+    // Beast compat ingest (default 30004)
+    // Environment: AIRVIEW_AGGREGATOR_BEAST_PORT.
+    "beastPort": 30004,
+    // Mlat-client compat ingest (default 31090)
+    // Environment: AIRVIEW_AGGREGATOR_MLAT_PORT.
+    "mlatPort": 31090,
+    // 127.0.0.1-only SBS bridge input (default 0)
+    // Environment: AIRVIEW_AGGREGATOR_SBS_IN_LOCAL_PORT.
+    "sbsInLocalPort": 0,
+    // Merged Beast output (default 0)
+    // Environment: AIRVIEW_AGGREGATOR_BEAST_OUT_PORT.
+    "beastOutPort": 0,
+    // Merged SBS output (default 0)
+    // Environment: AIRVIEW_AGGREGATOR_SBS_OUT_PORT.
+    "sbsOutPort": 0,
+    // outputToken protects BeastOutPort / SBSOutPort ("" = outputs refuse all
+    // clients). It is a secret.
+    // Environment: AIRVIEW_AGGREGATOR_OUTPUT_TOKEN. Secret: redacted in the
+    // UI and by 'airview config print'; AIRVIEW_AGGREGATOR_OUTPUT_TOKEN_FILE
+    // reads it from a file.
+    "outputToken": "",
+    // How new stations are admitted: "open" (automatically), "approve" (held
+    // until the admin approves) or "invite" (default; an admin-minted enrol
+    // token is required).
+    // Environment: AIRVIEW_AGGREGATOR_ADMISSION.
+    "admission": "invite",
+    // PEM certificate (chain) file of an operator TLS certificate for AVF/1
+    // (used together with tlsKey; "" = self-signed ECDSA P-256 certificate in
+    // <data>/avf-tls/).
+    // Environment: AIRVIEW_AGGREGATOR_TLS_CERT.
+    "tlsCert": "",
+    // PEM private key file of an operator TLS certificate for AVF/1 (used
+    // together with tlsCert; "" = self-signed certificate in
+    // <data>/avf-tls/). Treated as a secret.
+    // Environment: AIRVIEW_AGGREGATOR_TLS_KEY. Secret: redacted in the UI and
+    // by 'airview config print'; AIRVIEW_AGGREGATOR_TLS_KEY_FILE reads it
+    // from a file.
+    "tlsKey": "",
+    // trustedProxies are CIDRs whose X-Forwarded-For header is honoured.
+    // Environment: AIRVIEW_AGGREGATOR_TRUSTED_PROXIES.
+    "trustedProxies": [],
+    // Serve the public merged live map (default true).
+    // Environment: AIRVIEW_AGGREGATOR_PUBLIC_MAP.
+    "publicMap": true,
+    // Serve the public network statistics (default true).
+    // Environment: AIRVIEW_AGGREGATOR_PUBLIC_STATS.
+    "publicStats": true,
+    // Serve tar1090-shaped /data/aircraft.json and /data/receiver.json
+    // (default true).
+    // Environment: AIRVIEW_AGGREGATOR_TAR_JSON.
+    "tarJson": true,
+    // Public pin precision of new stations: "hidden" (default), "region" or
+    // "cell01".
+    // Environment: AIRVIEW_AGGREGATOR_DEFAULT_PIN.
+    "defaultPin": "hidden",
+    // islandGuard coarsens low single-station aircraft heard only by hidden
+    // stations (DESIGN §8.6; default false).
+    // Environment: AIRVIEW_AGGREGATOR_ISLAND_GUARD.
+    "islandGuard": false,
+    // trustedRelays are the Beast relays whose 0xE3 receiver IDs are honoured
+    // (each becomes a sub-station): "uuid@cidr" binds the relay's station
+    // UUID to the addresses it connects from; a plain "uuid" is honoured only
+    // from limits.allowCidrs. The UUID alone is no secret.
+    // Environment: AIRVIEW_AGGREGATOR_TRUSTED_RELAYS.
+    "trustedRelays": [],
+    // listenAddr is the bind address of the feeder listeners (AVF, Beast,
+    // mlat-client); "" = every interface. The -listen-host flag and
+    // $AIRVIEW_LISTEN_HOST take precedence.
+    // Environment: AIRVIEW_AGGREGATOR_LISTEN_ADDR.
+    "listenAddr": "",
+    // feederReleaseDir is a directory with signed airview-feeder releases
+    // served to the Pi installer: manifest.json, manifest.json.sig and one
+    // file per target (linux-arm64, linux-armv7, linux-amd64, ...) at
+    // /feeder/manifest.json, /feeder/manifest.json.sig and
+    // /feeder/dl/<target> ("" = not served; the installer then needs a local
+    // binary).
+    // Environment: AIRVIEW_AGGREGATOR_FEEDER_RELEASE_DIR.
+    "feederReleaseDir": "",
+    // feederManifestKey is the base64 Ed25519 public key (32 bytes) that
+    // signs manifest.json; /feeder/install.sh carries it as its preset ("" =
+    // none).
+    // Environment: AIRVIEW_AGGREGATOR_FEEDER_MANIFEST_KEY.
+    "feederManifestKey": "",
+    // Holds the MLAT engine settings of an aggregator (DESIGN §9, §19).
+    "mlat": {
+      // enabled runs the own MLAT engine (default true).
+      // Environment: AIRVIEW_AGGREGATOR_MLAT_ENABLED.
+      "enabled": true,
+      // returnResults sends results to contributing stations (default true;
+      // the minimum-contribution rule of DESIGN §8.4 always applies).
+      // Environment: AIRVIEW_AGGREGATOR_MLAT_RETURN_RESULTS.
+      "returnResults": true,
+      // holdout is the fraction of good ADS-B aircraft solved as Mode S-only
+      // for self-validation (default 0.10, 0..0.5).
+      // Environment: AIRVIEW_AGGREGATOR_MLAT_HOLDOUT.
+      "holdout": 0.1,
+      // Use a reverse-MLAT (surveyed) station position for MLAT without owner
+      // confirmation when its horizontal sigma is at most autoUseMaxSigmaM
+      // and it passes the suspect checks. The position stays
+      // owner/admin-only.
+      // Environment: AIRVIEW_AGGREGATOR_MLAT_AUTO_USE_SURVEY.
+      "autoUseSurvey": true,
+      // autoUseMaxSigmaM is that sigma threshold in metres (default 50,
+      // 5..500).
+      // Environment: AIRVIEW_AGGREGATOR_MLAT_AUTO_USE_MAX_SIGMA_M.
+      "autoUseMaxSigmaM": 50,
+      // epochMs is the clock filter epoch (default 500, 100..2000).
+      // Environment: AIRVIEW_AGGREGATOR_MLAT_EPOCH_MS.
+      "epochMs": 500,
+      // maxComponentStations is the station count above which a clock-sync
+      // component is partitioned (default 200, 20..2000; DESIGN §20.2).
+      // Environment: AIRVIEW_AGGREGATOR_MLAT_MAX_COMPONENT_STATIONS.
+      "maxComponentStations": 200,
+      // modeAc enables Mode A/C multilateration among anchors (default
+      // false).
+      // Environment: AIRVIEW_AGGREGATOR_MLAT_MODE_AC.
+      "modeAc": false,
+      // udp accepts the mlat-client UDP transport on MLATPort (default
+      // false).
+      // Environment: AIRVIEW_AGGREGATOR_MLAT_UDP.
+      "udp": false,
+      // surveyIntervalH is how often declared positions are re-surveyed
+      // (default 6, 1..168 hours).
+      // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_INTERVAL_H.
+      "surveyIntervalH": 6,
+      // refractivityN0 is the surface radio refractivity in N-units used for
+      // the propagation delay (default 315, 200..450; 0 = derive it from
+      // METAR when available, else 315).
+      // Environment: AIRVIEW_AGGREGATOR_MLAT_REFRACTIVITY_N0.
+      "refractivityN0": 315,
+      // refractivityScaleHeightM is the scale height of the exponential
+      // refractivity profile in metres (default 7000, 4000..12000).
+      // Environment: AIRVIEW_AGGREGATOR_MLAT_REFRACTIVITY_SCALE_HEIGHT_M.
+      "refractivityScaleHeightM": 7000,
+      // geoidFile is a geoid grid replacing the embedded EGM96 1-degree grid
+      // (NGA WW15MGH.GRD, GeographicLib .pgm or AirView .avg; "" = embedded).
+      // Environment: AIRVIEW_AGGREGATOR_MLAT_GEOID_FILE.
+      "geoidFile": "",
+      // Tunes the ADS-B reference tracks (internal/mlat/ref, DESIGN §9.2.2,
+      // §9.6). Zero = default.
+      "ref": {
+        // window is the number of measurement nodes kept per track (default
+        // 16, 6..64).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_WINDOW.
+        "window": 0,
+        // qHorizontal is the horizontal white-jerk PSD in m²/s⁵ (default
+        // 4).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_Q_HORIZONTAL.
+        "qHorizontal": 0,
+        // qVertical is the vertical white-jerk PSD in m²/s⁵ (default 1).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_Q_VERTICAL.
+        "qVertical": 0,
+        // minNacp is the sync-reference NACp gate (default 8, 1..11).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_MIN_NACP.
+        "minNacp": 0,
+        // minNic is the sync-reference NIC gate (default 7, 1..11).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_MIN_NIC.
+        "minNic": 0,
+        // maxPosAgeS is the largest time from a queried instant to the
+        // nearest position report of a usable reference (default 1 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_MAX_POS_AGE_S.
+        "maxPosAgeS": 0,
+        // latencySigmaS is the prior 1σ position latency of T=0 transmitters
+        // (default 0.15 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_LATENCY_SIGMA_S.
+        "latencySigmaS": 0,
+        // gateChi2 is the position innovation gate (2 degrees of freedom,
+        // default 30).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_GATE_CHI2.
+        "gateChi2": 0,
+        // gateFloorM is the innovation always accepted (default 25 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_GATE_FLOOR_M.
+        "gateFloorM": 0,
+        // probationS keeps a track unusable after a jump (default 30 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_PROBATION_S.
+        "probationS": 0,
+        // suspendS suspends an unstable (duplicate or spoofed) address
+        // (default 600 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_SUSPEND_S.
+        "suspendS": 0,
+        // trackTimeoutS drops tracks not updated for this long (default 120
+        // s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_TRACK_TIMEOUT_S.
+        "trackTimeoutS": 0,
+        // AltReplyMinS: the barometric altitude of a Mode S reply
+        // (DF0/4/16/20) updates a reference track's vertical channel at most
+        // once per this interval (default 2 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_ALT_REPLY_MIN_S.
+        "altReplyMinS": 0,
+        // PairBaroS: a GNSS height (TC 20-22) and a pressure altitude
+        // reported within this interval form one GNSS−baro sample (default
+        // 1.5 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_PAIR_BARO_S.
+        "pairBaroS": 0,
+        // noAltReplies ignores the altitude of Mode S replies in the
+        // reference tracks (default false).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_NO_ALT_REPLIES.
+        "noAltReplies": false,
+        // Tunes the regional GNSS−baro field (DESIGN §9.6). Zero =
+        // default.
+        "field": {
+          // cellKm is the horizontal cell size (default 50 km).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_FIELD_CELL_KM.
+          "cellKm": 0,
+          // bandFt is the altitude band of a cell (default 2000 ft).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_FIELD_BAND_FT.
+          "bandFt": 0,
+          // driftMPerH is the random-walk rate of a cell in m per √h
+          // (default 20).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_FIELD_DRIFT_M_PER_H.
+          "driftMPerH": 0,
+          // obsSigmaM is the 1σ of one per-aircraft observation (default 12
+          // m).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_FIELD_OBS_SIGMA_M.
+          "obsSigmaM": 0,
+          // profileSigmaM is the 1σ of the weather-profile fallback used
+          // where no cell has been learned (default 25 m).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_FIELD_PROFILE_SIGMA_M.
+          "profileSigmaM": 0,
+          // profileSigmaTK is the 1σ temperature error of that profile
+          // (default 1.5 K).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_REF_FIELD_PROFILE_SIGMA_TK.
+          "profileSigmaTK": 0
+        }
+      },
+      // Tunes the cluster assembler (internal/mlat/group, DESIGN §9.3). Zero
+      // = default.
+      "group": {
+        // nSigma is the gate width in σ of the timing noise (default 4,
+        // 2..8).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_GROUP_N_SIGMA.
+        "nSigma": 0,
+        // slackM is the geometric slack of the baseline gate (default 1000
+        // m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_GROUP_SLACK_M.
+        "slackM": 0,
+        // hintSlackM is the geometric slack of the predicted-position gate
+        // (default 300 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_GROUP_HINT_SLACK_M.
+        "hintSlackM": 0,
+        // hintMaxSigmaM ignores position hints with a larger 1σ (default
+        // 5000 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_GROUP_HINT_MAX_SIGMA_M.
+        "hintMaxSigmaM": 0,
+        // ColocatedM: stations closer than this are one site (default 1000
+        // m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_GROUP_COLOCATED_M.
+        "colocatedM": 0,
+        // minSites is the number of sites needed to solve without an altitude
+        // (default 4, 3..8).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_GROUP_MIN_SITES.
+        "minSites": 0,
+        // minSitesAlt is the number of sites needed with an altitude (default
+        // 3).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_GROUP_MIN_SITES_ALT.
+        "minSitesAlt": 0,
+        // maxParts is the most clusters taken from one ingest group (default
+        // 4, 1..8).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_GROUP_MAX_PARTS.
+        "maxParts": 0,
+        // lateHoldMs keeps emitted clusters this long for late copies
+        // (default 2000, ..5000).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_GROUP_LATE_HOLD_MS.
+        "lateHoldMs": 0,
+        // lateSlots is the size of the late-copy ring per MLAT worker
+        // (default 16384, about 1 kB per slot); above 4 workers the rings
+        // share 4x this size (at least 2048 slots each).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_GROUP_LATE_SLOTS.
+        "lateSlots": 0
+      },
+      // Tunes the MLAT planner (internal/mlat/plan, DESIGN §4.4, §9.3).
+      // Zero = default.
+      "plan": {
+        // syncSetMin is the smallest syncSet per station (default 15).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_SYNC_SET_MIN.
+        "syncSetMin": 0,
+        // syncSetMax is the largest syncSet per station (default 30).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_SYNC_SET_MAX.
+        "syncSetMax": 0,
+        // mlatSetMax caps a station's mlatSet in aircraft (default 400).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_MLAT_SET_MAX.
+        "mlatSetMax": 0,
+        // stationFpsBudget caps the frame rate a selective station is asked
+        // for (default 400 frames/s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_STATION_FPS_BUDGET.
+        "stationFpsBudget": 0,
+        // stationsPerAircraft is the most stations asked for one MLAT
+        // aircraft (default 12, 4..64).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_STATIONS_PER_AIRCRAFT.
+        "stationsPerAircraft": 0,
+        // minStationsPerAircraft is the number always asked for when
+        // available (default 6).
+        // Environment:
+        // AIRVIEW_AGGREGATOR_MLAT_PLAN_MIN_STATIONS_PER_AIRCRAFT.
+        "minStationsPerAircraft": 0,
+        // TargetSigmaM: above the minimum, stations are added while the
+        // expected horizontal σ is above this (default 30 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_TARGET_SIGMA_M.
+        "targetSigmaM": 0,
+        // HeardTTLS: a station counts as hearing an aircraft this long after
+        // its last copy (default 60 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_HEARD_TTL_S.
+        "heardTtlS": 0,
+        // ADSBGoodAgeS: an aircraft with a good ADS-B position this recent is
+        // no MLAT candidate (default 10 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_ADSB_GOOD_AGE_S.
+        "adsbGoodAgeS": 0,
+        // minDwellS keeps a set member at least this long (default 30 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_MIN_DWELL_S.
+        "minDwellS": 0,
+        // maxChurn is the most set changes per station and replan (default
+        // 10).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_MAX_CHURN.
+        "maxChurn": 0,
+        // replanEveryS is the replan period (default 5 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_REPLAN_EVERY_S.
+        "replanEveryS": 0,
+        // acquireHz is the solve rate of aircraft being acquired (default 4).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_ACQUIRE_HZ.
+        "acquireHz": 0,
+        // trackedHz is the solve rate of tracked aircraft (default 2).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_TRACKED_HZ.
+        "trackedHz": 0,
+        // holdOutHz is the solve rate of hold-out ADS-B aircraft (default 1).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_HOLD_OUT_HZ.
+        "holdOutHz": 0,
+        // suspectHz is the solve rate of suspect ADS-B aircraft (default
+        // 0.5).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_SUSPECT_HZ.
+        "suspectHz": 0,
+        // globalSolveHz is the solver budget of the whole network (default
+        // 20000 solves/s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_PLAN_GLOBAL_SOLVE_HZ.
+        "globalSolveHz": 0
+      },
+      // Tunes the position solver (internal/mlat/solve, DESIGN §9.4). Zero =
+      // default.
+      "solve": {
+        // maxIter bounds the Levenberg-Marquardt iterations per start
+        // (default 10).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_MAX_ITER.
+        "maxIter": 0,
+        // huberK is the Huber threshold on the w-test (default 1.345).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_HUBER_K.
+        "huberK": 0,
+        // pfa is the false-alarm probability of the RAIM test (default
+        // 0.001).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_PFA.
+        "pfa": 0,
+        // maxSigmaHM rejects fixes with a larger horizontal σ (default 2000
+        // m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_MAX_SIGMA_HM.
+        "maxSigmaHM": 0,
+        // altRejectSigma rejects fixes whose height disagrees with the
+        // altitude by more σ (default 4).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_ALT_REJECT_SIGMA.
+        "altRejectSigma": 0,
+        // PriorSeedMaxSigmaM: a track prior with a smaller horizontal σ
+        // seeds the solve (default 2000 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_PRIOR_SEED_MAX_SIGMA_M.
+        "priorSeedMaxSigmaM": 0,
+        // gridStepM is the step of the 3+altitude start grid (default 5000
+        // m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_GRID_STEP_M.
+        "gridStepM": 0,
+        // gridHalfM is the half width of that grid (default 400000 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_GRID_HALF_M.
+        "gridHalfM": 0,
+        // maxSpeedMps is the implied-speed limit (default 308.7 m/s = 600
+        // kt).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_MAX_SPEED_MPS.
+        "maxSpeedMps": 0,
+        // machFactor scales a reported Mach number (default 1.25).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_MACH_FACTOR.
+        "machFactor": 0,
+        // hostTolS is the transmit-time tolerance against the host arrival
+        // time (default 0.05 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_HOST_TOL_S.
+        "hostTolS": 0,
+        // horizonSlackM is the accepted clearance below the radio horizon
+        // (default 300 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_HORIZON_SLACK_M.
+        "horizonSlackM": 0,
+        // minHaeM is the lowest plausible height above the ellipsoid (default
+        // -500 m; may be negative).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_MIN_HAE_M.
+        "minHaeM": 0,
+        // maxHaeM is the highest plausible height (default 25000 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_MAX_HAE_M.
+        "maxHaeM": 0,
+        // maxRangeM bounds the distance from the nearest station (default
+        // 800000 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_MAX_RANGE_M.
+        "maxRangeM": 0,
+        // relinM re-linearises the refraction excess after this movement
+        // (default 5000 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_RELIN_M.
+        "relinM": 0,
+        // ransacMinStations enables RANSAC from this many stations (default
+        // 6).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_RANSAC_MIN_STATIONS.
+        "ransacMinStations": 0,
+        // ransacMaxSubsets bounds the RANSAC subsets (default 64).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_RANSAC_MAX_SUBSETS.
+        "ransacMaxSubsets": 0,
+        // alwaysAlternates always searches for the second solution branch
+        // (default false).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SOLVE_ALWAYS_ALTERNATES.
+        "alwaysAlternates": false
+      },
+      // Tunes the MLAT tracker (internal/mlat/track, DESIGN §9.5). Zero =
+      // default.
+      "track": {
+        // qCv is the horizontal acceleration PSD of the constant-velocity
+        // model (default 0.3 m²/s³).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_Q_CV.
+        "qCv": 0,
+        // qCt is the horizontal acceleration PSD of the turn model (default
+        // 0.5).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_Q_CT.
+        "qCt": 0,
+        // qVert is the vertical acceleration PSD (default 1).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_Q_VERT.
+        "qVert": 0,
+        // qOmega is the turn-rate acceleration PSD (default 3e-5 rad²/s³).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_Q_OMEGA.
+        "qOmega": 0,
+        // omegaTauS is the correlation time of the turn rate (default 20 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_OMEGA_TAU_S.
+        "omegaTauS": 0,
+        // sojournCvS is the mean time in the straight-flight mode (default
+        // 300 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_SOJOURN_CV_S.
+        "sojournCvS": 0,
+        // sojournCtS is the mean time in the turn mode (default 20 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_SOJOURN_CT_S.
+        "sojournCtS": 0,
+        // initPCt is the turn-mode probability of a new track (default 0.1).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_INIT_P_CT.
+        "initPCt": 0,
+        // initSigmaVelH is the prior 1σ horizontal speed of a new track
+        // (default 150 m/s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_INIT_SIGMA_VEL_H.
+        "initSigmaVelH": 0,
+        // initSigmaVelU is the prior 1σ vertical rate (default 15 m/s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_INIT_SIGMA_VEL_U.
+        "initSigmaVelU": 0,
+        // initSigmaOmega is the prior 1σ turn rate (default 0.03 rad/s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_INIT_SIGMA_OMEGA.
+        "initSigmaOmega": 0,
+        // gateProb is the probability mass of the gate (default 0.999).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_GATE_PROB.
+        "gateProb": 0,
+        // iterations is the iterated-EKF relinearisations per update (default
+        // 3).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_ITERATIONS.
+        "iterations": 0,
+        // confirmWindowS is the confirmation window of a new track (default
+        // 10 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_CONFIRM_WINDOW_S.
+        "confirmWindowS": 0,
+        // confirmUpdates is the number of updates that confirm it (default
+        // 2).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_CONFIRM_UPDATES.
+        "confirmUpdates": 0,
+        // coastS deletes a track without updates for this long (default 60
+        // s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_COAST_S.
+        "coastS": 0,
+        // maxSigmaHM deletes a track with a larger horizontal σ (default
+        // 5000 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_MAX_SIGMA_HM.
+        "maxSigmaHM": 0,
+        // maxSpeedMS is the speed ceiling of a hypothesis (default 360 m/s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_MAX_SPEED_MS.
+        "maxSpeedMS": 0,
+        // hypLR drops a competing hypothesis at this likelihood ratio
+        // (default 100).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_HYP_LR.
+        "hypLR": 0,
+        // maxHyp is the number of hypotheses kept per address (default 4).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_MAX_HYP.
+        "maxHyp": 0,
+        // respawnMisses starts a competing hypothesis after this many
+        // non-gating fixes (default 3).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_RESPAWN_MISSES.
+        "respawnMisses": 0,
+        // losMarginM penalises a hypothesis hidden below a hearer's radio
+        // horizon by more than this (default 3000 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_LOS_MARGIN_M.
+        "losMarginM": 0,
+        // maxMembers caps the stations used from one cluster (default 24,
+        // 2..32).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_MAX_MEMBERS.
+        "maxMembers": 0,
+        // maxExclude is the number of outlier members that may be excluded
+        // from a cluster (default 2, negative = none, ..4).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_MAX_EXCLUDE.
+        "maxExclude": 0,
+        // maxLagS drops measurements older than the track by more (default
+        // 2.5 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_MAX_LAG_S.
+        "maxLagS": 0,
+        // excessRefreshM recomputes a cached refraction excess after this
+        // movement (default 2000 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_EXCESS_REFRESH_M.
+        "excessRefreshM": 0,
+        // recentreM moves the local frame after this offset (default 5000 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_RECENTRE_M.
+        "recentreM": 0,
+        // syncTauS is the correlation time of clock-sync errors (default 15
+        // s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_TRACK_SYNC_TAU_S.
+        "syncTauS": 0
+      },
+      // Tunes the MLAT engine root (internal/mlat, DESIGN §9, §20.3). Zero
+      // = default.
+      "engine": {
+        // workers is the number of processing goroutines (default GOMAXPROCS,
+        // 1..64).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_ENGINE_WORKERS.
+        "workers": 0,
+        // queueLen is the per-worker queue length in groups (default 4096); a
+        // full queue drops the group and counts it.
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_ENGINE_QUEUE_LEN.
+        "queueLen": 0,
+        // publishIntervalMs is the shortest interval between two map updates
+        // of one aircraft (default 500 ms).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_ENGINE_PUBLISH_INTERVAL_MS.
+        "publishIntervalMs": 0,
+        // maxSolveSites caps the stations used in one solve (default 16,
+        // 4..64).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_ENGINE_MAX_SOLVE_SITES.
+        "maxSolveSites": 0,
+        // ContribWindowSec: a station receives an aircraft's results only
+        // when it contributed to its track within this window (default 60 s,
+        // DESIGN §8.4).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_ENGINE_CONTRIB_WINDOW_SEC.
+        "contribWindowSec": 0,
+        // minTimedPerMin is the timed frames per minute a synced station must
+        // deliver to receive results (default 10).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_ENGINE_MIN_TIMED_PER_MIN.
+        "minTimedPerMin": 0,
+        // holdoutRotateMin rotates the hold-out set (default 10 minutes).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_ENGINE_HOLDOUT_ROTATE_MIN.
+        "holdoutRotateMin": 0,
+        // latencyFeedback feeds hold-out fixes into the reference store's
+        // position-latency estimate (default false; DESIGN §9.6 excludes
+        // it).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_ENGINE_LATENCY_FEEDBACK.
+        "latencyFeedback": false,
+        // jitterFeedback passes the jitter learned from solver residuals to
+        // the clock filter (default false).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_ENGINE_JITTER_FEEDBACK.
+        "jitterFeedback": false,
+        // applyKAtm applies the hourly k_atm estimate to the solver and the
+        // clock filter (default false: advisory only).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_ENGINE_APPLY_K_ATM.
+        "applyKAtm": false,
+        // verifyEverySec is the per-aircraft interval of the ADS-B TDOA
+        // verification (default 5 s; -1 = off).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_ENGINE_VERIFY_EVERY_SEC.
+        "verifyEverySec": 0,
+        // syncWarmupSec holds sync observations back after the start (default
+        // 60 s; -1 = none).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_ENGINE_SYNC_WARMUP_SEC.
+        "syncWarmupSec": 0,
+        // ingestGate gives the ingest the clock filter's gate view: synced
+        // copies are checked against their network time (with a 50 µs floor)
+        // and sync candidates are flushed early and re-delivered with every
+        // copy (default false).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_ENGINE_INGEST_GATE.
+        "ingestGate": false,
+        // modeAcCodeFormat is the layout of the 2-byte Mode A/C payload
+        // delivered by the feeders: "pulses" (default, "" = pulses: the reply
+        // pulse order of the Beast description) or "nibbles" (4 octal
+        // digits).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_ENGINE_MODE_AC_CODE_FORMAT.
+        "modeAcCodeFormat": "",
+        // modeAcJitterNs is the extra timing noise of Mode A/C replies
+        // (default 50 ns, up to 1000; negative = none).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_ENGINE_MODE_AC_JITTER_NS.
+        "modeAcJitterNs": 0
+      },
+      // Tunes the joint clock filter (internal/mlat/clock, DESIGN §9.2). The
+      // epoch and the component partition size stay in aggregator.mlat
+      // (epochMs, maxComponentStations). Zero = default.
+      "clock": {
+        // hostSigmaS is the 1σ error of server-side host times used to start
+        // a new clock epoch (default 0.05 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_HOST_SIGMA_S.
+        "hostSigmaS": 0,
+        // ppsCorrelatedNs is the part of a GPS-class station's timestamp
+        // error that is common to one second (1PPS discipline error; default
+        // 30 ns, negative = off).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_PPS_CORRELATED_NS.
+        "ppsCorrelatedNs": 0,
+        // resetThetaSigmaNs is the smallest clock-offset 1σ after a detected
+        // step (default 1000000 ns = 1 ms).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_RESET_THETA_SIGMA_NS.
+        "resetThetaSigmaNs": 0,
+        // maxMembers caps the stations used from one sync group (default 32,
+        // 3..256).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_MAX_MEMBERS.
+        "maxMembers": 0,
+        // syncRatePerStation is the target number of sync groups per station
+        // and second (default 6, up to 100).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_SYNC_RATE_PER_STATION.
+        "syncRatePerStation": 0,
+        // maxObsAgeS drops sync groups older than this at their epoch
+        // (default 5 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_MAX_OBS_AGE_S.
+        "maxObsAgeS": 0,
+        // stationTimeoutS removes a station from its component after this
+        // long without an accepted observation (default 120 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_STATION_TIMEOUT_S.
+        "stationTimeoutS": 0,
+        // coObsWindowS is the co-observation window that defines the
+        // connected clock components (default 60 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_CO_OBS_WINDOW_S.
+        "coObsWindowS": 0,
+        // probationS is the anchor probation of a GPS station (default 600
+        // s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_PROBATION_S.
+        "probationS": 0,
+        // anchorFreqMaxPpb is the frequency limit for anchor promotion
+        // (default 2 ppb).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_ANCHOR_FREQ_MAX_PPB.
+        "anchorFreqMaxPpb": 0,
+        // anchorOffsetMaxNs is the offset limit against the other anchors for
+        // promotion (default 200 ns).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_ANCHOR_OFFSET_MAX_NS.
+        "anchorOffsetMaxNs": 0,
+        // anchorDriftMaxNsPerH demotes an anchor that drifts faster (default
+        // 100 ns/h).
+        // Environment:
+        // AIRVIEW_AGGREGATOR_MLAT_CLOCK_ANCHOR_DRIFT_MAX_NS_PER_H.
+        "anchorDriftMaxNsPerH": 0,
+        // anchorHostMaxS is how far a GPS station's clock may be from the
+        // server's corrected time before it can become an anchor (default 0.4
+        // s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_ANCHOR_HOST_MAX_S.
+        "anchorHostMaxS": 0,
+        // gateProb is the probability of the sync innovation gate (default
+        // 0.999, below 1).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_GATE_PROB.
+        "gateProb": 0,
+        // wTestMax is the largest studentised innovation of an accepted sync
+        // member (default 4.5).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_W_TEST_MAX.
+        "wTestMax": 0,
+        // stepSigma is the outlier size, in σ, that counts towards a step
+        // (default 4).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_STEP_SIGMA.
+        "stepSigma": 0,
+        // stepCount consecutive same-sign outliers declare a clock step
+        // (default 5).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_STEP_COUNT.
+        "stepCount": 0,
+        // stepRunCount same-sign steps of a free clock within StepRunWindowS
+        // also reset its frequency (default 3; -1 = off).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_STEP_RUN_COUNT.
+        "stepRunCount": 0,
+        // stepRunWindowS is the window of StepRunCount (default 60 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_STEP_RUN_WINDOW_S.
+        "stepRunWindowS": 0,
+        // blacklistS is how long an aircraft that keeps failing sync is not
+        // used as a reference (default 600 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_BLACKLIST_S.
+        "blacklistS": 0,
+        // blacklistMaxFrac caps the blacklisted share of the sync aircraft
+        // (default 0.2, up to 1).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_BLACKLIST_MAX_FRAC.
+        "blacklistMaxFrac": 0,
+        // StationBadOutlier: a member whose outlier share is at least this
+        // does not count towards an aircraft's failure (default 0.25, up to
+        // 1).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_STATION_BAD_OUTLIER.
+        "stationBadOutlier": 0,
+        // syncedMinObs is the accepted observations in SyncedWindowS a
+        // station needs to count as synced (default 5).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_SYNCED_MIN_OBS.
+        "syncedMinObs": 0,
+        // syncedWindowS is the window of SyncedMinObs (default 30 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_SYNCED_WINDOW_S.
+        "syncedWindowS": 0,
+        // workers is the number of goroutines that update clock components in
+        // parallel (default GOMAXPROCS, up to 64).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_WORKERS.
+        "workers": 0,
+        // noJitterLearning turns off the on-line learning of receiver jitter
+        // (default false).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_NO_JITTER_LEARNING.
+        "noJitterLearning": false,
+        // reoriginS moves the filter's internal time origin forward after
+        // this many seconds (default 86400, at least 10).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_REORIGIN_S.
+        "reoriginS": 0,
+        // relGaugeBetaSigmaNs is the β_short gauge of relative components
+        // without GPS-class clocks (default 10 ns; negative = no β gauge).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_REL_GAUGE_BETA_SIGMA_NS.
+        "relGaugeBetaSigmaNs": 0,
+        // externalInflate scales the variance of a member from another
+        // partition (default 2, at least 1).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_EXTERNAL_INFLATE.
+        "externalInflate": 0,
+        // partitionStations is the largest partition of a partitioned time
+        // domain (default min(100, maxComponentStations); 4..2000).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_PARTITION_STATIONS.
+        "partitionStations": 0,
+        // externalStates caps the cross-partition members per partition and
+        // epoch that are estimated as shared states (default 64, up to 1024;
+        // negative = off).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_EXTERNAL_STATES.
+        "externalStates": 0,
+        // partitionDriftNs is the common-mode random walk (ns/sqrt(s)) of the
+        // partitions that do not carry the gauge (default 1, up to 100;
+        // negative = off).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_CLOCK_PARTITION_DRIFT_NS.
+        "partitionDriftNs": 0
+      },
+      // Is the timing quarantine of new stations (internal/registry/trust,
+      // H-mlatc): a new station's copies reach MLAT only after its timing
+      // agreed with trusted references. Zero = default.
+      "quarantine": {
+        // disabled admits new stations to MLAT without proving their timing
+        // (default false: new stations start in timing quarantine).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_QUARANTINE_DISABLED.
+        "disabled": false,
+        // minRefs is the number of distinct reference stations a station's
+        // timing must agree with (default 2).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_QUARANTINE_MIN_REFS.
+        "minRefs": 0,
+        // windowSec is the length of one fit window per station pair (default
+        // 30 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_QUARANTINE_WINDOW_SEC.
+        "windowSec": 0,
+        // maxSigmaNs is the floor of the per-pair residual threshold (default
+        // 1500 ns).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_QUARANTINE_MAX_SIGMA_NS.
+        "maxSigmaNs": 0,
+        // goodWindows good windows prove the timing (default 8).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_QUARANTINE_GOOD_WINDOWS.
+        "goodWindows": 0,
+        // maxBadFrac is the largest share of judged references with as many
+        // bad windows as good ones (default 0.2, up to 1).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_QUARANTINE_MAX_BAD_FRAC.
+        "maxBadFrac": 0,
+        // minAgeSec is the time from the first comparison before a proof
+        // (default 180 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_QUARANTINE_MIN_AGE_SEC.
+        "minAgeSec": 0
+      },
+      // Tunes the reverse-MLAT station survey (internal/mlat/survey, DESIGN
+      // §10.2-10.3). Zero = the package default.
+      "survey": {
+        // disabled turns the survey off (default false).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_DISABLED.
+        "disabled": false,
+        // maxJobs bounds the concurrently collecting surveys (default 64,
+        // 1..4096).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_MAX_JOBS.
+        "maxJobs": 0,
+        // maxCheckFrac bounds the periodic checks of located stations to this
+        // share of the stations (default 0.1, 0.001..1).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_MAX_CHECK_FRAC.
+        "maxCheckFrac": 0,
+        // minDurationSec is the collection time before the first evaluation
+        // (default 180, 30..21600 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_MIN_DURATION_SEC.
+        "minDurationSec": 0,
+        // evalEverySec is the evaluation period after that (default 60,
+        // 5..3600 s).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_EVAL_EVERY_SEC.
+        "evalEverySec": 0,
+        // maxDurationMin ends a survey (default 30, 1..1440 min).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_MAX_DURATION_MIN.
+        "maxDurationMin": 0,
+        // noDataAfterMin ends a survey that collected almost nothing (default
+        // 10, 1..1440 min).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_NO_DATA_AFTER_MIN.
+        "noDataAfterMin": 0,
+        // retryAfterMin is the pause after an unsuccessful survey of an
+        // unlocated station (default 30, 1..43200 min; doubles up to
+        // surveyIntervalH).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_RETRY_AFTER_MIN.
+        "retryAfterMin": 0,
+        // ownerMinIntervalMin rate-limits owner-started surveys per station
+        // (default 60, up to 10080 min; negative = no limit).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_OWNER_MIN_INTERVAL_MIN.
+        "ownerMinIntervalMin": 0,
+        // maxObs bounds a survey's observations (default 15000, 500..200000).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_MAX_OBS.
+        "maxObs": 0,
+        // minIntervalMs thins observations to one per aircraft per interval
+        // (default 1000, 100..60000 ms).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_MIN_INTERVAL_MS.
+        "minIntervalMs": 0,
+        // minPeers is the number of synced, located peers that fix a
+        // transmission's emission time (default 2, 1..16).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_MIN_PEERS.
+        "minPeers": 0,
+        // maxPeerSigmaNs drops peers with a noisier network time (default
+        // 600, 20..10000 ns).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_MAX_PEER_SIGMA_NS.
+        "maxPeerSigmaNs": 0,
+        // maskDeg is the elevation mask (default 2.5, up to 15 degrees).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_MASK_DEG.
+        "maskDeg": 0,
+        // heightSigmaM is the 1-sigma of the terrain + antenna height prior
+        // (default 20, 1..1000 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_HEIGHT_SIGMA_M.
+        "heightSigmaM": 0,
+        // defaultAglM is the antenna height above ground when none is
+        // declared (default 10, up to 500 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_DEFAULT_AGL_M.
+        "defaultAglM": 0,
+        // searchRadiusKm is the seed grid's radius around the declared or
+        // Locate Me position (default 50, 1..1000 km).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_SEARCH_RADIUS_KM.
+        "searchRadiusKm": 0,
+        // stableSigmaGpsM is the horizontal sigma a GPS-timed station's
+        // survey must reach to be stable (default 30, 1..1000 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_STABLE_SIGMA_GPS_M.
+        "stableSigmaGpsM": 0,
+        // stableSigmaM is the same limit for other clock classes (default
+        // 200, 1..5000 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_STABLE_SIGMA_M.
+        "stableSigmaM": 0,
+        // minAzSpreadDeg is the azimuth spread of reference aircraft a stable
+        // survey needs (default 180, up to 360 degrees).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_MIN_AZ_SPREAD_DEG.
+        "minAzSpreadDeg": 0,
+        // minAircraft is the number of distinct reference aircraft a stable
+        // survey needs (default 10, 2..10000).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_MIN_AIRCRAFT.
+        "minAircraft": 0,
+        // SuspectMinM: a declared position is suspect when it is more than
+        // max(suspectMinM, suspectK x sigma) from the survey (default 100,
+        // 1..100000 m).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_SUSPECT_MIN_M.
+        "suspectMinM": 0,
+        // suspectK is that sigma factor (default 3, 1..20).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_SUSPECT_K.
+        "suspectK": 0,
+        // Tunes the network bundle adjustment (aggregator.mlat.survey.bundle;
+        // internal/mlat/survey Bundler): station positions and clocks of up
+        // to maxStations stations refined together, wrong declarations
+        // released and flagged. Zero = default.
+        "bundle": {
+          // disabled turns the bundle adjustment off (default false).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_BUNDLE_DISABLED.
+          "disabled": false,
+          // everyMin is the adjustment period (default 60, 1..1440 min).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_BUNDLE_EVERY_MIN.
+          "everyMin": 0,
+          // spanMin is the data span of one adjustment (default 60, 5..360
+          // min).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_BUNDLE_SPAN_MIN.
+          "spanMin": 0,
+          // maxStations bounds one adjustment (default 64, 2..512).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_BUNDLE_MAX_STATIONS.
+          "maxStations": 0,
+          // windowS is the clock polynomial window (default 10, 2..120 s).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_BUNDLE_WINDOW_S.
+          "windowS": 0,
+          // thinIntervalS keeps one transmission per aircraft per interval
+          // (default 8, 1..60 s).
+          // Environment:
+          // AIRVIEW_AGGREGATOR_MLAT_SURVEY_BUNDLE_THIN_INTERVAL_S.
+          "thinIntervalS": 0,
+          // maxFrames bounds the stored transmissions (default 200000,
+          // 1000..5000000).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_BUNDLE_MAX_FRAMES.
+          "maxFrames": 0,
+          // MinStationRecs: a station with fewer usable receptions is left
+          // out (default 100, 10..1000000).
+          // Environment:
+          // AIRVIEW_AGGREGATOR_MLAT_SURVEY_BUNDLE_MIN_STATION_RECS.
+          "minStationRecs": 0,
+          // OutlierMinM: a prior position is contradicted beyond
+          // max(outlierMinM, outlierK x sigma) (default 100, 1..100000 m).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_BUNDLE_OUTLIER_MIN_M.
+          "outlierMinM": 0,
+          // outlierK is that sigma factor (default 3, 1..100).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_BUNDLE_OUTLIER_K.
+          "outlierK": 0,
+          // declaredSigmaM is the prior 1-sigma of a declared position that
+          // passed the test (default 30, 1..10000 m).
+          // Environment:
+          // AIRVIEW_AGGREGATOR_MLAT_SURVEY_BUNDLE_DECLARED_SIGMA_M.
+          "declaredSigmaM": 0,
+          // anchorSigmaM is the horizontal prior 1-sigma of an anchor (GNSS
+          // or confirmed position; default 5, 0.1..1000 m).
+          // Environment:
+          // AIRVIEW_AGGREGATOR_MLAT_SURVEY_BUNDLE_ANCHOR_SIGMA_M.
+          "anchorSigmaM": 0,
+          // maxReleases bounds the priors released in one adjustment (default
+          // 16, 1..512).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_BUNDLE_MAX_RELEASES.
+          "maxReleases": 0,
+          // workers is the number of goroutines of one adjustment (default
+          // min(GOMAXPROCS, 8), up to 256).
+          // Environment: AIRVIEW_AGGREGATOR_MLAT_SURVEY_BUNDLE_WORKERS.
+          "workers": 0
+        }
+      },
+      // Configures aggregator.mlat.latencyCal: the per-airframe ADS-B
+      // position-latency calibration of the reference tracks with its own A/B
+      // gate (internal/mlat/quality LatencyCal, DESIGN §9.6). Zero =
+      // default.
+      "latencyCal": {
+        // enabled runs the calibration (default false). Even when on, the
+        // built-in A/B test applies learned latencies only after they
+        // measurably reduce the along-track error of the treated half of the
+        // airframes.
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_LATENCY_CAL_ENABLED.
+        "enabled": false,
+        // minGain is the relative error reduction the A/B test needs before
+        // the calibration is applied (default 0.05, 0.001..1).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_LATENCY_CAL_MIN_GAIN.
+        "minGain": 0,
+        // zEnable is the significance needed to enable it (default 3,
+        // 0.5..20).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_LATENCY_CAL_Z_ENABLE.
+        "zEnable": 0,
+        // zDisable is the significance below which an enabled calibration is
+        // switched off again (default 2, 0.1..20).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_LATENCY_CAL_Z_DISABLE.
+        "zDisable": 0,
+        // treatFraction is the share of calibrated airframes that get their
+        // learned latency (the rest are the control arm; default 0.5,
+        // 0.05..0.95).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_LATENCY_CAL_TREAT_FRACTION.
+        "treatFraction": 0,
+        // MinCalSamples: an airframe counts as calibrated after this many
+        // samples (default 20, 1..100000).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_LATENCY_CAL_MIN_CAL_SAMPLES.
+        "minCalSamples": 0,
+        // minArmSamples is the samples each A/B arm needs (default 500,
+        // 10..10000000).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_LATENCY_CAL_MIN_ARM_SAMPLES.
+        "minArmSamples": 0,
+        // minArmAircraft is the airframes each A/B arm needs (default 20,
+        // 2..100000).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_LATENCY_CAL_MIN_ARM_AIRCRAFT.
+        "minArmAircraft": 0,
+        // windowH is the A/B window in hours (default 6, 1..168).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_LATENCY_CAL_WINDOW_H.
+        "windowH": 0,
+        // priorSigmaS is the prior 1-sigma of an airframe latency in seconds
+        // (default 0.15, 0.001..2).
+        // Environment: AIRVIEW_AGGREGATOR_MLAT_LATENCY_CAL_PRIOR_SIGMA_S.
+        "priorSigmaS": 0,
+        // CalibratedSigmaS: an airframe counts as calibrated below this
+        // posterior 1-sigma in seconds (default 0.04, 0.001..1).
+        // Environment:
+        // AIRVIEW_AGGREGATOR_MLAT_LATENCY_CAL_CALIBRATED_SIGMA_S.
+        "calibratedSigmaS": 0
+      }
+    },
+    // Holds the aggregator's retention schedule (DESIGN §8.5, §20.2).
+    "retention": {
+      // Connection log (default 30, 1..365)
+      // Environment: AIRVIEW_AGGREGATOR_RETENTION_CONN_LOG_DAYS.
+      "connLogDays": 30,
+      // Per-station minute stats (default 30, 1..365)
+      // Environment: AIRVIEW_AGGREGATOR_RETENTION_MINUTE_DAYS.
+      "minuteDays": 30,
+      // Per-station hourly stats (default 13, 1..120)
+      // Environment: AIRVIEW_AGGREGATOR_RETENTION_HOUR_MONTHS.
+      "hourMonths": 13,
+      // Unclaimed + offline stations are purged after (default 90, 7..3650)
+      // Environment: AIRVIEW_AGGREGATOR_RETENTION_OFFLINE_PURGE_DAYS.
+      "offlinePurgeDays": 90,
+      // Audit log (default 24, 1..120)
+      // Environment: AIRVIEW_AGGREGATOR_RETENTION_AUDIT_MONTHS.
+      "auditMonths": 24,
+      // estimatesPerMethod is how many location estimates are kept per
+      // station and method (default 5, 1..100).
+      // Environment: AIRVIEW_AGGREGATOR_RETENTION_ESTIMATES_PER_METHOD.
+      "estimatesPerMethod": 5,
+      // backupDays is how long the operator's backups keep deleted data
+      // (default 30, 1..3650). AirView makes no backups by itself; the value
+      // is what owners are told when they delete their data (consent text C8,
+      // privacy notice), so set it to the retention of your backup rotation.
+      // Environment: AIRVIEW_AGGREGATOR_RETENTION_BACKUP_DAYS.
+      "backupDays": 30
+    },
+    // Holds the aggregator's admission and load limits (DESIGN §4.6), sized
+    // for the publication target of 1,000+ feeders and 10k+ concurrent
+    // aircraft on a mid-size VPS (DESIGN §20.2).
+    "limits": {
+      // maxStations is the maximum number of registered, approved stations
+      // (default 2000, 1..100000).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_MAX_STATIONS.
+      "maxStations": 2000,
+      // selectiveAbove switches stations to selective traffic when more than
+      // this many approved stations are online (default 100, 0..100000; 0 =
+      // always selective).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_SELECTIVE_ABOVE.
+      "selectiveAbove": 100,
+      // perIpStations is the maximum number of stations behind one IP address
+      // unless the address is in AllowCIDRs (default 8, 1..1000).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_PER_IP_STATIONS.
+      "perIpStations": 8,
+      // MaxFPSPerStation: above this frame rate the station gets FLOW, then
+      // is disconnected with a cool-down (default 6000, 100..100000).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_MAX_FPS_PER_STATION.
+      "maxFpsPerStation": 6000,
+      // maxKBpsPerStation is the compressed byte-rate limit per station in
+      // kB/s (default 200, 10..10000).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_MAX_K_BPS_PER_STATION.
+      "maxKBpsPerStation": 200,
+      // maxUnauthPerIp is the number of not yet authenticated connections per
+      // IP (default 4, 1..1000).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_MAX_UNAUTH_PER_IP.
+      "maxUnauthPerIp": 4,
+      // maxConnsPerIp is the number of connections per IP (default 16,
+      // 1..10000).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_MAX_CONNS_PER_IP.
+      "maxConnsPerIp": 16,
+      // maxConnsPerSubnet is the number of connections per IPv4 /24 or IPv6
+      // /48 (default 32, 1..100000).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_MAX_CONNS_PER_SUBNET.
+      "maxConnsPerSubnet": 32,
+      // handshakeTimeoutSec bounds the TLS + AVF handshake (default 10,
+      // 2..120).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_HANDSHAKE_TIMEOUT_SEC.
+      "handshakeTimeoutSec": 10,
+      // ingestFps is the global ingest budget in frames per second across all
+      // stations; selective-eligible traffic is shed first above it (default
+      // 3,000,000, 10,000..100,000,000).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_INGEST_FPS.
+      "ingestFps": 3000000,
+      // maxAircraft is the maximum number of concurrently tracked aircraft
+      // (default 30000, 1000..1,000,000).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_MAX_AIRCRAFT.
+      "maxAircraft": 30000,
+      // trackerShards is the number of ICAO shards of the global tracker
+      // (default 0 = automatic from GOMAXPROCS, else 1..256).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_TRACKER_SHARDS.
+      "trackerShards": 0,
+      // Public API rate limit per client IP in requests per second (default
+      // 1, 0.1..1000).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_PUBLIC_RPS.
+      "publicRps": 1,
+      // Burst size of the public API rate limit per client IP (default 10,
+      // 1..10000).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_PUBLIC_BURST.
+      "publicBurst": 10,
+      // maxPublicSse is the total number of public SSE streams (one per IP;
+      // default 2000, 1..100000).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_MAX_PUBLIC_SSE.
+      "maxPublicSse": 2000,
+      // maxHttpConns is the total number of open web (HTTP) connections
+      // (default 20000, 100..1,000,000); further connections wait in the
+      // kernel backlog.
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_MAX_HTTP_CONNS.
+      "maxHttpConns": 20000,
+      // maxHttpConnsPerIp is the number of open web connections per client
+      // IPv4 address or IPv6 /64 (default 64, 1..100000). Loopback and
+      // aggregator.trustedProxies are exempt.
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_MAX_HTTP_CONNS_PER_IP.
+      "maxHttpConnsPerIp": 64,
+      // allowCidrs are exempt from PerIPStations and the per-IP / per-subnet
+      // connection limits (e.g. a club's relay host).
+      // Environment: AIRVIEW_AGGREGATOR_LIMITS_ALLOW_CIDRS.
+      "allowCidrs": []
+    },
+    // Holds the aggregator account and session policy (DESIGN §7, §20.3).
+    "auth": {
+      // ownerSessionDays is the absolute lifetime of a station-owner session
+      // (default 30, 1..365 days).
+      // Environment: AIRVIEW_AGGREGATOR_AUTH_OWNER_SESSION_DAYS.
+      "ownerSessionDays": 30,
+      // ownerIdleDays ends an owner session without activity (default 14,
+      // 1..365 days).
+      // Environment: AIRVIEW_AGGREGATOR_AUTH_OWNER_IDLE_DAYS.
+      "ownerIdleDays": 14,
+      // adminSessionHours is the absolute lifetime of an admin session
+      // (default 12, 1..168 hours).
+      // Environment: AIRVIEW_AGGREGATOR_AUTH_ADMIN_SESSION_HOURS.
+      "adminSessionHours": 12,
+      // adminIdleMinutes ends an admin session without activity (default 120,
+      // 5..1440 minutes).
+      // Environment: AIRVIEW_AGGREGATOR_AUTH_ADMIN_IDLE_MINUTES.
+      "adminIdleMinutes": 120,
+      // registration is "open" (default: anyone may create an owner account)
+      // or "closed" (accounts are created by the admin only).
+      // Environment: AIRVIEW_AGGREGATOR_AUTH_REGISTRATION.
+      "registration": "open",
+      // loginFreeFailures is the number of failed logins per client and user
+      // name before the login throttle starts delaying (default 5, 1..100).
+      // Environment: AIRVIEW_AGGREGATOR_AUTH_LOGIN_FREE_FAILURES.
+      "loginFreeFailures": 5
+    },
+    // Holds the tunables of the Beast compat listener on BeastPort (DESIGN
+    // §5.1, §20.3). The rate and connection limits are in AggLimits.
+    "beast": {
+      // identifyWaitMs is how long a link may send Beast data before its UUID
+      // arrives; after it the link is attached as unidentified (default 2000,
+      // 100..60000 ms).
+      // Environment: AIRVIEW_AGGREGATOR_BEAST_IDENTIFY_WAIT_MS.
+      "identifyWaitMs": 2000,
+      // idleTimeoutSec closes links that are silent this long (default 180,
+      // 10..3600 s).
+      // Environment: AIRVIEW_AGGREGATOR_BEAST_IDLE_TIMEOUT_SEC.
+      "idleTimeoutSec": 180,
+      // pingIntervalSec is the period of the server's own pings once the
+      // feeder asked for them (default 5, 1..300 s).
+      // Environment: AIRVIEW_AGGREGATOR_BEAST_PING_INTERVAL_SEC.
+      "pingIntervalSec": 5,
+      // slowDownEverySec is the minimum interval between two slow-down
+      // requests on one link (default 10, 1..600 s).
+      // Environment: AIRVIEW_AGGREGATOR_BEAST_SLOW_DOWN_EVERY_SEC.
+      "slowDownEverySec": 10,
+      // queueBatches is the per-link delivery queue length in batches
+      // (default 64, 4..65536).
+      // Environment: AIRVIEW_AGGREGATOR_BEAST_QUEUE_BATCHES.
+      "queueBatches": 64,
+      // maxLinks caps concurrent Beast links (default 4096, 1..100000).
+      // Environment: AIRVIEW_AGGREGATOR_BEAST_MAX_LINKS.
+      "maxLinks": 4096,
+      // acceptMlatResults passes frames carrying the MLAT magic timestamp
+      // (default false: they are dropped and counted).
+      // Environment: AIRVIEW_AGGREGATOR_BEAST_ACCEPT_MLAT_RESULTS.
+      "acceptMlatResults": false,
+      // stripClock clears the receiver timestamps of every Beast frame
+      // (default false; Beast frames never enter MLAT either way).
+      // Environment: AIRVIEW_AGGREGATOR_BEAST_STRIP_CLOCK.
+      "stripClock": false,
+      // overLimitSeconds consecutive seconds above the rate limits disconnect
+      // a link (default 5, 1..300).
+      // Environment: AIRVIEW_AGGREGATOR_BEAST_OVER_LIMIT_SECONDS.
+      "overLimitSeconds": 5,
+      // coolDownSec is how long a station disconnected for its rate is
+      // refused (default 300, 0..86400 s; 0 = no cool-down).
+      // Environment: AIRVIEW_AGGREGATOR_BEAST_COOL_DOWN_SEC.
+      "coolDownSec": 300
+    },
+    // Holds the per-station statistics lane settings of the network tracker
+    // (DESIGN §6.3-6.4, §20.3).
+    "lanes": {
+      // flushSec is the interval of the per-station minute statistics rows
+      // (default 10, 2..60 s).
+      // Environment: AIRVIEW_AGGREGATOR_LANES_FLUSH_SEC.
+      "flushSec": 10,
+      // slowFlushSec is the interval of the range, coverage, signal,
+      // elevation and heat increments (default 300, 60..3600 s).
+      // Environment: AIRVIEW_AGGREGATOR_LANES_SLOW_FLUSH_SEC.
+      "slowFlushSec": 300,
+      // evictHours drops the in-memory lane of a station silent this long
+      // (default 24, 1..720 h).
+      // Environment: AIRVIEW_AGGREGATOR_LANES_EVICT_HOURS.
+      "evictHours": 24,
+      // maxRangeKm is the range gate: positions farther than this from a
+      // station never enter its range and coverage products, and are refused
+      // as implausible for it (default 800, 100..1500 km).
+      // Environment: AIRVIEW_AGGREGATOR_LANES_MAX_RANGE_KM.
+      "maxRangeKm": 800
+    },
+    // Holds the tiered retention and maintenance settings of the aggregator's
+    // databases (airview.db and stations.db; DESIGN §20.2, §20.3). They map
+    // onto store.TierPolicy.
+    "storage": {
+      // minuteDays keeps minute statistics this long (0 =
+      // retention.minuteDays, else 1..3650).
+      // Environment: AIRVIEW_AGGREGATOR_STORAGE_MINUTE_DAYS.
+      "minuteDays": 0,
+      // hourDays keeps hourly statistics this long (0 = 30 x
+      // retention.hourMonths, else 7..3650).
+      // Environment: AIRVIEW_AGGREGATOR_STORAGE_HOUR_DAYS.
+      "hourDays": 0,
+      // dayDays keeps the daily totals this long (default 0 = forever, else
+      // 1..36500).
+      // Environment: AIRVIEW_AGGREGATOR_STORAGE_DAY_DAYS.
+      "dayDays": 0,
+      // histDailyDays keeps histograms per day this long before they are
+      // merged into month buckets (default 35, 1..3650).
+      // Environment: AIRVIEW_AGGREGATOR_STORAGE_HIST_DAILY_DAYS.
+      "histDailyDays": 35,
+      // histDays deletes histogram rows older than this (default 395, 0 =
+      // forever).
+      // Environment: AIRVIEW_AGGREGATOR_STORAGE_HIST_DAYS.
+      "histDays": 395,
+      // heatIdleDays deletes heat cells not updated for this long (default
+      // 395, 0 = forever).
+      // Environment: AIRVIEW_AGGREGATOR_STORAGE_HEAT_IDLE_DAYS.
+      "heatIdleDays": 395,
+      // flightStationDays deletes the station links of flights that ended
+      // longer ago (default 90; 0 = keep them as long as the flights).
+      // Environment: AIRVIEW_AGGREGATOR_STORAGE_FLIGHT_STATION_DAYS.
+      "flightStationDays": 90,
+      // trailDays keeps the stored position trails (the positions table of
+      // airview.db, the largest table of a busy aggregator: about 0.6 GB per
+      // 1000 aircraft and day) of flights that ended this long ago; it
+      // replaces storage.trailRetentionDays in aggregator mode (default 7,
+      // 1..3650).
+      // Environment: AIRVIEW_AGGREGATOR_STORAGE_TRAIL_DAYS.
+      "trailDays": 7,
+      // trailFullDays keeps the stored trails of flights at full resolution
+      // for this many days after the flight ended, then thins them to one
+      // point per TrailThinSec (default 2, 0..3650; 0 = never thin).
+      // Environment: AIRVIEW_AGGREGATOR_STORAGE_TRAIL_FULL_DAYS.
+      "trailFullDays": 2,
+      // trailThinSec is the point interval of thinned trails in seconds
+      // (default 30, 0 or 2..3600; 0 = never thin).
+      // Environment: AIRVIEW_AGGREGATOR_STORAGE_TRAIL_THIN_SEC.
+      "trailThinSec": 30,
+      // freePct releases free pages when more than this share of a file is
+      // free (default 10, 1..90 %).
+      // Environment: AIRVIEW_AGGREGATOR_STORAGE_FREE_PCT.
+      "freePct": 10,
+      // walCheckpointMb truncates a write-ahead log larger than this (default
+      // 64, 4..4096 MiB).
+      // Environment: AIRVIEW_AGGREGATOR_STORAGE_WAL_CHECKPOINT_MB.
+      "walCheckpointMb": 64,
+      // optimizeHours is the interval of PRAGMA optimize (default 1, 1..720
+      // h; bounded by analysis_limit, so an hourly run costs milliseconds).
+      // Environment: AIRVIEW_AGGREGATOR_STORAGE_OPTIMIZE_HOURS.
+      "optimizeHours": 1,
+      // queueRows bounds the write queue of stations.db in rows (default
+      // 2000000, 10000..50000000).
+      // Environment: AIRVIEW_AGGREGATOR_STORAGE_QUEUE_ROWS.
+      "queueRows": 2000000
+    },
+    // Holds the tunables of the station-aware ingest and the AVF/1 listener
+    // (internal/ingest, internal/ingest/avfsrv; DESIGN §6.2, §20.3).
+    "ingest": {
+      // WindowMs: a group accepts copies this long after its first copy
+      // (default 1000, 200..5000).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_WINDOW_MS.
+      "windowMs": 1000,
+      // FlushAfterMs: a group goes to MLAT this long after its first copy
+      // (default 400, 100..windowMs).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_FLUSH_AFTER_MS.
+      "flushAfterMs": 400,
+      // retainMs keeps a closed group for de-duplication (default 1000,
+      // 100..10000).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_RETAIN_MS.
+      "retainMs": 1000,
+      // maxMatchMs caps the time tolerance of a match (default 300, 20..700).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_MAX_MATCH_MS.
+      "maxMatchMs": 300,
+      // minMatchMs is the smallest tolerance (default 10, 1..maxMatchMs).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_MIN_MATCH_MS.
+      "minMatchMs": 10,
+      // uniqueSkewMs is the largest skew at which a non-repeating payload
+      // joins a group before the station's time correction is calibrated
+      // (default 2500, 100..10000).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_UNIQUE_SKEW_MS.
+      "uniqueSkewMs": 2500,
+      // lateAfterMs routes older frames to the statistics lanes only (0 =
+      // windowMs + retainMs + 500, else 500..60000).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_LATE_AFTER_MS.
+      "lateAfterMs": 0,
+      // shards is the number of grouper shards (default 64, 1..4096; rounded
+      // up to a power of two).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_SHARDS.
+      "shards": 64,
+      // reduceMs is the reduce interval of selective mode (default 500,
+      // 100..5000).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_REDUCE_MS.
+      "reduceMs": 500,
+      // flowHoldSec tunes the FLOW rules (default 5, 1..60).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_FLOW_HOLD_SEC.
+      "flowHoldSec": 5,
+      // flowGraceSec tunes the FLOW rules (default 10, 1..300).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_FLOW_GRACE_SEC.
+      "flowGraceSec": 10,
+      // avfQueueRecords is the per-connection queue of the AVF listener in
+      // record batches (default 64, 4..4096).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_AVF_QUEUE_RECORDS.
+      "avfQueueRecords": 64,
+      // avfResumeGraceSec keeps a station online after its connection ended,
+      // for a resume (default 30, 1..300).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_AVF_RESUME_GRACE_SEC.
+      "avfResumeGraceSec": 30,
+      // avfMaxSessions caps concurrent AVF connections (default 10000,
+      // 1..100000).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_AVF_MAX_SESSIONS.
+      "avfMaxSessions": 10000,
+      // clockGateFloorUs is the smallest tolerance of the synced-station
+      // network-time gate in µs (0 = default 50; -1 = no floor).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_CLOCK_GATE_FLOOR_US.
+      "clockGateFloorUs": 0,
+      // flushSampleEvery feeds every n-th group's delays to the adaptive
+      // flush estimator (0 = default 4).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_FLUSH_SAMPLE_EVERY.
+      "flushSampleEvery": 0,
+      // avfHostSlackMs bounds how much earlier than physically plausible an
+      // AVF feeder's host times may place its frames before the host-clock
+      // offset is corrected (0 = default 300; -1 = off).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_AVF_HOST_SLACK_MS.
+      "avfHostSlackMs": 0,
+      // adaptiveFlush replaces the fixed flushAfterMs of MLAT groups by a
+      // per-aircraft delay from the delivery latency of the stations that
+      // hear it (150-600 ms; default false).
+      // Environment: AIRVIEW_AGGREGATOR_INGEST_ADAPTIVE_FLUSH.
+      "adaptiveFlush": false
+    },
+    // Tunes the mlat-client compatible listener on MLATPort
+    // (internal/ingest/mlatc, DESIGN §5.2). The rate and connection limits
+    // are in AggLimits. Zero = default.
+    "mlatc": {
+      // splitSync is the split_sync policy: "auto" (default, "" = auto:
+      // offered, with a per-client fallback to sync pairs), "on" (always
+      // offered) or "off" (never; the reference protocol's default). The old
+      // boolean form is accepted: true = "on", false = "auto" (DESIGN §5.2).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_SPLIT_SYNC.
+      "splitSync": "",
+      // maxRequested caps the aircraft one client is asked to send (default
+      // 2000).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_MAX_REQUESTED.
+      "maxRequested": 0,
+      // maxSeen caps a client's remembered seen set (default 10000).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_MAX_SEEN.
+      "maxSeen": 0,
+      // maxBadLines disconnects a client after this many malformed lines
+      // (default 200).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_MAX_BAD_LINES.
+      "maxBadLines": 0,
+      // idleTimeoutSec drops a silent client (default 150 s).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_IDLE_TIMEOUT_SEC.
+      "idleTimeoutSec": 0,
+      // heartbeatSec is the server heartbeat period (default 30 s).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_HEARTBEAT_SEC.
+      "heartbeatSec": 0,
+      // statsSec is the period of stats messages (default 60 s).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_STATS_SEC.
+      "statsSec": 0,
+      // overLimitSeconds above the rate limit disconnect a client (default
+      // 5).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_OVER_LIMIT_SECONDS.
+      "overLimitSeconds": 0,
+      // coolDownSec refuses a disconnected rate offender this long (default
+      // 300 s).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_COOL_DOWN_SEC.
+      "coolDownSec": 0,
+      // maxClients caps concurrent connections (default 4096).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_MAX_CLIENTS.
+      "maxClients": 0,
+      // maxOutQueueKB is the per-client output queue (default 256 KiB).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_MAX_OUT_QUEUE_KB.
+      "maxOutQueueKB": 0,
+      // udpHost is the host told to clients for the UDP transport ("" = the
+      // local address of the client's TCP connection; set it behind NAT or in
+      // a port-mapped container). Needs aggregator.mlat.udp.
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_UDP_HOST.
+      "udpHost": "",
+      // udpPort is the externally reachable UDP port told to clients (0 = the
+      // bound UDP port, 1..65535).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_UDP_PORT.
+      "udpPort": 0,
+      // udpListen is the datagram listen address ("" = the TCP listener's
+      // address and port).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_UDP_LISTEN.
+      "udpListen": "",
+      // udpAnySource accepts datagrams from any source address (default
+      // false: only from the address of the client's TCP connection; needed
+      // behind carrier-grade NAT).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_UDP_ANY_SOURCE.
+      "udpAnySource": false,
+      // udpReaders is the number of goroutines reading the datagram socket
+      // (default min(4, GOMAXPROCS), up to 64).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_UDP_READERS.
+      "udpReaders": 0,
+      // modeAcAllClients sends Mode A/C requests also to clients that did not
+      // announce "modeac" in their handshake (default false).
+      // Environment: AIRVIEW_AGGREGATOR_MLATC_MODE_AC_ALL_CLIENTS.
+      "modeAcAllClients": false
+    },
+    // Rate-limits and holds the station positions that feeders announce
+    // themselves (AVF RECEIVER records, mlat-client handshakes; finding
+    // PRIV-1). Zero = default.
+    "positions": {
+      // JitterM: changes smaller than this are ignored (default 30 m).
+      // Environment: AIRVIEW_AGGREGATOR_POSITIONS_JITTER_M.
+      "jitterM": 0,
+      // MinIntervalHours: at most one applied change per station per this
+      // interval (default 24 h).
+      // Environment: AIRVIEW_AGGREGATOR_POSITIONS_MIN_INTERVAL_HOURS.
+      "minIntervalHours": 0,
+      // HoldBeyondM: moves at least this large wait for the survey, an owner
+      // confirmation or holdMaxDays (default 1000 m).
+      // Environment: AIRVIEW_AGGREGATOR_POSITIONS_HOLD_BEYOND_M.
+      "holdBeyondM": 0,
+      // holdMaxDays releases a held move announced continuously this long
+      // (default 7; negative = never).
+      // Environment: AIRVIEW_AGGREGATOR_POSITIONS_HOLD_MAX_DAYS.
+      "holdMaxDays": 0,
+      // SurveyMatchM: a survey estimate within max(surveyMatchM, 3σ) of a
+      // held position confirms it (default 250 m).
+      // Environment: AIRVIEW_AGGREGATOR_POSITIONS_SURVEY_MATCH_M.
+      "surveyMatchM": 0
+    },
+    // Is aggregator.federation: links to other AirView networks over AVFED/1
+    // and federation-safe outbound feeds (DESIGN §12.1 phase 5). It has
+    // exactly the JSON shape of internal/federation.Config (a test keeps the
+    // two in step). Zero = off / default.
+    "federation": {
+      // enabled switches federation on. Off, nothing listens or dials.
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_ENABLED.
+      "enabled": false,
+      // name is this network's display name sent to peers (optional).
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_NAME.
+      "name": "",
+      // listen is the address of the inbound federation listener ("" = accept
+      // no inbound peers, e.g. ":30170").
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_LISTEN.
+      "listen": "",
+      // identityFile is the node's Ed25519 key file ("" = federation.key in
+      // the data directory). The node ID shown to peer operators derives from
+      // it.
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_IDENTITY_FILE.
+      "identityFile": "",
+      // tlsCert is an operator certificate for the listener ("" = a
+      // self-signed certificate kept in <data>/fed-tls).
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_TLS_CERT.
+      "tlsCert": "",
+      // tlsKey is the key of TLSCert (a secret path).
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_TLS_KEY.
+      "tlsKey": "",
+      // intervalMs is the aircraft-state export period (default 1000,
+      // 100..60000).
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_INTERVAL_MS.
+      "intervalMs": 0,
+      // mlatIntervalMs is the MLAT-result flush period (default 250,
+      // 50..10000).
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_MLAT_INTERVAL_MS.
+      "mlatIntervalMs": 0,
+      // FullRefreshS: every this many seconds a peer gets every aircraft, not
+      // only the changed ones (default 30, 1..3600).
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_FULL_REFRESH_S.
+      "fullRefreshS": 0,
+      // ttlS is how long a remote aircraft stays without an update (default
+      // 60, 5..3600 s).
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_TTL_S.
+      "ttlS": 0,
+      // transit allows forwarding data received from one peer to other peers
+      // (each peer must also allow it in send.transit; default off).
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_TRANSIT.
+      "transit": false,
+      // maxHops bounds the path length of forwarded data, origin included
+      // (default 3, 1..8).
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_MAX_HOPS.
+      "maxHops": 0,
+      // maxRemoteAircraft bounds the remote aircraft store (default 50000,
+      // 100..1000000).
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_MAX_REMOTE_AIRCRAFT.
+      "maxRemoteAircraft": 0,
+      // maxInflateBps bounds the decompressed inbound rate per peer in bytes
+      // per second (default 16000000, 100000..1000000000).
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_MAX_INFLATE_BPS.
+      "maxInflateBps": 0,
+      // queueRecords bounds the per-peer send queue (default 256, 8..100000).
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_QUEUE_RECORDS.
+      "queueRecords": 0,
+      // hideRemote keeps received aircraft off the map (default false: they
+      // are drawn as an overlay).
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_HIDE_REMOTE.
+      "hideRemote": false,
+      // inject hands received aircraft to the tracker (default false; keep it
+      // off: remote data would enter statistics and records).
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_INJECT.
+      "inject": false,
+      // peers are the federated networks.
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_PEERS (JSON list) or
+      // AIRVIEW_AGGREGATOR_FEDERATION_PEERS_<n>_<FIELD> per element.
+      "peers": [
+      ],
+      // feeds are federation-safe outbound feeds to other networks.
+      // Environment: AIRVIEW_AGGREGATOR_FEDERATION_FEEDS (JSON list) or
+      // AIRVIEW_AGGREGATOR_FEDERATION_FEEDS_<n>_<FIELD> per element.
+      "feeds": [
+      ]
+    },
+    // Configures aggregator.shareLinks: the read-only share links station
+    // owners create for their own stations (internal/server api_share.go).
+    // Zero = default; the links are on by default.
+    "shareLinks": {
+      // disabled switches share links off (default false). The share routes
+      // then answer 404, existing links stop working and the web UI hides the
+      // feature; the stored links are kept.
+      // Environment: AIRVIEW_AGGREGATOR_SHARE_LINKS_DISABLED.
+      "disabled": false,
+      // maxPerOwner is the number of active links one account may hold
+      // (default 20, 1..1000).
+      // Environment: AIRVIEW_AGGREGATOR_SHARE_LINKS_MAX_PER_OWNER.
+      "maxPerOwner": 0,
+      // maxDays is the longest validity of a link in days (default 365,
+      // 1..3650).
+      // Environment: AIRVIEW_AGGREGATOR_SHARE_LINKS_MAX_DAYS.
+      "maxDays": 0,
+      // defaultDays is the validity of a new link when the owner does not
+      // choose one (default 30, 1..maxDays).
+      // Environment: AIRVIEW_AGGREGATOR_SHARE_LINKS_DEFAULT_DAYS.
+      "defaultDays": 0,
+      // exactLowDefault makes new links show low aircraft (below 1000 ft AGL
+      // and on the ground) at their exact position unless the owner chooses
+      // otherwise (default false: new links round them to the island-guard
+      // grid). The owner can still choose per link.
+      // Environment: AIRVIEW_AGGREGATOR_SHARE_LINKS_EXACT_LOW_DEFAULT.
+      "exactLowDefault": false
+    }
+  },
+  // Is the signed self-update block ("update") of airview and airview-feeder.
+  // It mirrors internal/selfupdate.Settings field for field (model is a leaf
+  // package; the wiring converts with a field copy). Self-update is opt-in
+  // for airview; airview-feeder maps its autoUpdate switch onto Enabled when
+  // a manifest URL and a key are set.
+  "update": {
+    // enabled turns on the periodic automatic check-and-install (default
+    // false for airview; the manual "update" command works whenever a
+    // manifest URL and a key are configured).
+    // Environment: AIRVIEW_UPDATE_ENABLED.
+    "enabled": false,
+    // channel is "stable" (default) or "beta".
+    // Environment: AIRVIEW_UPDATE_CHANNEL.
+    "channel": "stable",
+    // manifestUrl is the URL of the signed release manifest, e.g.
+    // https://aggregator.example/feeder/manifest.json ("" = no updates;
+    // "{channel}" is replaced by the channel).
+    // Environment: AIRVIEW_UPDATE_MANIFEST_URL.
+    "manifestUrl": "",
+    // keys are the trusted Ed25519 release public keys (base64 of the raw 32
+    // bytes; several allow key rotation). Public keys, not secrets.
+    // Environment: AIRVIEW_UPDATE_KEYS.
+    "keys": [],
+    // checkIntervalMin is the automatic check period in minutes (default
+    // 1440, 15..44640; jittered by ±25 %).
+    // Environment: AIRVIEW_UPDATE_CHECK_INTERVAL_MIN.
+    "checkIntervalMin": 1440,
+    // healthWindowS is how long a new version must stay healthy after the
+    // restart before it is kept (default 60, 10..900 s).
+    // Environment: AIRVIEW_UPDATE_HEALTH_WINDOW_S.
+    "healthWindowS": 60,
+    // maxDownloadMB bounds a release download (default 256, 1..4096).
+    // Environment: AIRVIEW_UPDATE_MAX_DOWNLOAD_MB.
+    "maxDownloadMB": 256,
+    // healthUrl is polled during the health window ("" = the program's own
+    // health endpoint).
+    // Environment: AIRVIEW_UPDATE_HEALTH_URL.
+    "healthUrl": ""
+  },
+  // Controls Locate Me v2 (internal/analytics locate2): the guess samples the
+  // tracker records so the receiver position can be estimated from what it
+  // hears.
+  "locate": {
+    // enabled records guess samples and runs Locate Me v2 (default true).
+    // Environment: AIRVIEW_LOCATE_ENABLED.
+    "enabled": true,
+    // retentionDays keeps guess samples this long (default 7, 1..30).
+    // Environment: AIRVIEW_LOCATE_RETENTION_DAYS.
+    "retentionDays": 7,
+    // maxRowsPerStation caps one station's guess samples (default 2000000,
+    // 10000..20000000).
+    // Environment: AIRVIEW_LOCATE_MAX_ROWS_PER_STATION.
+    "maxRowsPerStation": 2000000,
+    // maxRowsTotal caps all guess samples of a database (default 10000000,
+    // 100000..200000000).
+    // Environment: AIRVIEW_LOCATE_MAX_ROWS_TOTAL.
+    "maxRowsTotal": 10000000
+  },
+  // Configures the EXPERIMENTAL bistatic SSR self-location of this receiver
+  // (top-level "ssr" block; internal/mlat/ssr,
+  // docs/aggregator/SSR-RESEARCH.md). Off by default. Its result is shown to
+  // the station owner / admin only and is never used to set, confirm or
+  // replace a station position (DESIGN §8, §19.3); at most it may seed a
+  // survey search. Every numeric field: 0 = the package default. The Go field
+  // names equal those of ssr.Config; the engine maps them by name
+  // (internal/engine/ssrwire.go, tested).
+  "ssr": {
+    // enabled turns the estimator on (default false, experimental).
+    // Environment: AIRVIEW_SSR_ENABLED.
+    "enabled": false,
+    // feedId is the local feed whose receiver timestamps are used ("" = the
+    // first feed that delivers timestamped frames). One receiver clock only:
+    // replies of other feeds are ignored.
+    // Environment: AIRVIEW_SSR_FEED_ID.
+    "feedId": "",
+    // solveEveryMin is how often the position is solved in the background
+    // (default 10, 1..1440 minutes; a solve takes about 0.3 s).
+    // Environment: AIRVIEW_SSR_SOLVE_EVERY_MIN.
+    "solveEveryMin": 0,
+    // sites are known interrogator (radar) positions. Empty = learn them from
+    // the data.
+    // Environment: AIRVIEW_SSR_SITES (JSON list) or
+    // AIRVIEW_SSR_SITES_<n>_<FIELD> per element.
+    "sites": [
+    ],
+    // conspicuityCodes are Mode A codes (4 octal digits) shared by many
+    // aircraft and never used to identify a Mode A/C reply (default 7000,
+    // 2000, 1200, 0000, 7777, 1000).
+    // Environment: AIRVIEW_SSR_CONSPICUITY_CODES.
+    "conspicuityCodes": [],
+    // modeAcCodeFormat is the layout of the receiver's 2-byte Mode A/C
+    // payloads: "" or "pulses" (reply pulses in transmission order, the Beast
+    // default) or "nibbles" (one octal digit per nibble).
+    // Environment: AIRVIEW_SSR_MODE_AC_CODE_FORMAT.
+    "modeAcCodeFormat": "",
+    // dwellGapS is the silence that ends a reply burst (default 0.05,
+    // 0.001..1 s).
+    // Environment: AIRVIEW_SSR_DWELL_GAP_S.
+    "dwellGapS": 0,
+    // ProcessLagS: replies are processed this far behind the newest input
+    // (default 2, 0.1..30 s).
+    // Environment: AIRVIEW_SSR_PROCESS_LAG_S.
+    "processLagS": 0,
+    // maxDwellS caps a reply burst (default 0.5, 0.01..5 s).
+    // Environment: AIRVIEW_SSR_MAX_DWELL_S.
+    "maxDwellS": 0,
+    // matchTolNs is the half width of the reply-train match window (default
+    // 400, 10..5000 ns).
+    // Environment: AIRVIEW_SSR_MATCH_TOL_NS.
+    "matchTolNs": 0,
+    // minMatches is the minimum common interrogations of a pair dwell
+    // (default 4, 2..100).
+    // Environment: AIRVIEW_SSR_MIN_MATCHES.
+    "minMatches": 0,
+    // ambiguityRatio rejects a pair whose alias peak reaches this fraction of
+    // the best peak (default 0.6, 0.01..1).
+    // Environment: AIRVIEW_SSR_AMBIGUITY_RATIO.
+    "ambiguityRatio": 0,
+    // maxPairSepM bounds the separation of two paired aircraft (default
+    // 250000, 1000..1000000 m).
+    // Environment: AIRVIEW_SSR_MAX_PAIR_SEP_M.
+    "maxPairSepM": 0,
+    // timingSigmaACNs is the per-reply timing noise of Mode A/C replies
+    // (default 120, 1..5000 ns; about 180 for RTL-SDR receivers).
+    // Environment: AIRVIEW_SSR_TIMING_SIGMA_AC_NS.
+    "timingSigmaACNs": 0,
+    // timingSigmaSNs is the per-reply timing noise of Mode S replies (default
+    // 60, 1..5000 ns).
+    // Environment: AIRVIEW_SSR_TIMING_SIGMA_S_NS.
+    "timingSigmaSNs": 0,
+    // trackSigmaM is the position noise of a reference aircraft without NACp
+    // (default 20, 0.1..10000 m).
+    // Environment: AIRVIEW_SSR_TRACK_SIGMA_M.
+    "trackSigmaM": 0,
+    // floorSigmaM is added to every observation (default 5, 0.01..1000 m).
+    // Environment: AIRVIEW_SSR_FLOOR_SIGMA_M.
+    "floorSigmaM": 0,
+    // biasSigmaACNs is the prior of a Mode A/C reply-delay offset (default
+    // 300, 1..10000 ns).
+    // Environment: AIRVIEW_SSR_BIAS_SIGMA_AC_NS.
+    "biasSigmaACNs": 0,
+    // biasSigmaSNs is the prior of a Mode S reply-delay offset (default 150,
+    // 1..10000 ns).
+    // Environment: AIRVIEW_SSR_BIAS_SIGMA_S_NS.
+    "biasSigmaSNs": 0,
+    // maxObs bounds the stored pair observations (default 60000,
+    // 1000..10000000).
+    // Environment: AIRVIEW_SSR_MAX_OBS.
+    "maxObs": 0,
+    // maxAircraft bounds the solved airframe biases (default 600,
+    // 10..100000).
+    // Environment: AIRVIEW_SSR_MAX_AIRCRAFT.
+    "maxAircraft": 0,
+    // minObs gates a result: minimum observations (default 50, 1..1000000).
+    // Environment: AIRVIEW_SSR_MIN_OBS.
+    "minObs": 0,
+    // minAircraft gates a result: minimum airframes (default 10, 1..10000).
+    // Environment: AIRVIEW_SSR_MIN_AIRCRAFT.
+    "minAircraft": 0,
+    // minRadarObs gates a result: observations per interrogator (default 20,
+    // 1..1000000).
+    // Environment: AIRVIEW_SSR_MIN_RADAR_OBS.
+    "minRadarObs": 0,
+    // radarRegionM is the half size of the interrogator search square
+    // (default 500000, 10000..2000000 m).
+    // Environment: AIRVIEW_SSR_RADAR_REGION_M.
+    "radarRegionM": 0,
+    // radarCellM is the Hough cell of the site learning (default 4000,
+    // 100..100000 m).
+    // Environment: AIRVIEW_SSR_RADAR_CELL_M.
+    "radarCellM": 0,
+    // minLineSepM is the minimum pair separation for a bearing line (default
+    // 15000, 100..1000000 m).
+    // Environment: AIRVIEW_SSR_MIN_LINE_SEP_M.
+    "minLineSepM": 0,
+    // minRadarLines is the minimum bearing lines of a learned interrogator
+    // (default 25, 2..100000).
+    // Environment: AIRVIEW_SSR_MIN_RADAR_LINES.
+    "minRadarLines": 0,
+    // minRadarSpreadDeg is the minimum azimuth spread of those lines (default
+    // 10, 0.1..180 degrees).
+    // Environment: AIRVIEW_SSR_MIN_RADAR_SPREAD_DEG.
+    "minRadarSpreadDeg": 0,
+    // maxRadars bounds the learned interrogators (default 16, 1..256).
+    // Environment: AIRVIEW_SSR_MAX_RADARS.
+    "maxRadars": 0,
+    // radarNmsM is the peak suppression radius (default 30000, 100..1000000
+    // m).
+    // Environment: AIRVIEW_SSR_RADAR_NMS_M.
+    "radarNmsM": 0,
+    // beamwidthDeg is the assumed beam width incl. margin (default 3, 0.1..20
+    // degrees).
+    // Environment: AIRVIEW_SSR_BEAMWIDTH_DEG.
+    "beamwidthDeg": 0,
+    // assignMinTolM is the minimum assignment tolerance (default 3000,
+    // 1..1000000 m).
+    // Environment: AIRVIEW_SSR_ASSIGN_MIN_TOL_M.
+    "assignMinTolM": 0,
+    // radarHeightM is the assumed height of a learned interrogator above the
+    // ellipsoid (default 60, -500..9000 m).
+    // Environment: AIRVIEW_SSR_RADAR_HEIGHT_M.
+    "radarHeightM": 0,
+    // radarHeightSigmaM is its prior 1-sigma (default 300, 1..10000 m).
+    // Environment: AIRVIEW_SSR_RADAR_HEIGHT_SIGMA_M.
+    "radarHeightSigmaM": 0,
+    // learnedSiteMinSigmaM floors a learned site's horizontal prior (default
+    // 1500, 1..1000000 m).
+    // Environment: AIRVIEW_SSR_LEARNED_SITE_MIN_SIGMA_M.
+    "learnedSiteMinSigmaM": 0,
+    // MaxLineSigmaM: bearing lines vote only below this expected miss
+    // (default 10000, 10..1000000 m).
+    // Environment: AIRVIEW_SSR_MAX_LINE_SIGMA_M.
+    "maxLineSigmaM": 0,
+    // rotWindowS is the rotation-check phase window (default 60, 1..3600 s).
+    // Environment: AIRVIEW_SSR_ROT_WINDOW_S.
+    "rotWindowS": 0,
+    // minPeriodS is the shortest radar rotation period searched (default 2,
+    // 0.5..60 s).
+    // Environment: AIRVIEW_SSR_MIN_PERIOD_S.
+    "minPeriodS": 0,
+    // maxPeriodS is the longest one (default 15, 1..120 s).
+    // Environment: AIRVIEW_SSR_MAX_PERIOD_S.
+    "maxPeriodS": 0,
+    // minCoherence is the rotation coherence a learned interrogator needs
+    // (default 0.8, 0.01..1).
+    // Environment: AIRVIEW_SSR_MIN_COHERENCE.
+    "minCoherence": 0,
+    // phaseTolDeg is the beam-phase allowance (default 2, 0.01..90 degrees).
+    // Environment: AIRVIEW_SSR_PHASE_TOL_DEG.
+    "phaseTolDeg": 0,
+    // latencySigmaS is the prior of a per-airframe ADS-B latency (default
+    // 0.3, 0.001..10 s).
+    // Environment: AIRVIEW_SSR_LATENCY_SIGMA_S.
+    "latencySigmaS": 0,
+    // noLatency disables the per-airframe latency parameters.
+    // Environment: AIRVIEW_SSR_NO_LATENCY.
+    "noLatency": false,
+    // searchRadiusM is the seed grid radius without a hint (default 300000,
+    // 1000..2000000 m).
+    // Environment: AIRVIEW_SSR_SEARCH_RADIUS_M.
+    "searchRadiusM": 0,
+    // seedMaxObs is the observations used by the seed grid (default 4000,
+    // 100..1000000).
+    // Environment: AIRVIEW_SSR_SEED_MAX_OBS.
+    "seedMaxObs": 0,
+    // heightSigmaM is the height prior without a hint (default 1000,
+    // 1..100000 m).
+    // Environment: AIRVIEW_SSR_HEIGHT_SIGMA_M.
+    "heightSigmaM": 0,
+    // huberK is the robust-solve threshold (default 2.5, 0.1..100).
+    // Environment: AIRVIEW_SSR_HUBER_K.
+    "huberK": 0,
+    // outlierZ rejects observations beyond this normalised residual (default
+    // 5, 1..100).
+    // Environment: AIRVIEW_SSR_OUTLIER_Z.
+    "outlierZ": 0,
+    // maxIter bounds the solver iterations (default 25, 1..1000).
+    // Environment: AIRVIEW_SSR_MAX_ITER.
+    "maxIter": 0,
+    // MaxSigmaHM: a solution with a larger horizontal 1-sigma is reported but
+    // not OK (default 500, 1..1000000 m).
+    // Environment: AIRVIEW_SSR_MAX_SIGMA_HM.
+    "maxSigmaHM": 0
+  },
+  // ("process") holds process-level settings of the airview server: the log
+  // file and the soft memory limit (DESIGN §20.3: every setting
+  // file-configurable). They are applied when the server starts.
+  "process": {
+    // logLevel is the lowest level written to the log: debug, info (default),
+    // warn or error. AIRVIEW_DEBUG=1 still forces debug.
+    // Environment: AIRVIEW_PROCESS_LOG_LEVEL.
+    "logLevel": "",
+    // logMaxMb is the size (MiB) at which airview.log is rotated (1..4096; 0
+    // = automatic: 4 in standalone mode, 64 in aggregator mode).
+    // Environment: AIRVIEW_PROCESS_LOG_MAX_MB.
+    "logMaxMb": 0,
+    // logFiles is how many rotated files (airview.log.1, .2, ...) are kept
+    // (1..100; 0 = automatic: 1 in standalone mode, 10 in aggregator mode).
+    // Environment: AIRVIEW_PROCESS_LOG_FILES.
+    "logFiles": 0,
+    // memoryLimitMb is the soft Go heap limit in MiB (64..1048576; 0 =
+    // automatic: 384 on Raspberry Pi class Linux devices in standalone mode;
+    // in aggregator mode 85 % of a cgroup memory cap, else 80 % of the
+    // physical memory; -1 = none). GOMEMLIMIT wins over it.
+    // Environment: AIRVIEW_PROCESS_MEMORY_LIMIT_MB.
+    "memoryLimitMb": 0,
+    // journalLevel is the lowest level copied to standard error, which
+    // systemd stores in its journal: debug, info, warn or error ("" =
+    // automatic: warn when started by systemd, so the SD card does not get
+    // every line twice, else the same as logLevel). airview.log is not
+    // affected.
+    // Environment: AIRVIEW_PROCESS_JOURNAL_LEVEL.
+    "journalLevel": ""
+  }
+}

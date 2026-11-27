@@ -1,0 +1,136 @@
+/* AirView design tokens - the single source of truth for colour, type, spacing and elevation. */
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(../vendor/fonts/inter-latin-ext-wght-normal.woff2) format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(../vendor/fonts/inter-latin-wght-normal.woff2) format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'JetBrains Mono Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 800;
+  src: url(../vendor/fonts/jetbrains-mono-latin-ext-wght-normal.woff2) format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'JetBrains Mono Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 800;
+  src: url(../vendor/fonts/jetbrains-mono-latin-wght-normal.woff2) format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* ---- canvas: black -> midnight navy -> luminous cobalt ---- */
+  --bg-0: #02040a;
+  --bg-1: #030817;
+  --bg-2: #06122e;
+  --bg-3: #0a1f55;
+
+  /* ---- brand blues ---- */
+  --blue: #2f7dff;          /* primary / interactive */
+  --blue-hi: #6aa8ff;       /* hover, links, focus text */
+  --blue-lo: #1a4fd0;       /* pressed */
+  --cobalt: #0b3bff;        /* deep glow */
+  --blue-a08: rgba(47, 125, 255, 0.08);
+  --blue-a16: rgba(47, 125, 255, 0.16);
+  --blue-a28: rgba(47, 125, 255, 0.28);
+  --blue-a50: rgba(47, 125, 255, 0.5);
+
+  /* ---- semantic accents (keep them rare) ---- */
+  --cyan: #22d3ee;          /* ADS-B */
+  --amber: #fbbf24;         /* MLAT, warnings */
+  --violet: #a78bfa;        /* Mode S only */
+  --teal: #2dd4bf;          /* TIS-B / ADS-R */
+  --red: #ff4d5e;           /* emergencies, errors */
+  --green: #34d399;         /* healthy / connected */
+  --grey: #8494b3;          /* other / unknown */
+  --cyan-a: rgba(34, 211, 238, 0.14);
+  --amber-a: rgba(251, 191, 36, 0.14);
+  --violet-a: rgba(167, 139, 250, 0.15);
+  --teal-a: rgba(45, 212, 191, 0.14);
+  --red-a: rgba(255, 77, 94, 0.16);
+  --green-a: rgba(52, 211, 153, 0.14);
+  --grey-a: rgba(132, 148, 179, 0.14);
+
+  /* ---- text ---- */
+  --text: #e8f0ff;
+  --text-2: #adbfdf;
+  --text-3: #7388ad;
+  --text-4: #4a5d82;
+
+  /* ---- surfaces (glass) ---- */
+  --panel: rgba(8, 17, 38, 0.66);
+  --panel-hi: rgba(14, 28, 60, 0.72);
+  --panel-solid: #081226;
+  --panel-solid-hi: #0c1a36;
+  --inset: rgba(2, 6, 16, 0.55);
+  --line: rgba(120, 165, 255, 0.13);
+  --line-2: rgba(120, 165, 255, 0.24);
+  --line-3: rgba(120, 165, 255, 0.4);
+  --hover: rgba(90, 150, 255, 0.08);
+  --selected: rgba(47, 125, 255, 0.18);
+  --blur: saturate(140%) blur(14px);
+
+  /* ---- type ---- */
+  --font-ui: 'Inter Variable', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'Cascadia Mono', 'Consolas', ui-monospace, 'SF Mono', Menlo, monospace;
+  --fs-2xs: 10px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-xl: 18px;
+  --fs-2xl: 24px;
+  --fs-3xl: 34px;
+
+  /* ---- spacing scale (4px base) ---- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+
+  /* ---- shape & elevation ---- */
+  --r-1: 5px;
+  --r-2: 8px;
+  --r-3: 12px;
+  --r-4: 16px;
+  --shadow-1: 0 1px 0 rgba(160, 200, 255, 0.05) inset, 0 8px 24px rgba(0, 4, 16, 0.45);
+  --shadow-2: 0 1px 0 rgba(160, 200, 255, 0.07) inset, 0 18px 50px rgba(0, 4, 20, 0.65);
+  --glow: 0 0 0 1px rgba(47, 125, 255, 0.5), 0 0 22px rgba(47, 125, 255, 0.35);
+  --focus: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--blue-hi);
+
+  /* ---- layout ---- */
+  --topbar-h: 52px;
+  --sidebar-w: 64px;
+  --sidebar-w-open: 212px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --t-fast: 120ms;
+  --t-med: 220ms;
+
+  /* z-index ladder */
+  --z-map-ui: 10;
+  --z-shell: 50;
+  --z-drawer: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+  --z-tip: 500;
+}

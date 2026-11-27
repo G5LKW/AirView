@@ -1,0 +1,47 @@
+# AirView Feeder: optional unattended setup.
+#
+# Leave this file as it is to set the feeder up in your browser after the
+# first boot:  http://airview-feeder.local:8099/  (or http://<the Pi's IP>:8099/)
+#
+# To set it up without the web page, fill in at least SERVER (remove the # in
+# front of a line to use it), save the file and put the SD card in the Pi.
+# The file is deleted from the SD card once it has been used.
+#
+# SERVER=feed.example.net:30160
+#   aggregator address from the network's operator (port 30160 by default)
+# PIN=sha256/...
+#   the server key from the aggregator's install command (self-signed servers)
+# TOKEN=
+#   enrol token (networks that admit feeders by invitation)
+# NAME=my-station
+#   station name: letters, digits, - and _, at most 32
+# LAT=51.4700
+# LON=-0.4543
+# ALT=35m
+#   antenna position; the altitude needs a unit: 35m or 115ft
+# ALT_REF=msl
+#   msl (sea level) or hae (GPS ellipsoid height)
+# AGL=10m
+#   antenna height above ground
+# NO_LOCATION=no
+#   yes: send no position, the network locates the station
+# TIMESTAMPS=yes
+#   If your receiver sends timestamps, the network operator can determine its
+#   location precisely, whatever you enter. Other users and the public cannot.
+#   Choose 'No timestamps (no MLAT)' if you do not want this. (TIMESTAMPS=no)
+# PRIVACY=hidden
+#   public map pin: hidden (default), region (0.5 degree area) or cell01 (0.1 degree area)
+# INPUT=auto
+#   auto, or host:port of the receiver's Beast output
+# AUTO_UPDATE=yes
+#   install signed feeder updates automatically; needs a release key (below or
+#   built into the image)
+# MANIFEST_KEY=
+#   Ed25519 public key of the network's release signing key (44 characters
+#   ending in =); release images carry it already
+# UPDATE_URL=https://feed.example.net
+#   where the signed releases are (<URL>/feeder/manifest.json); default: the
+#   aggregator's address over https
+# UI_PASSWORD=
+#   password of the feeder status page on port 8099 (at least 8 characters);
+#   without it the status page answers only on the Pi itself
