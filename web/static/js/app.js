@@ -19,6 +19,7 @@ import { BANNER_LINKS, ROUTES_ONLINE_NOTE, noticeLink, onlyFactoryPlaceholder } 
 export const PAGES = [
   { id: 'map', title: 'Live Map', icon: 'map', blurb: 'Real-time traffic, trails and coverage overlays.' },
   { id: 'aircraft', title: 'Aircraft', icon: 'plane', blurb: 'Every airframe and flight this station has logged.' },
+  { id: 'airports', title: 'Airports', icon: 'pin', blurb: 'Arrival and departure boards built from the traffic this station receives.' },
   { id: 'reports', title: 'Reports & Replay', icon: 'replay', blurb: 'Search flights, replay history and export KML / GeoJSON / CSV.' },
   { id: 'alerts', title: 'Alerts', icon: 'bell', blurb: 'Alert rules, watch-lists, geofences and webhooks.' },
   { id: 'stats', title: 'Statistics', icon: 'chart', blurb: 'Message rates, range, traffic levels and records.' },
