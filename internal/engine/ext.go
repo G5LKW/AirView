@@ -12,6 +12,7 @@ import (
 
 	"airview/internal/acas"
 	"airview/internal/alerts"
+	"airview/internal/flowlearn"
 	"airview/internal/met"
 	"airview/internal/model"
 	"airview/internal/modes"
@@ -56,6 +57,7 @@ type extState struct {
 
 	rt       *routes.Service
 	acas     *acas.Recorder
+	flow     *flowlearn.Learner
 	routeCfg atomic.Pointer[model.RoutesConfig]
 
 	regionKick  chan struct{}
@@ -111,6 +113,7 @@ func (e *Engine) buildExt(cfg model.Config) {
 		Config:        func() model.RoutesConfig { return *x.routeCfg.Load() },
 		OverridesFile: filepath.Join(e.dir, "routes.overrides.csv"),
 	})
+	x.flow = flowlearn.New()
 	x.acas = acas.New(e.st, e.log)
 	e.tr.SetACASHook(x.acas.Observe)
 	x.al = alerts.New(alerts.Options{Store: e.st, Logger: e.log, UserAgent: model.AppName + "/" + e.opts.Version})
@@ -150,6 +153,14 @@ func routeContact(c string) string {
 		return c
 	}
 	return model.ProjectURL
+}
+
+// FlowLearner returns the learned traffic-flow predictor.
+func (e *Engine) FlowLearner() *flowlearn.Learner {
+	if e.ext == nil {
+		return nil
+	}
+	return e.ext.flow
 }
 
 // ACAS returns the resolution advisory recorder.
@@ -494,6 +505,19 @@ func (e *Engine) enrich(s *model.LiveSnapshot) {
 		}
 		if a.Callsign != "" {
 			a.Route = x.rt.Live(a, now)
+		}
+		// learn the traffic flow from fresh real positions
+		if !a.Predicted && a.PosAge != nil && *a.PosAge < 2 && (a.OnGround == nil || !*a.OnGround) && a.Track != nil && a.GS != nil {
+			if key, err := modes.ParseICAO(a.ICAO); err == nil {
+				alt := math.NaN()
+				switch {
+				case a.AltBaro != nil:
+					alt = *a.AltBaro
+				case a.AltGeom != nil:
+					alt = *a.AltGeom
+				}
+				x.flow.Observe(key, s.Now-int64(*a.PosAge*1000), *a.Lat, *a.Lon, alt, *a.Track, *a.GS)
+			}
 		}
 	}
 	if s.Now-x.cpaSweep > 60_000 || s.Now < x.cpaSweep {

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"airview/internal/alerts"
+	"airview/internal/flowlearn"
 	"airview/internal/modes"
 	"airview/internal/navdata"
 	"airview/internal/rfstat"
@@ -79,6 +80,10 @@ type predictedPath struct {
 	// above) the terrain radio horizon along the path; null until the terrain
 	// analysis exists.
 	Terrain *terrain.VisibilityForecast `json:"terrain"`
+	// Learned is the path predicted from how the surrounding traffic flew
+	// through the same airspace recently (internal/flowlearn); omitted when
+	// the aircraft has no current position, track or speed.
+	Learned *flowlearn.Path `json:"learned,omitempty"`
 }
 
 func apiPredictionPath(s *Server, r *http.Request) (any, error) {
@@ -104,6 +109,19 @@ func apiPredictionPath(s *Server, r *http.Request) (any, error) {
 		return nil, notFound("no prediction for %s (unknown, or no position for more than %d s)", modes.FormatICAO(key), int(maxCoastSec))
 	}
 	out := predictedPath{Path: p}
+	if fl := s.eng.FlowLearner(); fl != nil {
+		if ac, ok := s.eng.Tracker().Aircraft(key); ok && ac.Lat != nil && ac.Lon != nil && ac.Track != nil && ac.GS != nil && (ac.OnGround == nil || !*ac.OnGround) {
+			alt := math.NaN()
+			switch {
+			case ac.AltBaro != nil:
+				alt = *ac.AltBaro
+			case ac.AltGeom != nil:
+				alt = *ac.AltGeom
+			}
+			lp := fl.Predict(*ac.Lat, *ac.Lon, alt, *ac.Track, *ac.GS, float64(horizon), float64(step), time.Now().UnixMilli())
+			out.Learned = &lp
+		}
+	}
 	if ts := s.eng.Terrain(); ts != nil && ts.Analysis() != nil && p.AltOK && len(p.Points) > 0 {
 		pts := make([]terrain.PathPoint, len(p.Points))
 		for i, q := range p.Points {
@@ -1054,4 +1072,12 @@ func apiAlertWatchlistDelete(s *Server, r *http.Request) (any, error) {
 		return nil, alertErr(err)
 	}
 	return map[string]any{"ok": true}, nil
+}
+
+func apiPredictionLearned(s *Server, r *http.Request) (any, error) {
+	fl := s.eng.FlowLearner()
+	if fl == nil {
+		return nil, errStatus(http.StatusServiceUnavailable, "the traffic-flow learner is not running")
+	}
+	return fl.Stats(), nil
 }
