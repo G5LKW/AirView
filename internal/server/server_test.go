@@ -109,6 +109,7 @@ var specialTests = map[string]string{
 	"PUT /api/routes/overrides/{callsign}":    "TestRouteOverridesAPI",
 	"DELETE /api/routes/overrides/{callsign}": "TestRouteOverridesAPI",
 	"POST /api/routes/refresh":                "TestRouteOverridesAPI",
+	"GET /api/routes/board/{airport}":         "TestRouteBoardAPI",
 	"PUT /api/config":                         "TestConfigRoundTrip, TestAuthFlow",
 	"POST /api/events/view":                   "TestViewStreamHTTP",
 	"GET /api/auth/setup":                     "TestAggregatorBootstrapAPI, TestStandaloneCSRFAndAccountRoutes",

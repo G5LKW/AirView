@@ -97,6 +97,10 @@ func TestRouteAccessLint(t *testing.T) {
 // answer per viewer (api_view.go); AccessPublic routes contain no station
 // data at all.
 var reviewedOpen = map[string]string{
+	"GET /api/routes/board/{airport}":      "viewer: built from the caller's projection of the live picture; landed legs only for the station's own users",
+	"GET /api/routes/airports":             "public: airport reference data only",
+	"GET /api/routes/batch":                "viewer: route shorts from the caller's projection of the live picture",
+	"GET /api/routes/stats":                "viewer: 403 below owner on an aggregator",
 	"GET /api/routes/{callsign}":           "public: offline data and the cache only; online look-ups admin only; restricted answers hidden below owner",
 	"GET /api/status":                      "viewer: publicdto.Status below admin",
 	"GET /api/config":                      "viewer: display settings only below admin",
