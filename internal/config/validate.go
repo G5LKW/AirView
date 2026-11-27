@@ -166,6 +166,7 @@ func Validate(cfg model.Config) (model.Config, []string) {
 	v.problems = append(v.problems, out.Locate.Normalize()...)
 	v.problems = append(v.problems, out.SSR.Normalize()...)
 	v.problems = append(v.problems, out.Process.Normalize()...)
+	v.problems = append(v.problems, out.ACARS.Normalize()...)
 	if out.HTTP.SSEGzipMax < 0 || out.HTTP.SSEGzipMax > 100000 {
 		v.note("http.sseGzipMax %d is out of range 0..100000; automatic is used", out.HTTP.SSEGzipMax)
 		out.HTTP.SSEGzipMax = 0

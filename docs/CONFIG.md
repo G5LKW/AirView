@@ -98,7 +98,7 @@ The `server` profile commits every 5 s; the aggregator's per-station statistics 
 
 ### Storage layout migration
 
-A database written by AirView 1.0 is converted to the 1.1 layout in the background after the first start (trails into compressed chunks, compact heat, range and met tables). The station works normally meanwhile; every step is a separate transaction, so a crash or power cut resumes where it stopped. Before the first step AirView writes a backup `<data>/backup/airview-pre-1.1-<date>.db` when the disk has room for it (`storage.backupBeforeMigrate`: `auto`; `always` = no migration without a backup; `never`). The automatic backup is deleted 14 days after the migration finished. `airview db migrate --status` shows the progress, `--backup` writes a backup now, `--now` finishes the migration at once while AirView is stopped. The space the old layout used is returned to the disk over the following hours; a file that was created without incremental auto-vacuum keeps it for new rows instead (the log says so) until `airview db vacuum` runs with AirView stopped. Going back to 1.0 is only possible by restoring that backup.
+A database written by AirView 1.0.0 is converted to the new storage layout of 1.0.1 (internally called the 1.1 layout, hence the backup file name) in the background after the first start (trails into compressed chunks, compact heat, range and met tables). The station works normally meanwhile; every step is a separate transaction, so a crash or power cut resumes where it stopped. Before the first step AirView writes a backup `<data>/backup/airview-pre-1.1-<date>.db` when the disk has room for it (`storage.backupBeforeMigrate`: `auto`; `always` = no migration without a backup; `never`). The automatic backup is deleted 14 days after the migration finished. `airview db migrate --status` shows the progress, `--backup` writes a backup now, `--now` finishes the migration at once while AirView is stopped. The space the old layout used is returned to the disk over the following hours; a file that was created without incremental auto-vacuum keeps it for new rows instead (the log says so) until `airview db vacuum` runs with AirView stopped. Going back to 1.0 is only possible by restoring that backup.
 
 ## Settings
 
@@ -1188,4 +1188,15 @@ Environment: `AIRVIEW_SSR_SITES` (whole list as JSON), `AIRVIEW_SSR_SITES_<n>` (
 | `process.logFiles` | integer | `0` | `AIRVIEW_PROCESS_LOG_FILES` | logFiles is how many rotated files (airview.log.1, .2, ...) are kept (1..100; 0 = automatic: 1 in standalone mode, 10 in aggregator mode). |
 | `process.memoryLimitMb` | integer | `0` | `AIRVIEW_PROCESS_MEMORY_LIMIT_MB` | memoryLimitMb is the soft Go heap limit in MiB (64..1048576; 0 = automatic: 384 on Raspberry Pi class Linux devices in standalone mode; in aggregator mode 85 % of a cgroup memory cap, else 80 % of the physical memory; -1 = none). GOMEMLIMIT wins over it. |
 | `process.journalLevel` | string | `""` | `AIRVIEW_PROCESS_JOURNAL_LEVEL` | journalLevel is the lowest level copied to standard error, which systemd stores in its journal: debug, info, warn or error ("" = automatic: warn when started by systemd, so the SD card does not get every line twice, else the same as logLevel). airview.log is not affected. |
+
+### `acars` (`acars`)
+
+Configures the ACARS / VDL Mode 2 message input (top-level "acars" block; internal/acars). AirView does not demodulate VHF: a separate decoder (acarsdec or dumpvdl2 on its own SDR) sends its JSON output to these listeners. Off by default. The messages are kept in memory only and are shown to the station owner / admin, never in public views.
+
+| Setting | Type | Default | Environment variable | Description |
+|---|---|---|---|---|
+| `acars.enabled` | boolean | `false` | `AIRVIEW_ACARS_ENABLED` | enabled turns the ACARS input on (default false). |
+| `acars.udpListen` | string | `""` | `AIRVIEW_ACARS_UDP_LISTEN` | udpListen is the "host:port" for JSON datagrams from acarsdec (--output json:udp:...) or dumpvdl2 (--output decoded:json:udp:...). Default "127.0.0.1:5550"; ":5550" accepts decoders on other hosts of the network. "off" disables the UDP input. |
+| `acars.tcpListen` | string | `""` | `AIRVIEW_ACARS_TCP_LISTEN` | tcpListen is the "host:port" for newline-separated JSON over TCP (decoders in TCP client mode); "" = off (default). |
+| `acars.keep` | integer | `0` | `AIRVIEW_ACARS_KEEP` | keep is the number of messages kept in memory (default 2000, 100..20000; typically well under 1 kB each, at most about 4 kB). |
 

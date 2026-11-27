@@ -66,6 +66,8 @@ Base URL: the origin the UI was loaded from (`http://<host>[:port]`). In the web
 - `GET /api/feeds` - Feed connections, per-feed and per-antenna counters, and the data port (hub) with its clients
 - `GET /api/tilecache` - Tile cache size and counters
 - `POST /api/tilecache/clear` *(admin)* - Delete all cached map tiles
+- `GET /api/acars` - ACARS / VDL2 messages received from an external decoder (acarsdec, dumpvdl2), newest first
+- `GET /api/acars/status` - State of the ACARS input: listen addresses and errors, counters (total, duplicates, parse errors, rate-limited), most frequent labels
 - `GET /tilecache/{host}/{path...}` - caching proxy for the whitelisted map tile hosts
 
 **Statistics**
@@ -2267,6 +2269,95 @@ Delete all cached map tiles.
 
 Response: `{"ok":true}`
 
+
+### `GET /api/acars`
+
+ACARS / VDL2 messages received from an external decoder (acarsdec, dumpvdl2), newest first. `enabled:false` and no messages when the input is off (`acars.enabled`).
+
+| Parameter | Meaning |
+|---|---|
+| `icao` | only this aircraft address (6 hex digits) |
+| `reg` | only this registration (dots, dashes and case ignored) |
+| `flight` | flight id prefix (case-insensitive) |
+| `label` | exact ACARS label, e.g. `H1` |
+| `q` | text contains (case-insensitive) |
+| `since` | only messages with a larger `id` (polling) |
+| `limit` | 1..2000 (default 100) |
+
+Messages are kept in memory only (`acars.keep`, default 2000). `icao` is the aircraft address the decoder reported (`icaoFrom:"message"`) or, for messages without one, the live Mode S aircraft with the same registration (`icaoFrom:"reg"`). `labelName` is a generic description of the label; many labels are airline-defined. In demo mode the messages are synthetic (station `DEMO`).
+
+Response: `{"enabled":bool,"messages":[Message…]}`
+
+Example: `GET /api/acars`
+
+```jsonc
+{
+  "enabled": true,
+  "messages": [
+    {
+      "id": 6,
+      "t": 1795803823189,
+      "src": "dumpvdl2",
+      "link": "VDL2",
+      "station": "DEMO",
+      "freqMHz": 136.725,
+      "levelDb": -24.6,
+      "icao": "C07B17",
+      "icaoFrom": "message",
+      "reg": "C-GUPY",
+      "flight": "ACA1692",
+      "mode": "2",
+      "label": "H1",
+      "blockId": "7",
+      "msgNo": "M81Z",
+      "uplink": false,
+      "text": "#DFBA01/A1823/FL185/TAT-13/SAT-37",
+      "labelName": "Message to/from an avionics sub-system"
+    },
+    /* … 5 more */
+  ]
+}
+```
+
+### `GET /api/acars/status`
+
+State of the ACARS input: listen addresses and errors, counters (total, duplicates, parse errors, rate-limited), most frequent labels.
+
+Response: `ACARSStatus`
+
+Example: `GET /api/acars/status`
+
+```jsonc
+{
+  "enabled": false,
+  "demo": true,
+  "stats": {
+    "kept": 6,
+    "capacity": 2000,
+    "total": 6,
+    "duplicates": 0,
+    "parseErrors": 0,
+    "nonAcars": 0,
+    "badCrc": 0,
+    "dropped": 0,
+    "bySource": {
+      "acarsdec": 2,
+      "dumpvdl2": 4
+    },
+    "labels": [
+      {
+        "label": "H1",
+        "name": "Message to/from an avionics sub-system",
+        "n": 2
+      },
+      /* … 4 more */
+    ],
+    "lastT": 1795803823189,
+    "aircraft": 5,
+    "linked": 5
+  }
+}
+```
 
 ### `GET /tilecache/{host}/{path...}`
 
@@ -7758,7 +7849,7 @@ Example: `GET /api/system`
 
 ### `GET /api/ssr`
 
-EXPERIMENTAL: state of the SSR self-location (enabled, feed, counters, estimator statistics incl. `pairMatches`, the last solve with the interrogators it used). Advisory only: the result is never applied to a position.
+EXPERIMENTAL: state of the SSR self-location (enabled, feed, counters, estimator statistics incl. `pairMatches`, the last solve with the interrogators it used, and `radars`: the interrogators located from their beam sweeps, with formal 1σ ellipses). Advisory only: the result is never applied to a position.
 
 Response: `SSRStatus` (`experimental`, `enabled`, ...); `enabled:false` when `ssr.enabled` is off
 
@@ -14396,6 +14487,19 @@ WindAloft is one row of the winds-aloft table.
 | `isaDev` | number | *optional* |
 | `coded` | string | *optional* - Coded is the classic winds-aloft (FD/FB) group "DDSS+TT", e.g. "2745-32" = from 270 degrees at 45 kt, -32 degC ("9900" = light and variable; speeds of 100 kt and more add 50 to the direction digits). |
 
+<a id="t-model-ACARSConfig"></a>
+
+#### model.ACARSConfig
+
+ACARSConfig configures the ACARS / VDL Mode 2 message input (top-level "acars" block; internal/acars). AirView does not demodulate VHF: a separate decoder (acarsdec or dumpvdl2 on its own SDR) sends its JSON output to these listeners. Off by default. The messages are kept in memory only and are shown to the station owner / admin, never in public views.
+
+| Field | Type | Notes |
+|---|---|---|
+| `enabled` | boolean | Enabled turns the ACARS input on (default false). |
+| `udpListen` | string | *optional* - UDPListen is the "host:port" for JSON datagrams from acarsdec (--output json:udp:...) or dumpvdl2 (--output decoded:json:udp:...). Default "127.0.0.1:5550"; ":5550" accepts decoders on other hosts of the network. "off" disables the UDP input. |
+| `tcpListen` | string | *optional* - TCPListen is the "host:port" for newline-separated JSON over TCP (decoders in TCP client mode); "" = off (default). |
+| `keep` | integer | Keep is the number of messages kept in memory (default 2000, 100..20000; typically well under 1 kB each, at most about 4 kB). |
+
 <a id="t-model-AggAuth"></a>
 
 #### model.AggAuth
@@ -15249,6 +15353,7 @@ Config is the complete persisted configuration (config.json in the data dir). GE
 | `locate` | [model.LocateConfig](#t-model-LocateConfig) | Locate controls Locate Me v2: the guess samples recorded to estimate the receiver position from what it hears. |
 | `ssr` | [model.SSRConfig](#t-model-SSRConfig) | SSR is the experimental bistatic SSR self-location of this receiver (off by default; owner/admin only, never applied automatically). |
 | `process` | [model.ProcessConfig](#t-model-ProcessConfig) | Process holds the log file and memory settings of the server process (applied at start). |
+| `acars` | [model.ACARSConfig](#t-model-ACARSConfig) | ACARS is the ACARS / VDL2 message input from an external decoder (off by default). |
 
 <a id="t-model-DemoConfig"></a>
 
@@ -17893,6 +17998,9 @@ aircraftInfo is the reference data of one address: allocation tables, aircraft d
 | `interesting` | boolean | *optional* - aircraft database flag |
 | `pia` | boolean | *optional* |
 | `ladd` | boolean | *optional* |
+| `regSource` | string | *optional* - RegSource says where Registration came from: "acdb" (the imported aircraft database), "derived" (calculated from the ICAO address), "callsign" (the aircraft flies under its registration) or "history" (stored with an earlier sighting); empty when there is none. |
+| `typeSource` | string | *optional* - TypeSource says where the type designator came from: "acdb" or "history"; empty when there is none. |
+| `acdbAttribution` | string | *optional* - ACDBAttribution is the installed aircraft database's attribution text, sent with the aircraft detail when a value came from it. |
 
 <a id="t-server-aircraftListReply"></a>
 

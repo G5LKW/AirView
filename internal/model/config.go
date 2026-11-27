@@ -64,6 +64,9 @@ type Config struct {
 	// Process holds the log file and memory settings of the server
 	// process (applied at start).
 	Process ProcessConfig `json:"process,omitzero"`
+	// ACARS is the ACARS / VDL2 message input from an external decoder
+	// (off by default).
+	ACARS ACARSConfig `json:"acars,omitzero"`
 }
 
 // IsFactoryDefaultFeed reports whether f is an unchanged factory default

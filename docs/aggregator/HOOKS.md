@@ -1778,3 +1778,13 @@ Power-cut check (TerminateProcess at random points, 1.1 build, demo traffic): a 
 ## r101-release -> internal/config/reference.go (+ regenerated docs/CONFIG.md): "Storage layout migration" says "AirView 1.0 ... converted to the 1.1 layout"; the release shipping it is 1.0.1. Suggest "A database written by AirView 1.0.0 is converted to the new storage layout of 1.0.1 (internally the 1.1 layout, hence the backup file name)". The manual copy (docs/manual/04-reference-1-configuration.md, "Storage profiles") already uses that wording.
 ## r101-release -> internal/store/met_store_test.go TestMetSamplePruner: flaky at a second boundary (full run: "pruned 3601, want 3600"; passes 4/4 in isolation). Row i=3600 has T == now-30d exactly (i*240 s = 10 days), and Prune takes its own time.Now() later, so if the clock ticks over a second that row is pruned too. Fix: start the rows at now-40*86400+120 so no row lies on the cutoff.
 ## r101-release -> internal/mlat/clock TestEpochCostGate: failed again in the full go test ./... run (200-station epoch 121.8 ms > 80 ms) while a release build ran in parallel; passes in isolation (57.8 s). A timing gate under load, not a regression signal; consider skipping it under -short or when GOMAXPROCS is shared.
+
+## auto/small-fixes (2026-11-27): disposition of the r101 small-fix requests
+- r101-release -> TestMetSamplePruner: done; rows start 120 s off the 240 s grid, so none lies on the 30-day cutoff.
+- r101-release -> TestEpochCostGate: done differently; the 200-station epoch is gated in units of a fixed single-threaded Cholesky (ratio <= 16; measured 10.0 alone, 10.8 under six busy loops, on a 4-core VM where the absolute epoch was 98-122 ms). Absolute ms are still logged.
+- hub TestLoopbackRoundTrip (flaky, 1.7 µs apart): client.toLocal now lowers the clock offset when a frame would map into the future, instead of clamping each frame to time.Now.
+- r101-verifier -> timing.js:125 (and timing/tdoa.js): receiver-agnostic NTP advice ("some receivers, such as a Radarcape, serve one").
+- r101-verifier -> guess.js: "five" methods.
+- r101-icons-registration items 1/2: done; aircraftInfo has regSource ("acdb" | "derived" | "callsign" | "history"), typeSource ("acdb" | "history") and acdbAttribution (aircraft detail and aircraft page). The detail panel shows a muted source suffix with a tooltip and the attribution under Identity. Not done: the Aircraft page still uses its own "(derived)" rule.
+- r101-release -> reference.go wording: done (1.0.0 -> 1.0.1 layout), CONFIG.md regenerated text matches.
+- Open: r101-verifier charts.js legend at 375 px.

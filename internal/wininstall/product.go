@@ -192,7 +192,7 @@ func (p *Product) Validate() error {
 	if !relPathOK(p.MainExe) {
 		bad("mainExe %q: a path inside the install directory", p.MainExe)
 	}
-	if !strings.Contains(p.DefaultDir, "{") && !filepath.IsAbs(p.DefaultDir) {
+	if !strings.Contains(p.DefaultDir, "{") && !isAbsWindows(p.DefaultDir) {
 		bad("defaultDir %q: absolute, or starting with a token such as {pf}", p.DefaultDir)
 	}
 	if strings.ContainsAny(p.StartMenuFolder, `:*?"<>|`) || strings.Contains(p.StartMenuFolder, "..") {
@@ -274,7 +274,7 @@ func (p *Product) Validate() error {
 		}
 	}
 	for i, d := range p.DataDirs {
-		if !strings.HasPrefix(d, "{") && !filepath.IsAbs(d) {
+		if !strings.HasPrefix(d, "{") && !isAbsWindows(d) {
 			bad("dataDirs[%d] %q: absolute or token-based", i, d)
 		}
 	}
@@ -283,7 +283,7 @@ func (p *Product) Validate() error {
 
 // relPathOK: a clean relative path that stays inside its root.
 func relPathOK(p string) bool {
-	if p == "" || filepath.IsAbs(p) || strings.HasPrefix(p, `\`) || strings.HasPrefix(p, "/") || strings.Contains(p, ":") {
+	if p == "" || filepath.IsAbs(p) || isAbsWindows(p) || strings.HasPrefix(p, `\`) || strings.HasPrefix(p, "/") || strings.Contains(p, ":") {
 		return false
 	}
 	for _, part := range strings.FieldsFunc(p, func(r rune) bool { return r == '/' || r == '\\' }) {

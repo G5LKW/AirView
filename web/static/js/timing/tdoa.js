@@ -130,7 +130,7 @@ export function createTdoa(ctx, env) {
       : h('div.tdoa-ref-title', 'No NTP reference entered');
     ui.mount(refHost, ui.icon(kind === 'ok' ? 'check-circle' : 'alert'),
       h('div.grow', head,
-        h('div.tdoa-ref-text', 'Every absolute number in this section - receiver delay, transponder latency, end-to-end time - compares the Radarcape\'s GPS time stamps with this computer\'s clock corrected by the NTP server you entered by hand under Settings → Time. The figures are only as good as that server: use one that is itself GPS-locked (stratum 1, reference GPS or PPS) on your own network, for example the Radarcape\'s own NTP service. Propagation and the T=1 transponder latency come from GPS time and geometry alone and do not depend on it.')),
+        h('div.tdoa-ref-text', 'Every absolute number in this section - receiver delay, transponder latency, end-to-end time - compares the receiver\'s GPS time stamps with this computer\'s clock corrected by the NTP server you entered by hand under Settings → Time. The figures are only as good as that server: use one that is itself GPS-locked (stratum 1, reference GPS or PPS) on your own network; some receivers, such as a Radarcape, serve one. Propagation and the T=1 transponder latency come from GPS time and geometry alone and do not depend on it.')),
       ui.button({ label: 'Settings → Time', icon: 'settings', size: 'sm', href: SETTINGS_TIME }));
   }
 

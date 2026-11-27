@@ -18,7 +18,7 @@ func init() {
 
 var ssrRoutes = []Route{
 	{Method: "GET", Path: "/api/ssr", Group: grpSystem, Access: AccessAdmin, API: apiSSRStatus, NoAuto: true,
-		Summary: "EXPERIMENTAL: state of the SSR self-location (enabled, feed, counters, estimator statistics incl. `pairMatches`, the last solve with the interrogators it used). Advisory only: the result is never applied to a position.",
+		Summary: "EXPERIMENTAL: state of the SSR self-location (enabled, feed, counters, estimator statistics incl. `pairMatches`, the last solve with the interrogators it used, and `radars`: the interrogators located from their beam sweeps, with formal 1σ ellipses). Advisory only: the result is never applied to a position.",
 		Returns: "`SSRStatus` (`experimental`, `enabled`, ...); `enabled:false` when `ssr.enabled` is off"},
 	{Method: "POST", Path: "/api/ssr/solve", Group: grpSystem, Access: AccessAdmin, Admin: true, API: apiSSRSolve, NoAuto: true,
 		Summary: "EXPERIMENTAL: run an SSR self-location solve now (about 0.3 s; poll `GET /api/ssr`).",
