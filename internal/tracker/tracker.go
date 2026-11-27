@@ -320,6 +320,7 @@ type Tracker struct {
 	rf      *rfstat.Stats       // RF statistics (nil = off)
 	onNewAF func(icao uint32)   // first sighting of an airframe ever (called without locks)
 	onACAS  func(acas.Report)   // ACAS resolution advisory report (called under the lock; must be cheap)
+	onHaz   func(HazardReport)  // BDS 4,5 meteorological hazard report (called under the lock; must be cheap)
 	enrich  func(s *model.LiveSnapshot)
 	snapMu  sync.Mutex // serialises snapshot builds (enrich runs without mu)
 	lastBDS uint8      // Comm-B register settled on for the frame being applied
@@ -574,6 +575,29 @@ func (t *Tracker) SetEHSHook(fn func(EHSEvent) EHSResult) {
 func (t *Tracker) SetACASHook(fn func(acas.Report)) {
 	t.mu.Lock()
 	t.onACAS = fn
+	t.mu.Unlock()
+	if s := t.sh.Load(); s != nil {
+		s.setHooks(t)
+	}
+}
+
+// HazardReport is a BDS 4,5 meteorological hazard report of an aircraft.
+type HazardReport struct {
+	T        int64 // data time, Unix ms
+	ICAO     uint32
+	Callsign string
+	Lat, Lon float64
+	PosOK    bool
+	AltFt    float64
+	AltOK    bool
+	H        modes.MeteoHazard
+}
+
+// SetHazardHook installs fn, called for every BDS 4,5 hazard report (under
+// the tracker's lock: it must be quick). nil removes it.
+func (t *Tracker) SetHazardHook(fn func(HazardReport)) {
+	t.mu.Lock()
+	t.onHaz = fn
 	t.mu.Unlock()
 	if s := t.sh.Load(); s != nil {
 		s.setHooks(t)

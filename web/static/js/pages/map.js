@@ -105,6 +105,8 @@ function baseEffective(S) {
     heat: !!p.heat,
     prox: !!p.prox,
     acas: !!p.acas,
+    winds: !!p.winds,
+    windsFL: [100, 180, 240, 300, 340, 390].includes(p.windsFL) ? p.windsFL : 300,
     mute: !!p.mute,
     soundAllowed: cfg.alerts?.sound !== false,
   };
@@ -114,7 +116,7 @@ function baseEffective(S) {
 // layers
 // -----------------------------------------------------------------------------------------------
 const SOURCES = ['night', 'heat', 'coverage', 'range', 'terrain', 'rings', 'ring-labels', 'compass', 'compass-labels', 'beams', 'beam-axes',
-  'airports', 'acas', 'route', 'receiver', 'trail-sel', 'trace', 'focus', 'pred-paths', 'pred-ticks', 'pred-links', 'prox', 'measure'];
+  'airports', 'acas', 'winds', 'route', 'receiver', 'trail-sel', 'trace', 'focus', 'pred-paths', 'pred-ticks', 'pred-links', 'prox', 'measure'];
 
 function installLayers() {
   const { map } = S;
@@ -180,6 +182,12 @@ function installLayers() {
   // TCAS resolution advisories of the last 24 h (where each started)
   add({ id: 'acas-dot', type: 'circle', source: 'acas', paint: { 'circle-radius': 5, 'circle-color': '#ff453a', 'circle-opacity': 0.85, 'circle-stroke-color': halo, 'circle-stroke-width': 1.2 } });
   add({ id: 'acas-label', type: 'symbol', source: 'acas', minzoom: 6, layout: { 'text-field': ['get', 't'], 'text-font': LABEL_FONT, 'text-size': 10, 'text-offset': [0, 0.9], 'text-anchor': 'top', 'text-optional': true, 'text-max-width': 16 }, paint: { 'text-color': '#ff8a80', 'text-halo-color': halo, 'text-halo-width': 1.5 } });
+
+  // winds / temperature aloft (gridded EHS): arrow towards where the wind blows, dot coloured by ISA deviation
+  const isa = ['interpolate', ['linear'], ['get', 'd'], -10, '#60a5fa', 0, dark ? '#e5e7eb' : '#475569', 10, '#f87171'];
+  add({ id: 'winds-line', type: 'line', source: 'winds', filter: ['!=', ['geometry-type'], 'Point'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': dark ? '#a5f3fc' : '#0e7490', 'line-width': ['interpolate', ['linear'], ['get', 'kt'], 0, 1, 100, 2.4], 'line-opacity': 0.85 } });
+  add({ id: 'winds-dot', type: 'circle', source: 'winds', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 3.2, 'circle-color': isa, 'circle-stroke-color': halo, 'circle-stroke-width': 1 } });
+  add({ id: 'winds-label', type: 'symbol', source: 'winds', minzoom: 6.5, filter: ['==', ['geometry-type'], 'Point'], layout: { 'text-field': ['get', 't'], 'text-font': LABEL_FONT_REGULAR, 'text-size': 9.5, 'text-offset': [0, 0.8], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': dark ? '#cffafe' : '#155e75', 'text-halo-color': halo, 'text-halo-width': 1.4 } });
 
   // route of the selected aircraft
   add({ id: 'route-line', type: 'line', source: 'route', filter: ['==', ['get', 'kind'], 'line'], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': ['case', ['==', ['get', 'ok'], 0], '#fbbf24', '#e879f9'], 'line-width': 1.6, 'line-opacity': 0.75, 'line-dasharray': [1, 2.4] } });
@@ -290,6 +298,7 @@ function applyVisibility() {
   setVisible(['heat'], e.heat);
   setVisible(['prox-line', 'prox-label'], e.prox);
   setVisible(['acas-dot', 'acas-label'], e.acas);
+  setVisible(['winds-line', 'winds-dot', 'winds-label'], e.winds);
   setVisible(['pred-path', 'pred-tick', 'pred-tick-sigma', 'pred-tick-label'], e.predPaths !== 'off');
 }
 
@@ -1132,7 +1141,7 @@ function renderLegend() {
     if (S.mlatUngraded) sym.push(h('span.lg-sym', { tip: 'MLAT from an external server, without a grade' }, h('i.lg-mring', { style: { borderColor: MLAT_UNGRADED } }), 'ext.'));
   }
   const notes = [];
-  for (const [key, label] of [['range', 'Range'], ['terrain', 'Terrain'], ['airports', 'Airports'], ['heat', 'Heat map'], ['prox', 'Proximity'], ['acas', 'TCAS RAs']]) {
+  for (const [key, label] of [['range', 'Range'], ['terrain', 'Terrain'], ['airports', 'Airports'], ['heat', 'Heat map'], ['prox', 'Proximity'], ['acas', 'TCAS RAs'], ['winds', 'Winds aloft']]) {
     if (!S.eff[key]) continue;
     const nt = S.extras.notes.get(key);
     if (nt && nt.text && nt.state !== 'ok') notes.push(h('div.lg-note' + (nt.state === 'error' ? '.err' : ''), icon(nt.state === 'error' ? 'alert' : nt.state === 'loading' ? 'refresh' : 'info'), `${label}: ${nt.text}`));
@@ -1190,6 +1199,8 @@ function openLayersPanel(anchor) {
     tgl('airports', 'Airports & runways', () => S.extras.airports(), noteOf('airports') || 'From zoom 5; runways and centrelines from zoom 8'),
     rxOk ? tgl('heat', 'Heat map (all time)', () => S.extras.heat(), noteOf('heat') || 'Every position ever received') : null,
     tgl('acas', 'TCAS RAs (24 h)', () => S.extras.acas(), noteOf('acas') || 'Where aircraft reported a resolution advisory'),
+    tgl('winds', 'Winds aloft', () => S.extras.winds(S.eff.windsFL), noteOf('winds') || 'Wind and temperature from aircraft (Mode S EHS), last hour'),
+    ui.segmented({ block: true, value: e.windsFL, options: [100, 180, 240, 300, 340, 390].map((v) => ({ value: v, label: 'FL' + v })), onChange: (v) => set({ windsFL: +v }, () => S.extras.winds(+v)) }),
     net.aggregator ? ui.field({ label: 'Load aircraft', hint: `"Visible area" saves bandwidth on large networks; the list then shows the aircraft in view only. Automatic switches to it above ${VIEWPORT_ON} aircraft.`,
       control: ui.segmented({ block: true, value: S.prefs.get().viewport || 'auto', options: [{ value: 'auto', label: 'Automatic' }, { value: 'on', label: 'Visible area' }, { value: 'off', label: 'Everything' }],
         onChange: (v) => { S.prefs.set({ viewport: v }); syncViewport(true); } }) }) : null,
@@ -1451,7 +1462,7 @@ export default {
       basemap: null, colorBy: null, labels: 'callsign', trails: true, trailMinutes: null,
       rings: true, beams: true, compass: true, night: true, radar: null, coverage: true, smooth: null,
       list: true, view: null,
-      predPaths: null, range: false, terrain: false, terrainKind: 'los', airports: null, heat: false, prox: false, acas: false, mute: false, filter: {},
+      predPaths: null, range: false, terrain: false, terrainKind: 'los', airports: null, heat: false, prox: false, acas: false, winds: false, windsFL: 300, mute: false, filter: {},
       viewport: 'auto',
     });
 
@@ -1629,6 +1640,7 @@ export default {
       setData: (id, data) => { if (S === state) setData(id, data); },
       map: () => (S === state ? map : null),
       on: (key) => S === state && !!S.eff[key],
+      windsFL: () => S.eff.windsFL,
       onNote: (key) => {
         if (S !== state) return;
         if (key === 'prox-data') { if (S.styleReady) pushProximity(); return; }

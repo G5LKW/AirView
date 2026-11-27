@@ -888,6 +888,23 @@ func (t *Tracker) applyCommB(ac *aircraft, m *modes.Message, tMs int64) {
 			}
 		}
 		ehs = true
+	case modes.BDS45:
+		t.c.BDS45++
+		d := modes.DecodeBDS45(mb)
+		if d.TempOK && (d.Temp < -80 || d.Temp > 60) {
+			return // implausible: most likely not a 4,5 after all
+		}
+		if t.onHaz != nil && (d.TurbulenceOK || d.WindShearOK || d.MicroburstOK || d.IcingOK || d.WakeVortexOK || d.TempOK) {
+			r := HazardReport{T: tMs, ICAO: ac.key, Callsign: ac.callsign, H: d}
+			if ac.posValid && tMs-ac.posMs <= posTTLMs {
+				r.Lat, r.Lon, r.PosOK = ac.lat, ac.lon, true
+			}
+			if fresh(ac.altBaroMs, tMs, fieldTTLMs) {
+				r.AltFt, r.AltOK = ac.altBaro, true
+			}
+			t.onHaz(r)
+		}
+		return
 	case modes.BDS44:
 		t.c.BDS44++
 		d := modes.DecodeBDS44(mb)
