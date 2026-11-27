@@ -1198,6 +1198,7 @@ function openLayersPanel(anchor) {
     ] : null,
     tgl('airports', 'Airports & runways', () => S.extras.airports(), noteOf('airports') || 'From zoom 5; runways and centrelines from zoom 8'),
     rxOk ? tgl('heat', 'Heat map (all time)', () => S.extras.heat(), noteOf('heat') || 'Every position ever received') : null,
+    rxOk ? row('Heat map picture', ui.button({ label: '8K JPEG', icon: 'download', size: 'sm', href: '/api/antenna/heat.jpg?download=1', tip: '7680 x 4320 picture of the all-time heat map with range rings and scale (takes a few seconds)' }), 'For printing and sharing') : null,
     tgl('acas', 'TCAS RAs (24 h)', () => S.extras.acas(), noteOf('acas') || 'Where aircraft reported a resolution advisory'),
     tgl('winds', 'Winds aloft', () => S.extras.winds(S.eff.windsFL), noteOf('winds') || 'Wind and temperature from aircraft (Mode S EHS), last hour'),
     ui.segmented({ block: true, value: e.windsFL, options: [100, 180, 240, 300, 340, 390].map((v) => ({ value: v, label: 'FL' + v })), onChange: (v) => set({ windsFL: +v }, () => S.extras.winds(+v)) }),

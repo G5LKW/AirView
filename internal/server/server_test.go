@@ -105,6 +105,7 @@ func checkBody(ct string, body []byte) error {
 // specialTests names the test that covers each route the generic test
 // skips. A new NoAuto route must be added here (and get a test).
 var specialTests = map[string]string{
+	"GET /api/antenna/heat.jpg":               "TestHeatJPEG",
 	"PUT /api/routes/overrides/{callsign}":    "TestRouteOverridesAPI",
 	"DELETE /api/routes/overrides/{callsign}": "TestRouteOverridesAPI",
 	"POST /api/routes/refresh":                "TestRouteOverridesAPI",
@@ -1545,5 +1546,23 @@ func TestRouteOverridesAPI(t *testing.T) {
 	// Offline engine: no downloads.
 	if rec := r.do("POST", "/api/routes/refresh", loopbackAddr, ""); rec.Code != http.StatusConflict {
 		t.Errorf("refresh offline: %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestHeatJPEG(t *testing.T) {
+	r := newRig(t, rigOptions{seedHours: 0.4, aircraft: 15})
+	rec := r.get("/api/antenna/heat.jpg?w=960&h=540&download=1")
+	if rec.Code != 200 || rec.Header().Get("Content-Type") != "image/jpeg" || !strings.HasPrefix(rec.Body.String(), "\xff\xd8") {
+		t.Fatalf("%d %q %.40q", rec.Code, rec.Header().Get("Content-Type"), rec.Body.String())
+	}
+	if !strings.Contains(rec.Header().Get("Content-Disposition"), "airview-heatmap-") || rec.Header().Get("Cache-Control") != "no-store" {
+		t.Errorf("headers %v", rec.Header())
+	}
+	if rec := r.get("/api/antenna/heat.jpg?w=10"); rec.Code != http.StatusBadRequest {
+		t.Errorf("bad size: %d", rec.Code)
+	}
+	empty := newRig(t, rigOptions{})
+	if rec := empty.get("/api/antenna/heat.jpg?w=960&h=540"); rec.Code != http.StatusNotFound {
+		t.Errorf("no data: %d %s", rec.Code, rec.Body.String())
 	}
 }
