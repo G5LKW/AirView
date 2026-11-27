@@ -90,6 +90,9 @@ type Options struct {
 	// republish them as Beast on 30105 in airview-feeder).
 	OnResults func(uplinkID string, fixes []model.MLATFix)
 
+	// Position returns the receiver position for MLAT outputs (WGS84
+	// degrees, metres; ok=false when unknown). nil = unknown.
+	Position func() (lat, lon, altM float64, ok bool)
 	// Logf receives log lines. Secrets (tokens, claim codes) are never
 	// logged.
 	Logf func(format string, args ...any)

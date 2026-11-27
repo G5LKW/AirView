@@ -55,6 +55,7 @@ func (e *Engine) syncUplinks(stored model.Config, eff *effective) {
 			StateDir: filepath.Join(e.dir, uplinkStateDir),
 			Source:   uplink.SourceFuncs{ForwardableFn: e.uplinkForwardable, ReceiverFn: e.uplinkReceiver},
 			Inject:   injectSink{e},
+			Position: e.uplinkPosition,
 			Now:      ntp.Now,
 			Logf: func(format string, args ...any) {
 				e.log.Info(fmt.Sprintf(format, args...), "component", "uplink")
@@ -209,4 +210,18 @@ func firstNonEmpty(v ...string) string {
 		}
 	}
 	return ""
+}
+
+// uplinkPosition is the station position for MLAT outputs (ellipsoid
+// height in metres, as the mlat-client protocol's "alt" is commonly taken).
+func (e *Engine) uplinkPosition() (lat, lon, altM float64, ok bool) {
+	sp := e.Station()
+	if sp.Source == "none" {
+		return 0, 0, 0, false
+	}
+	g, ok := hostGeo(sp)
+	if !ok {
+		return 0, 0, 0, false
+	}
+	return g.Lat, g.Lon, g.HAE, true
 }

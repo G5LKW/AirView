@@ -140,8 +140,8 @@ func semanticWarnings(c model.FeederConfig) []string {
 		if u.Host == "" {
 			out = append(out, p+".host is empty")
 		}
-		if u.IsBeast() {
-			continue // a Beast output has no TLS and no AirView privacy settings
+		if !u.IsAVF() {
+			continue // a Beast or MLAT output has no TLS and no AirView privacy settings
 		}
 		if u.ServerPin == "" {
 			if _, err := netip.ParseAddr(u.Host); err == nil {

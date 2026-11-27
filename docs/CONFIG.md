@@ -392,6 +392,7 @@ Environment: `AIRVIEW_UPLINKS` (whole list as JSON), `AIRVIEW_UPLINKS_<n>` (one 
 | `uplinks[].format` | string | `""` | `AIRVIEW_UPLINKS_<n>_FORMAT` | format is the Beast output format (Beast only): beast_reduce_plus_out (default), beast_reduce_out or beast_out. |
 | `uplinks[].uuid` | string | `""` | `AIRVIEW_UPLINKS_<n>_UUID` | uuid is the station UUID sent to a Beast aggregator (Beast only; "" = a random UUID generated for this uplink). An identifier at that aggregator, not a password: shown to the owner, never public. |
 | `uplinks[].reduceMs` | integer | `0` | `AIRVIEW_UPLINKS_<n>_REDUCE_MS` | reduceMs is the Beast reduce interval (Beast only; default 250, 50..5000 ms; ignored for beast_out). |
+| `uplinks[].user` | string | `""` | `AIRVIEW_UPLINKS_<n>_USER` | user is the display name sent to an mlat-server (MLAT only; default "airview"). An MLAT uplink also uses UUID (as for Beast), Inputs, Disabled and Pin: "hidden" (the default) asks the network to keep the station off its public maps. |
 
 ### `uplinkTuning` (`uplinkTuning`)
 

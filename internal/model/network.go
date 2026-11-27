@@ -114,15 +114,32 @@ type Uplink struct {
 	// ReduceMs is the Beast reduce interval (Beast only; default 250,
 	// 50..5000 ms; ignored for beast_out).
 	ReduceMs int `json:"reduceMs,omitempty"`
+	// User is the display name sent to an mlat-server (MLAT only; default
+	// "airview"). An MLAT uplink also uses UUID (as for Beast), Inputs,
+	// Disabled and Pin: "hidden" (the default) asks the network to keep the
+	// station off its public maps.
+	User string `json:"user,omitempty"`
 }
 
 // Uplink types (Uplink.Type).
 const (
 	UplinkAVF   = "avf"
 	UplinkBeast = "beast"
+	// UplinkMLAT ("mlat") takes part in a community network's
+	// multilateration with the mlat-client protocol (internal/uplink
+	// mlatout.go), usually next to a Beast uplink to the same network.
+	UplinkMLAT = "mlat"
 	// DefaultBeastOutPort is the default port of a Beast uplink.
 	DefaultBeastOutPort = 30004
+	// DefaultMLATOutPort is the default port of an MLAT uplink.
+	DefaultMLATOutPort = 31090
 )
+
+// IsAVF reports whether u is an AVF/1 uplink to an AirView aggregator.
+func (u Uplink) IsAVF() bool { return !u.IsBeast() && !u.IsMLAT() }
+
+// IsMLAT reports whether u is an MLAT output (mlat-client protocol).
+func (u Uplink) IsMLAT() bool { return u.Type == UplinkMLAT }
 
 // IsBeast reports whether u is a Beast output ("also feed others").
 func (u Uplink) IsBeast() bool { return u.Type == UplinkBeast }
@@ -216,13 +233,34 @@ func (u *Uplink) Normalize(path string) []string {
 	case UplinkBeast:
 		u.Type = UplinkBeast
 		u.normalizeBeast(path, &n)
+	case UplinkMLAT:
+		u.Type = UplinkMLAT
+		if u.Port == 0 || u.Port == DefaultAVFPort {
+			u.Port = DefaultMLATOutPort
+		}
+		u.UUID = strings.TrimSpace(u.UUID)
+		if u.UUID != "" && !validUUIDText(u.UUID) {
+			n.addf("%s.uuid is not a valid UUID; a generated one is used", path)
+			u.UUID = ""
+		}
+		if u.Format != "" || u.ReduceMs != 0 {
+			n.addf("%s: format and reduceMs apply to Beast uplinks only; they were cleared", path)
+			u.Format, u.ReduceMs = "", 0
+		}
 	default:
-		n.addf("%s.type %q is not avf or beast; avf is used", path, u.Type)
+		n.addf("%s.type %q is not avf, beast or mlat; avf is used", path, u.Type)
 		u.Type = ""
 	}
-	if !u.IsBeast() && (u.Format != "" || u.UUID != "" || u.ReduceMs != 0) {
+	if !u.IsBeast() && !u.IsMLAT() && (u.Format != "" || u.UUID != "" || u.ReduceMs != 0) {
 		n.addf("%s: format, uuid and reduceMs apply to Beast uplinks only; they were cleared", path)
 		u.Format, u.UUID, u.ReduceMs = "", "", 0
+	}
+	u.User = strings.TrimSpace(u.User)
+	if !u.IsMLAT() {
+		u.User = ""
+	} else if len(u.User) > 64 || cleanUser(u.User) != u.User {
+		n.addf("%s.user may only use letters, digits, space, _ . - (at most 64); it was cleaned", path)
+		u.User = cleanUser(u.User)
 	}
 	if u.Port < 1 || u.Port > 65535 {
 		n.addf("%s.port %d is out of range 1..65535; %d is used", path, u.Port, def.Port)
@@ -1423,4 +1461,18 @@ func validNoticeURL(u string) bool {
 		return host != "" && !strings.Contains(host, "@")
 	}
 	return false
+}
+
+// cleanUser keeps the characters an mlat-server display name may use.
+func cleanUser(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == ' ' || r == '_' || r == '.' || r == '-' {
+			b.WriteRune(r)
+		}
+		if b.Len() >= 64 {
+			break
+		}
+	}
+	return b.String()
 }

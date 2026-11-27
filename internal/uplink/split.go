@@ -7,6 +7,9 @@ import "airview/internal/model"
 // model.Uplink.Type. Disabled entries are kept; the manager honours them.
 func SplitUplinks(list []model.Uplink) (avfUps []model.Uplink, beast []BeastUplink) {
 	for _, u := range list {
+		if u.IsMLAT() {
+			continue // SplitMLAT
+		}
 		if !u.IsBeast() {
 			avfUps = append(avfUps, u)
 			continue
@@ -20,10 +23,22 @@ func SplitUplinks(list []model.Uplink) (avfUps []model.Uplink, beast []BeastUpli
 	return avfUps, beast
 }
 
-// ApplyAll applies a configured uplink list of both types (SplitUplinks)
-// and returns the Beast normalisation notes.
+// SplitMLAT returns the MLAT outputs of a configured uplink list.
+func SplitMLAT(list []model.Uplink) []MLATUplink {
+	var out []MLATUplink
+	for _, u := range list {
+		if u.IsMLAT() {
+			out = append(out, MLATUplink{ID: u.ID, Host: u.Host, Port: u.Port, User: u.User, UUID: u.UUID,
+				Inputs: append([]string(nil), u.Inputs...), Privacy: u.Pin == "" || u.Pin == model.PinHidden, Disabled: u.Disabled})
+		}
+	}
+	return out
+}
+
+// ApplyAll applies a configured uplink list of every type (SplitUplinks,
+// SplitMLAT) and returns the Beast and MLAT normalisation notes.
 func (m *Manager) ApplyAll(list []model.Uplink) []string {
 	avfUps, beast := SplitUplinks(list)
 	m.Apply(avfUps)
-	return m.ApplyBeast(beast)
+	return append(m.ApplyBeast(beast), m.ApplyMLAT(SplitMLAT(list))...)
 }
