@@ -32,6 +32,9 @@ type RouteOptions struct {
 	CacheTTL    time.Duration `json:"cacheTtl,omitempty"`    // default 24 h for found routes
 	NegativeTTL time.Duration `json:"negativeTtl,omitempty"` // default 12 h for unknown callsigns
 	MaxWait     time.Duration `json:"maxWait,omitempty"`     // longest pacing wait accepted per request (default 5 s)
+	// Contact is appended to the User-Agent as " (+contact)" (a URL or
+	// e-mail; the engine passes the project URL by default).
+	Contact string `json:"contact,omitempty"`
 }
 
 // AdsbdbCallsignURL is the default online route endpoint (verified Nov 2026:
@@ -102,6 +105,17 @@ type RouteInfo struct {
 // enabled) the online lookup. pos (optional) enables the plausibility check.
 // A callsign without any route returns Found=false and no error.
 func (n *NavData) Route(ctx context.Context, callsign string, pos *Point) (RouteInfo, error) {
+	return n.route(ctx, callsign, pos, true)
+}
+
+// RouteNoFetch is Route without sending an online request: the standing
+// data, then a cached online answer only (public viewers must not spend the
+// station's online budget).
+func (n *NavData) RouteNoFetch(ctx context.Context, callsign string, pos *Point) (RouteInfo, error) {
+	return n.route(ctx, callsign, pos, false)
+}
+
+func (n *NavData) route(ctx context.Context, callsign string, pos *Point, fetch bool) (RouteInfo, error) {
 	cs := normCallsign(callsign)
 	if cs == "" {
 		return RouteInfo{Callsign: strings.TrimSpace(callsign)}, fmt.Errorf("%w: callsign", ErrBadInput)
@@ -118,7 +132,13 @@ func (n *NavData) Route(ctx context.Context, callsign string, pos *Point) (Route
 		if !opts.Online {
 			return info, nil
 		}
-		orr, ok, cached, err := n.onlineRoute(ctx, cs, opts)
+		var orr RouteRecord
+		var cached bool
+		if fetch {
+			orr, ok, cached, err = n.onlineRoute(ctx, cs, opts)
+		} else {
+			orr, ok, cached, err = n.CachedRoute(ctx, cs)
+		}
 		if err != nil {
 			return info, err
 		}
@@ -284,6 +304,69 @@ func (a adsbdbAirport) code() string {
 	return strings.ToUpper(a.IATA)
 }
 
+// CachedRoute returns a cached online answer for callsign without ever
+// sending a request (found=false and ok=false when nothing is cached or the
+// entry expired; ok=true, found=false for a cached "unknown callsign").
+// Callers that must not spend the online budget (public viewers) use it.
+func (n *NavData) CachedRoute(ctx context.Context, callsign string) (rr RouteRecord, found, ok bool, err error) {
+	cs := normCallsign(callsign)
+	if cs == "" || n.st == nil {
+		return RouteRecord{}, false, false, nil
+	}
+	if p, hit := n.pend.route(cs, time.Now()); hit {
+		if p == nil {
+			return RouteRecord{}, false, true, nil
+		}
+		return *p, len(p.Codes) >= 2, true, nil
+	}
+	var f int
+	var airline, airports string
+	err = n.st.DB().QueryRowContext(ctx, `SELECT found, airline, airports FROM navdata_route_cache WHERE callsign = ? AND expires > ?`,
+		cs, time.Now().Unix()).Scan(&f, &airline, &airports)
+	if errors.Is(err, sql.ErrNoRows) {
+		return RouteRecord{}, false, false, nil
+	}
+	if err != nil {
+		return RouteRecord{}, false, false, err
+	}
+	if f == 0 {
+		return RouteRecord{}, false, true, nil
+	}
+	rr = RouteRecord{Callsign: cs, Airline: airline, Codes: splitCodes(airports)}
+	return rr, len(rr.Codes) >= 2, true, nil
+}
+
+// OnlineRoute looks callsign up online (adsbdb) when online look-ups are
+// enabled, through the cache, pacing and daily budget. It never reads the
+// standing data. ErrDisabled when online look-ups are off.
+func (n *NavData) OnlineRoute(ctx context.Context, callsign string) (RouteRecord, bool, error) {
+	cs := normCallsign(callsign)
+	if cs == "" {
+		return RouteRecord{}, false, fmt.Errorf("%w: callsign", ErrBadInput)
+	}
+	o := n.options().Routes
+	if !o.Online {
+		return RouteRecord{}, false, ErrDisabled
+	}
+	rr, ok, _, err := n.onlineRoute(ctx, cs, o)
+	return rr, ok, err
+}
+
+// OnlineBudget reports the online route look-ups used in the current 24-h
+// window, the daily cap and whether the limiter is backing off.
+func (n *NavData) OnlineBudget() (used, daily int, backoffUntil time.Time) {
+	l := n.online
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.now().Sub(l.day) < 24*time.Hour {
+		used = l.count
+	}
+	if l.next.After(l.now()) {
+		backoffUntil = l.next
+	}
+	return used, l.daily, backoffUntil
+}
+
 // onlineRoute consults the cache, then adsbdb.
 func (n *NavData) onlineRoute(ctx context.Context, cs string, o RouteOptions) (RouteRecord, bool, bool, error) {
 	if n.st == nil {
@@ -344,7 +427,11 @@ func (n *NavData) fetchAdsbdb(ctx context.Context, cs string, o RouteOptions) (*
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", opts.UserAgent)
+	ua := opts.UserAgent
+	if o.Contact != "" {
+		ua += " (+" + o.Contact + ")"
+	}
+	req.Header.Set("User-Agent", ua)
 	req.Header.Set("Accept", "application/json")
 	resp, err := opts.Client.Do(req)
 	if err != nil {

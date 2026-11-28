@@ -34,6 +34,7 @@ import { BASEMAPS, basemapById, styleFor, makeTransformRequest, LABEL_FONT, LABE
 import { receiverOverlays, nightOverlay, coverageCollection, bounds, EMPTY } from '../map/overlays.js';
 import { createList, isEmergency, isStale, hasPosition } from '../map/list.js';
 import { createDetail, download } from '../map/detail.js';
+import { routeColor, routeLineFeatures } from '../map/route-split.js';
 import { coastProps, SIGMA_RADIUS, deadReckonPath, pathFeatures, linkFeature, lastRealFeature, sameWorld } from '../map/predict.js';
 import { createExtras, AIRPORT_MIN_ZOOM } from '../map/extras.js';
 import { createMeasure } from '../map/measure.js';
@@ -104,6 +105,9 @@ function baseEffective(S) {
     airports: p.airports === null ? cfg.navData?.airportsOverlay !== false : !!p.airports,
     heat: !!p.heat,
     prox: !!p.prox,
+    acas: !!p.acas,
+    winds: !!p.winds,
+    windsFL: [100, 180, 240, 300, 340, 390].includes(p.windsFL) ? p.windsFL : 300,
     mute: !!p.mute,
     soundAllowed: cfg.alerts?.sound !== false,
   };
@@ -113,7 +117,7 @@ function baseEffective(S) {
 // layers
 // -----------------------------------------------------------------------------------------------
 const SOURCES = ['night', 'heat', 'coverage', 'range', 'terrain', 'rings', 'ring-labels', 'compass', 'compass-labels', 'beams', 'beam-axes',
-  'airports', 'route', 'receiver', 'trail-sel', 'trace', 'focus', 'pred-paths', 'pred-ticks', 'pred-links', 'prox', 'measure'];
+  'airports', 'acas', 'winds', 'route', 'receiver', 'trail-sel', 'trace', 'focus', 'pred-paths', 'pred-ticks', 'pred-links', 'pred-learned', 'prox', 'measure'];
 
 function installLayers() {
   const { map } = S;
@@ -176,8 +180,21 @@ function installLayers() {
     'symbol-sort-key': ['-', 0, ['get', 'size']],
   }, paint: { 'text-color': apt, 'text-halo-color': halo, 'text-halo-width': 1.5 } });
 
+  // TCAS resolution advisories of the last 24 h (where each started)
+  add({ id: 'acas-dot', type: 'circle', source: 'acas', paint: { 'circle-radius': 5, 'circle-color': '#ff453a', 'circle-opacity': 0.85, 'circle-stroke-color': halo, 'circle-stroke-width': 1.2 } });
+  add({ id: 'acas-label', type: 'symbol', source: 'acas', minzoom: 6, layout: { 'text-field': ['get', 't'], 'text-font': LABEL_FONT, 'text-size': 10, 'text-offset': [0, 0.9], 'text-anchor': 'top', 'text-optional': true, 'text-max-width': 16 }, paint: { 'text-color': '#ff8a80', 'text-halo-color': halo, 'text-halo-width': 1.5 } });
+
+  // winds / temperature aloft (gridded EHS): arrow towards where the wind blows, dot coloured by ISA deviation
+  const isa = ['interpolate', ['linear'], ['get', 'd'], -10, '#60a5fa', 0, dark ? '#e5e7eb' : '#475569', 10, '#f87171'];
+  add({ id: 'winds-line', type: 'line', source: 'winds', filter: ['!=', ['geometry-type'], 'Point'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': dark ? '#a5f3fc' : '#0e7490', 'line-width': ['interpolate', ['linear'], ['get', 'kt'], 0, 1, 100, 2.4], 'line-opacity': 0.85 } });
+  add({ id: 'winds-dot', type: 'circle', source: 'winds', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 3.2, 'circle-color': isa, 'circle-stroke-color': halo, 'circle-stroke-width': 1 } });
+  add({ id: 'winds-label', type: 'symbol', source: 'winds', minzoom: 6.5, filter: ['==', ['geometry-type'], 'Point'], layout: { 'text-field': ['get', 't'], 'text-font': LABEL_FONT_REGULAR, 'text-size': 9.5, 'text-offset': [0, 0.8], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': dark ? '#cffafe' : '#155e75', 'text-halo-color': halo, 'text-halo-width': 1.4 } });
+
   // route of the selected aircraft
-  add({ id: 'route-line', type: 'line', source: 'route', filter: ['==', ['get', 'kind'], 'line'], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': ['case', ['==', ['get', 'ok'], 0], '#fbbf24', '#e879f9'], 'line-width': 1.6, 'line-opacity': 0.75, 'line-dasharray': [1, 2.4] } });
+  // route of the selected aircraft (ROUTES-DESIGN §6.2): flown part faint and solid, remaining part dashed,
+  // coloured by the route state (map/route-split.js)
+  add({ id: 'route-flown', type: 'line', source: 'route', filter: ['all', ['==', ['get', 'kind'], 'line'], ['==', ['get', 'part'], 'flown']], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 1.4, 'line-opacity': 0.35 } });
+  add({ id: 'route-line', type: 'line', source: 'route', filter: ['all', ['==', ['get', 'kind'], 'line'], ['==', ['get', 'part'], 'remaining']], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 1.6, 'line-opacity': 0.8, 'line-dasharray': [1, 2.4] } });
   add({ id: 'route-ap', type: 'circle', source: 'route', filter: ['==', ['get', 'kind'], 'ap'], paint: { 'circle-radius': 5, 'circle-color': dark ? '#0b1430' : '#ffffff', 'circle-stroke-color': '#e879f9', 'circle-stroke-width': 2 } });
   add({ id: 'route-ap-label', type: 'symbol', source: 'route', filter: ['==', ['get', 'kind'], 'ap'], layout: { 'text-field': ['get', 'text'], 'text-font': LABEL_FONT, 'text-size': 11.5, 'text-offset': [0, 1], 'text-anchor': 'top', 'text-allow-overlap': true }, paint: { 'text-color': '#f5d0fe', 'text-halo-color': halo, 'text-halo-width': 1.6 } });
 
@@ -187,6 +204,9 @@ function installLayers() {
   add({ id: 'trace', type: 'line', source: 'trace', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'c'], 'line-width': ['interpolate', ['linear'], ['zoom'], 3, 1.6, 11, 3], 'line-opacity': 0.7 } });
   add({ id: 'trail-sel-casing', type: 'line', source: 'trail-sel', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': dark ? '#ffffff' : '#01040b', 'line-width': ['interpolate', ['linear'], ['zoom'], 3, 4.5, 11, 7.5], 'line-opacity': dark ? 0.22 : 0.5 } });
   add({ id: 'trail-sel', type: 'line', source: 'trail-sel', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'c'], 'line-width': ['interpolate', ['linear'], ['zoom'], 3, 2.4, 11, 4.2] } });
+
+  // path learned from the surrounding traffic (internal/flowlearn), selected aircraft only
+  add({ id: 'pred-learned', type: 'line', source: 'pred-learned', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': dark ? '#f5f5f4' : '#334155', 'line-width': 1.6, 'line-opacity': 0.8, 'line-dasharray': [0.4, 2.2] } });
 
   // predicted paths, time ticks, connectors to the last real position
   add({ id: 'pred-path', type: 'line', source: 'pred-paths', layout: { 'line-cap': 'butt', 'line-join': 'round' }, paint: { 'line-color': ['get', 'c'], 'line-opacity': ['get', 'o'], 'line-width': ['case', ['==', ['get', 'w'], 1], 2, 1.3], 'line-dasharray': [2, 1.6] } });
@@ -207,6 +227,8 @@ function installLayers() {
   // coasting aircraft: uncertainty circle under everything aircraft-related
   add({ id: 'ac-pred-sigma', type: 'circle', source: 'aircraft', filter: ['all', ['==', ['get', 'pred'], 1], ['>', ['get', 'r0'], 0]], paint: { 'circle-radius': SIGMA_RADIUS, 'circle-color': ['get', 'c'], 'circle-opacity': 0.08, 'circle-stroke-color': ['get', 'c'], 'circle-stroke-width': 1, 'circle-stroke-opacity': ['*', 0.55, ['get', 'gi']], 'circle-pitch-alignment': 'map' } });
   add({ id: 'ac-emerg', type: 'circle', source: 'aircraft', filter: ['==', ['get', 'emerg'], 1], paint: { 'circle-radius': 20, 'circle-color': '#ff4d5e', 'circle-opacity': 0.22, 'circle-stroke-color': '#ff4d5e', 'circle-stroke-width': 1.6, 'circle-stroke-opacity': 0.9 } });
+  // an active TCAS resolution advisory reported by the aircraft
+  add({ id: 'ac-ra', type: 'circle', source: 'aircraft', filter: ['==', ['get', 'ra'], 1], paint: { 'circle-radius': iconScale(21), 'circle-color': 'rgba(255,69,58,0.12)', 'circle-stroke-color': '#ff453a', 'circle-stroke-width': 2.6, 'circle-stroke-opacity': 0.95 } });
   add({ id: 'ac-hl', type: 'circle', source: 'aircraft', filter: ['!=', ['get', 'hl'], ''], paint: { 'circle-radius': iconScale(17), 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': ['get', 'hl'], 'circle-stroke-width': 2.2, 'circle-stroke-opacity': 0.95 } });
   // MLAT positions: a ring around the icon in the colour of the fix grade (A green, B amber, C orange; violet
   // for external MLAT without a grade), thicker for better grades - distinct from ADS-B in every colour mode
@@ -282,7 +304,9 @@ function applyVisibility() {
   setVisible(['apt-centerline', 'apt-runway', 'apt-dot', 'apt-label'], e.airports);
   setVisible(['heat'], e.heat);
   setVisible(['prox-line', 'prox-label'], e.prox);
-  setVisible(['pred-path', 'pred-tick', 'pred-tick-sigma', 'pred-tick-label'], e.predPaths !== 'off');
+  setVisible(['acas-dot', 'acas-label'], e.acas);
+  setVisible(['winds-line', 'winds-dot', 'winds-label'], e.winds);
+  setVisible(['pred-path', 'pred-tick', 'pred-tick-sigma', 'pred-tick-label', 'pred-learned'], e.predPaths !== 'off');
 }
 
 /** Set a GeoJSON source's data (cached so a base-map switch can restore it). */
@@ -434,9 +458,10 @@ function prepare(snap) {
         po: cp ? cp.po : 1,
         r0: cp ? cp.r0 : 0,
         hl,
+        ra: a.acas ? 1 : 0,
         mine: a.mine ? 1 : 0,
-        label: labels === 'none' ? '' : labelFor(a, labels),
-        sk: a.icao === S.selected ? -1e7 : emerg ? -1e6 : hl ? -5e5 : -alt,
+        label: a.acas ? (labels === 'none' ? a.callsign || a.icao : labelFor(a, labels)) + '\nRA ' + a.acas.advisory : labels === 'none' ? '' : labelFor(a, labels),
+        sk: a.icao === S.selected ? -1e7 : emerg ? -1e6 : a.acas ? -9e5 : hl ? -5e5 : -alt,
       },
     };
     // blend the jump between the shown and the newly reported position over the next frames
@@ -549,15 +574,22 @@ function serverPathFromNow(sp, p, now) {
 function pushPaths() {
   if (!S.styleReady) return;
   const mode = S.eff.predPaths;
-  if (mode === 'off') { if (S.pathsShown) { setData('pred-paths', EMPTY); setData('pred-ticks', EMPTY); S.pathsShown = false; } return; }
+  if (mode === 'off') { if (S.pathsShown) { setData('pred-paths', EMPTY); setData('pred-ticks', EMPTY); setData('pred-learned', EMPTY); S.pathsShown = false; } return; }
   const now = S.ctx.live.serverNow();
   const segs = [];
   const ticks = [];
   const focus = new Set(focusSet());
+  const learned = [];
   for (const icao of focus) {
     const p = S.prepared.get(icao);
     if (!p || p.props.stale) continue;
     const sp = S.paths.get(icao);
+    if (sp && sp.learned && sp.learned.length > 1) {
+      // shifted so it starts at the icon's current (animated) position
+      const dx = p.cur[0] - sp.learned[0].lon;
+      const dy = p.cur[1] - sp.learned[0].lat;
+      learned.push({ type: 'Feature', properties: { icao }, geometry: { type: 'LineString', coordinates: sp.learned.map((q) => [q.lon + dx, q.lat + dy]) } });
+    }
     let pts = sp && sp.points && sp.points.length > 1 ? serverPathFromNow(sp, p, now) : null;
     if (!pts || pts.length < 2) pts = deadReckonPath(p.cur[0], p.cur[1], p.a, S.eff.pathSec, 10);
     pathFeatures(pts, { color: p.props.c, icao, ticks: true, tickEvery: S.eff.pathSec > 300 ? 60 : 30, major: true }, segs, ticks);
@@ -576,6 +608,7 @@ function pushPaths() {
       pathFeatures(pts, { color: p.props.c, icao }, segs, ticks);
     }
   }
+  setData('pred-learned', { type: 'FeatureCollection', features: learned });
   S.lastPathsPush = performance.now();
   setData('pred-paths', fc(segs));
   setData('pred-ticks', fc(ticks));
@@ -603,6 +636,7 @@ function refreshServerPaths() {
         rec.points = Array.isArray(r?.points) ? r.points.filter((q) => num(q.lat) && num(q.lon)) : null;
         rec.t0 = r?.t0 || Date.now();
         rec.terrain = r?.terrain || null;
+        rec.learned = r?.learned?.learned && Array.isArray(r.learned.points) ? r.learned.points.filter((q) => num(q.lat) && num(q.lon)) : null;
         rec.failed = false;
         if (icao === S.selected) S.detail.setPath(r);
       })
@@ -793,9 +827,26 @@ async function loadTrace(on) {
 
 function showRoute(info) {
   if (!S) return;
+  S.routeInfo = info || null;
+  S.routeSig = '';
+  drawRoute();
+}
+
+/** (Re)draws the selected aircraft's route, split at its current position; cheap no-op while nothing changed. */
+function drawRoute() {
+  const info = S.routeInfo;
   const p = S.selected && S.prepared.get(S.selected);
-  if (!info || !Array.isArray(info.path) || info.path.length < 2) { setData('route', EMPTY); return; }
-  const feats = [{ type: 'Feature', properties: { kind: 'line', ok: info.check && info.check.doubtful ? 0 : 1 }, geometry: { type: 'LineString', coordinates: info.path } }];
+  if (!info || !Array.isArray(info.path) || info.path.length < 2) {
+    if (S.routeSig !== 'empty') { S.routeSig = 'empty'; setData('route', EMPTY); }
+    return;
+  }
+  const live = S.selected && S.ctx.live.get(S.selected);
+  const color = routeColor(live?.route?.state, info.check);
+  const pos = p && !p.props.pred ? [p.cur[0], p.cur[1]] : null;
+  const sig = `${color}|${pos ? pos[0].toFixed(3) + ',' + pos[1].toFixed(3) : ''}`;
+  if (sig === S.routeSig) return;
+  S.routeSig = sig;
+  const feats = routeLineFeatures(info.path, pos, color);
   const aps = info.airports || [];
   for (const [i, ap] of aps.entries()) {
     const a = ap.airport;
@@ -823,6 +874,8 @@ function select(icao, opts = {}) {
   S.trace = null;
   S.traceSeq++;
   setData('trace', EMPTY);
+  S.routeInfo = null;
+  S.routeSig = 'empty';
   setData('route', EMPTY);
   S.root.classList.toggle('has-detail', !!icao);
   S.list.setSelected(icao);
@@ -1115,14 +1168,16 @@ function renderLegend() {
   const sym = [];
   if (S.predictedCount || S.eff.predPaths !== 'off') sym.push(h('span.lg-sym', { tip: 'No position for a few seconds: shown where the tracking filter predicts it; the glow fades as the prediction ages, the circle is the 1σ uncertainty' }, h('i.lg-glow'), 'Predicted (glow)'));
   if (S.eff.predPaths !== 'off') sym.push(h('span.lg-sym', h('i.lg-dash'), 'Predicted path'));
+  if (S.eff.predPaths !== 'off' && [...S.paths.values()].some((r) => r.learned)) sym.push(h('span.lg-sym', { tip: 'Where the traffic that recently flew through the same airspace went (learned, self-checked against dead reckoning: /api/prediction/learned)' }, h('i.lg-dash', { style: { borderColor: '#f5f5f4', borderTopStyle: 'dotted' } }), 'Learned from traffic'));
   if (S.hasHighlights) sym.push(h('span.lg-sym', h('i.lg-ring'), 'Alert rule'));
+  if (S.hasRA) sym.push(h('span.lg-sym', { tip: 'The aircraft reports an active TCAS resolution advisory (its label shows the advisory)' }, h('i.lg-ring', { style: { borderColor: '#ff453a' } }), 'TCAS RA'));
   if (S.mlatCount && S.legendMlat) {
     sym.push(h('span.lg-sym.lg-mlat-title', { tip: 'Multilateration: positions the network computes from the arrival times at several stations. The ring colour is the quality grade (1σ horizontal error).' }, 'MLAT'));
     if (S.legendMlat & 1) for (const g of GRADES) sym.push(h('span.lg-sym', { tip: `Grade ${g.label}: ${g.text}` }, h('i.lg-mring', { style: { borderColor: g.color, borderWidth: g.width + 'px' } }), g.label));
     if (S.mlatUngraded) sym.push(h('span.lg-sym', { tip: 'MLAT from an external server, without a grade' }, h('i.lg-mring', { style: { borderColor: MLAT_UNGRADED } }), 'ext.'));
   }
   const notes = [];
-  for (const [key, label] of [['range', 'Range'], ['terrain', 'Terrain'], ['airports', 'Airports'], ['heat', 'Heat map'], ['prox', 'Proximity']]) {
+  for (const [key, label] of [['range', 'Range'], ['terrain', 'Terrain'], ['airports', 'Airports'], ['heat', 'Heat map'], ['prox', 'Proximity'], ['acas', 'TCAS RAs'], ['winds', 'Winds aloft']]) {
     if (!S.eff[key]) continue;
     const nt = S.extras.notes.get(key);
     if (nt && nt.text && nt.state !== 'ok') notes.push(h('div.lg-note' + (nt.state === 'error' ? '.err' : ''), icon(nt.state === 'error' ? 'alert' : nt.state === 'loading' ? 'refresh' : 'info'), `${label}: ${nt.text}`));
@@ -1179,6 +1234,10 @@ function openLayersPanel(anchor) {
     ] : null,
     tgl('airports', 'Airports & runways', () => S.extras.airports(), noteOf('airports') || 'From zoom 5; runways and centrelines from zoom 8'),
     rxOk ? tgl('heat', 'Heat map (all time)', () => S.extras.heat(), noteOf('heat') || 'Every position ever received') : null,
+    rxOk ? row('Heat map picture', ui.button({ label: '8K JPEG', icon: 'download', size: 'sm', href: '/api/antenna/heat.jpg?download=1', tip: '7680 x 4320 picture of the all-time heat map with range rings and scale (takes a few seconds)' }), 'For printing and sharing') : null,
+    tgl('acas', 'TCAS RAs (24 h)', () => S.extras.acas(), noteOf('acas') || 'Where aircraft reported a resolution advisory'),
+    tgl('winds', 'Winds aloft', () => S.extras.winds(S.eff.windsFL), noteOf('winds') || 'Wind and temperature from aircraft (Mode S EHS), last hour'),
+    ui.segmented({ block: true, value: e.windsFL, options: [100, 180, 240, 300, 340, 390].map((v) => ({ value: v, label: 'FL' + v })), onChange: (v) => set({ windsFL: +v }, () => S.extras.winds(+v)) }),
     net.aggregator ? ui.field({ label: 'Load aircraft', hint: `"Visible area" saves bandwidth on large networks; the list then shows the aircraft in view only. Automatic switches to it above ${VIEWPORT_ON} aircraft.`,
       control: ui.segmented({ block: true, value: S.prefs.get().viewport || 'auto', options: [{ value: 'auto', label: 'Automatic' }, { value: 'on', label: 'Visible area' }, { value: 'off', label: 'Everything' }],
         onChange: (v) => { S.prefs.set({ viewport: v }); syncViewport(true); } }) }) : null,
@@ -1352,7 +1411,10 @@ function onSnapshot(snap) {
   extendTrails();
   S.list.update(snap);
   S.detail.update(snap.now);
+  if (S.routeInfo) drawRoute();
   const hl = snap.aircraft.some((a) => a.highlight);
+  const ra = snap.aircraft.some((a) => a.acas);
+  if (ra !== !!S.hasRA) { S.hasRA = ra; renderLegend(); }
   const predNow = S.predictedCount > 0;
   let mlatKey = 0;
   if (S.mlatCount) for (const a of snap.aircraft) if (a.source === 'mlat' && typeof a.lat === 'number' && !a.predicted) mlatKey |= a.mlatGrade ? 1 : 2;
@@ -1438,7 +1500,7 @@ export default {
       basemap: null, colorBy: null, labels: 'callsign', trails: true, trailMinutes: null,
       rings: true, beams: true, compass: true, night: true, radar: null, coverage: true, smooth: null,
       list: true, view: null,
-      predPaths: null, range: false, terrain: false, terrainKind: 'los', airports: null, heat: false, prox: false, mute: false, filter: {},
+      predPaths: null, range: false, terrain: false, terrainKind: 'los', airports: null, heat: false, prox: false, acas: false, winds: false, windsFL: 300, mute: false, filter: {},
       viewport: 'auto',
     });
 
@@ -1616,6 +1678,7 @@ export default {
       setData: (id, data) => { if (S === state) setData(id, data); },
       map: () => (S === state ? map : null),
       on: (key) => S === state && !!S.eff[key],
+      windsFL: () => S.eff.windsFL,
       onNote: (key) => {
         if (S !== state) return;
         if (key === 'prox-data') { if (S.styleReady) pushProximity(); return; }

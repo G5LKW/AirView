@@ -160,6 +160,7 @@ func RedactPublic(cfg model.Config) model.Config {
 		out.Feeds[i].URL = RedactURL(out.Feeds[i].URL)
 	}
 	out.NavData.PhotoContact = redacted(out.NavData.PhotoContact)
+	out.NavData.Routes.Contact = redacted(out.NavData.Routes.Contact)
 	return out
 }
 

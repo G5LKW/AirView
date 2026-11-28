@@ -421,7 +421,13 @@
     // ShowPaths: the map draws the predicted path of the selected aircraft
     // (default true).
     // Environment: AIRVIEW_PREDICTION_SHOW_PATHS.
-    "showPaths": true
+    "showPaths": true,
+    // learnedTurns blends the turns learned from the surrounding traffic
+    // (internal/flowlearn) into the positions of coasting aircraft, weighted
+    // by the learner's self-check: only where the learned turns were measured
+    // clearly better than dead reckoning (default true).
+    // Environment: AIRVIEW_PREDICTION_LEARNED_TURNS.
+    "learnedTurns": true
   },
   // Controls the terrain line-of-sight analysis (internal/terrain).
   "terrain": {
@@ -450,11 +456,13 @@
     // Airports layer offered on the map (default true)
     // Environment: AIRVIEW_NAV_DATA_AIRPORTS_OVERLAY.
     "airportsOverlay": true,
-    // routesOnline looks unknown callsigns up at adsbdb.com (sends the
-    // callsign to a third party; default false). Without it only the imported
-    // offline standing data is used.
-    // Environment: AIRVIEW_NAV_DATA_ROUTES_ONLINE.
-    "routesOnline": false,
+    // autoRefresh downloads the reference data (airports, runways, navaids,
+    // countries, VRS standing-data routes; CC0 / public domain, about 25 MB,
+    // no user data sent) at first start and checks it daily at a per-install
+    // random time with a conditional GET (default true; off for air-gapped
+    // sites).
+    // Environment: AIRVIEW_NAV_DATA_AUTO_REFRESH.
+    "autoRefresh": true,
     // photos shows aircraft photos from planespotters.net (sends the ICAO
     // address; default false). Requires PhotoContact.
     // Environment: AIRVIEW_NAV_DATA_PHOTOS.
@@ -462,7 +470,37 @@
     // Contact URL or e-mail sent in the User-Agent (required by
     // planespotters.net)
     // Environment: AIRVIEW_NAV_DATA_PHOTO_CONTACT.
-    "photoContact": ""
+    "photoContact": "",
+    // Controls route resolution (internal/routes).
+    "routes": {
+      // Master switch of the route feature (default true)
+      // Environment: AIRVIEW_NAV_DATA_ROUTES_ENABLED.
+      "enabled": true,
+      // online looks callsigns up at adsbdb.com when no offline route
+      // (override, learned, standing data) exists (default true). It sends
+      // the callsign, never the receiver location; answers are only cached,
+      // never merged into AirView's own tables, and shown only to the
+      // station's own users.
+      // Environment: AIRVIEW_NAV_DATA_ROUTES_ONLINE.
+      "online": true,
+      // Online look-ups per 24 h (default 1000)
+      // Environment: AIRVIEW_NAV_DATA_ROUTES_DAILY_CAP.
+      "dailyCap": 1000,
+      // A callsign must be received this long before it is looked up online
+      // (default 45)
+      // Environment: AIRVIEW_NAV_DATA_ROUTES_STABLE_SEC.
+      "stableSec": 45,
+      // contact URL or e-mail in the User-Agent of online look-ups (default:
+      // the project URL)
+      // Environment: AIRVIEW_NAV_DATA_ROUTES_CONTACT.
+      "contact": "",
+      // learn routes from observed take-offs and landings (default true)
+      // Environment: AIRVIEW_NAV_DATA_ROUTES_LEARN.
+      "learn": true,
+      // Estimate the arrival time (default true)
+      // Environment: AIRVIEW_NAV_DATA_ROUTES_ETA.
+      "eta": true
+    }
   },
   // Controls the alert rules engine (internal/alerts).
   "alerts": {
@@ -574,7 +612,13 @@
     //   // reduceMs is the Beast reduce interval (Beast only; default 250, 50..5000
     //   // ms; ignored for beast_out).
     //   // Environment: AIRVIEW_UPLINKS_0_REDUCE_MS.
-    //   "reduceMs": 0
+    //   "reduceMs": 0,
+    //   // user is the display name sent to an mlat-server (MLAT only; default
+    //   // "airview"). An MLAT uplink also uses UUID (as for Beast), Inputs,
+    //   // Disabled and Pin: "hidden" (the default) asks the network to keep the
+    //   // station off its public maps.
+    //   // Environment: AIRVIEW_UPLINKS_0_USER.
+    //   "user": ""
     // }
   ],
   // Holds the global tunables of the AVF/1 uplink client (internal/uplink;

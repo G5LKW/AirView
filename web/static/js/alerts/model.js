@@ -23,6 +23,10 @@ export const SYSTEM_EVENTS = [
   { value: 'range_collapse', label: 'Range collapse' }, { value: 'range_restored', label: 'Range restored' },
   { value: 'new_airframe', label: 'New airframe' }, { value: 'custom', label: 'Custom' },
 ];
+export const ROUTE_STATES = [
+  { value: 'fits', label: 'Fits' }, { value: 'uncertain', label: 'Uncertain' }, { value: 'doubtful', label: 'Doubtful' },
+  { value: 'reversed', label: 'Reversed' }, { value: 'unchecked', label: 'Unchecked' },
+];
 export const CATEGORIES = [
   ['A1', 'Light'], ['A2', 'Small'], ['A3', 'Large'], ['A4', 'B757 class'], ['A5', 'Heavy'], ['A6', 'High performance'],
   ['A7', 'Rotorcraft'], ['B1', 'Glider'], ['B2', 'Balloon'], ['B3', 'Parachutist'], ['B4', 'Ultralight'], ['B6', 'UAV'],
@@ -62,10 +66,20 @@ export const CONDS = [
   { type: 'distance', group: 'Position', label: 'Distance from station', kind: 'range', unit: 'dist', lo: 0, hi: 20000 },
   { type: 'bearing', group: 'Position', label: 'Bearing sector', kind: 'bearing' },
   { type: 'geofence', group: 'Position', label: 'Geofence', kind: 'geofence' },
+  // live route (docs/ROUTES-DESIGN.md §6.7): airport codes match the ICAO and the IATA code of the route
+  { type: 'routeTo', group: 'Route', label: 'Route to', kind: 'values', ph: 'EGLL, LHR, ED*', hint: 'Destination of the active leg; ICAO or IATA codes, * and ? patterns.' },
+  { type: 'routeFrom', group: 'Route', label: 'Route from', kind: 'values', ph: 'KJFK, JFK', hint: 'Departure of the active leg.' },
+  { type: 'routeVia', group: 'Route', label: 'Route via', kind: 'values', ph: 'EDDF', hint: 'An intermediate stop of a multi-stop route.' },
+  { type: 'routeAirport', group: 'Route', label: 'Route touches airport', kind: 'values', ph: 'EGLL, LHR', hint: 'From, to or via.' },
+  { type: 'route', group: 'Route', label: 'Route', kind: 'values', ph: 'EGLL-KJFK, LHR-*', hint: 'FROM-TO pairs; * and ? patterns.' },
+  { type: 'routeState', group: 'Route', label: 'Route check', kind: 'choice', choices: ROUTE_STATES, required: true },
+  { type: 'routeKind', group: 'Route', label: 'Flight kind', kind: 'choice', choices: [{ value: 'positioning', label: 'Positioning' }, { value: 'charter', label: 'Charter' }], required: true },
+  { type: 'etaWithin', group: 'Route', label: 'Arrives within', kind: 'range', unit: 'min', lo: 1, hi: 1440, step: 1, maxOnly: true, hint: 'Minutes to the estimated arrival (routes with an ETA only).' },
+  { type: 'acasRA', group: 'Transponder', label: 'TCAS resolution advisory', kind: 'choice', choices: [{ value: 'up', label: 'Upward sense' }, { value: 'down', label: 'Downward sense' }], free: true, hint: 'An active RA reported by the aircraft. Nothing selected = any RA; free text = advisory patterns, e.g. Climb*. A report is not proof of a conflict.' },
   { type: 'system', group: 'System', label: 'System event', kind: 'choice', choices: SYSTEM_EVENTS, free: true, required: true, hint: 'Extra entries as kind:key patterns, e.g. record:max_dist*.' },
 ];
 export const condDef = (type) => CONDS.find((c) => c.type === type);
-export const COND_GROUPS = ['Identity', 'Transponder', 'Flight', 'Position', 'System'];
+export const COND_GROUPS = ['Identity', 'Transponder', 'Flight', 'Position', 'Route', 'System'];
 
 const isGroup = (c) => !!c && (c.op !== undefined || Array.isArray(c.conds)) && !c.type;
 export { isGroup };
@@ -92,6 +106,7 @@ export function newLeaf(type, rx) {
     else if (type === 'speed') c.min = 500;
     else if (type === 'vrate') c.max = -2500;
     else if (type === 'rssi') c.min = -10;
+    else if (type === 'etaWithin') c.max = 20;
     else c.min = d.lo;
   }
   return c;
@@ -206,7 +221,9 @@ export function validate(draft, idOf) {
     if (d.kind === 'choice' && c.type === 'watchlist') {
       for (const v of c.values || []) if (!/^[A-Za-z0-9 _.-]{1,40}$/.test(v)) { bad(`"${v}" is not a valid list name.`); break; }
     }
-    if (d.kind === 'range') {
+    if (d.kind === 'range' && d.maxOnly) {
+      if (!fin(c.max) || c.max < d.lo || c.max > d.hi) bad(`Enter ${d.lo} to ${d.hi}.`);
+    } else if (d.kind === 'range') {
       if (!fin(c.min) && !fin(c.max)) bad('Enter a minimum and/or a maximum.');
       else if (fin(c.min) && fin(c.max) && c.min > c.max) bad('The minimum is above the maximum.');
       else if ((fin(c.min) && (c.min < d.lo || c.min > d.hi)) || (fin(c.max) && (c.max < d.lo || c.max > d.hi))) bad('Outside the allowed range.');
@@ -266,6 +283,7 @@ export function describe(c, units, depth = 0) {
       return `${neg}${c.type === 'watchlist' ? 'on watch-list' : L} ${list((c.values || []).map((v) => labelOf(d.choices, v)))}`;
     case 'bool': return neg + (c.value === false ? d.no : d.yes);
     case 'range': {
+      if (d.maxOnly) return `${neg}${L} ${fin(c.max) ? fmtR(c.max) : '?'}`;
       const lo = fin(c.min); const hi = fin(c.max);
       if (lo && hi) return `${neg}${L} ${fmtR(c.min)} – ${fmtR(c.max)}`;
       if (lo) return `${neg}${L} ≥ ${fmtR(c.min)}`;

@@ -14,9 +14,11 @@ import (
 	"time"
 
 	"airview/internal/alerts"
+	"airview/internal/flowlearn"
 	"airview/internal/modes"
 	"airview/internal/navdata"
 	"airview/internal/rfstat"
+	rtsvc "airview/internal/routes"
 	"airview/internal/terrain"
 	"airview/internal/trajectory"
 )
@@ -78,6 +80,10 @@ type predictedPath struct {
 	// above) the terrain radio horizon along the path; null until the terrain
 	// analysis exists.
 	Terrain *terrain.VisibilityForecast `json:"terrain"`
+	// Learned is the path predicted from how the surrounding traffic flew
+	// through the same airspace recently (internal/flowlearn); omitted when
+	// the aircraft has no current position, track or speed.
+	Learned *flowlearn.Path `json:"learned,omitempty"`
 }
 
 func apiPredictionPath(s *Server, r *http.Request) (any, error) {
@@ -103,6 +109,19 @@ func apiPredictionPath(s *Server, r *http.Request) (any, error) {
 		return nil, notFound("no prediction for %s (unknown, or no position for more than %d s)", modes.FormatICAO(key), int(maxCoastSec))
 	}
 	out := predictedPath{Path: p}
+	if fl := s.eng.FlowLearner(); fl != nil {
+		if ac, ok := s.eng.Tracker().Aircraft(key); ok && ac.Lat != nil && ac.Lon != nil && ac.Track != nil && ac.GS != nil && (ac.OnGround == nil || !*ac.OnGround) {
+			alt := math.NaN()
+			switch {
+			case ac.AltBaro != nil:
+				alt = *ac.AltBaro
+			case ac.AltGeom != nil:
+				alt = *ac.AltGeom
+			}
+			lp := fl.Predict(*ac.Lat, *ac.Lon, alt, *ac.Track, *ac.GS, float64(horizon), float64(step), time.Now().UnixMilli())
+			out.Learned = &lp
+		}
+	}
 	if ts := s.eng.Terrain(); ts != nil && ts.Analysis() != nil && p.AltOK && len(p.Points) > 0 {
 		pts := make([]terrain.PathPoint, len(p.Points))
 		for i, q := range p.Points {
@@ -470,7 +489,8 @@ type navStatus struct {
 	Sources        []navdata.Source      `json:"sources"`        // downloadable datasets
 	Import         navdata.ImportStatus  `json:"import"`         // current / last import
 	RegionAirports int                   `json:"regionAirports"` // airports within 800 km of the receiver loaded for the live picture
-	RoutesOnline   bool                  `json:"routesOnline"`   // config.navData.routesOnline
+	RoutesOnline   bool                  `json:"routesOnline"`   // config.navData.routes.online (and routes enabled)
+	AutoRefresh    bool                  `json:"autoRefresh"`    // config.navData.autoRefresh
 	Photos         bool                  `json:"photos"`         // config.navData.photos (and a contact is set)
 	Overlay        bool                  `json:"airportsOverlay"`
 	Attribution    []string              `json:"attribution"` // lines to show where the data is used
@@ -487,13 +507,13 @@ func apiNavStatus(s *Server, r *http.Request) (any, error) {
 	}
 	cfg := s.eng.EffectiveConfig().NavData
 	out := navStatus{Datasets: ds, Sources: navdata.Sources(), Import: nd.ImportStatus(),
-		RoutesOnline: cfg.RoutesOnline, Photos: cfg.Photos && cfg.PhotoContact != "", Overlay: cfg.AirportsOverlay,
+		RoutesOnline: cfg.Routes.Enabled && cfg.Routes.Online, AutoRefresh: cfg.AutoRefresh, Photos: cfg.Photos && cfg.PhotoContact != "", Overlay: cfg.AirportsOverlay,
 		Attribution: []string{"Airport data: OurAirports (ourairports.com)", "Routes: Virtual Radar Server standing data"}}
 	if reg := s.eng.Region(); reg != nil {
 		out.RegionAirports = reg.Len()
 	}
-	if cfg.RoutesOnline {
-		out.Attribution = append(out.Attribution, "Online routes: adsbdb.com")
+	if cfg.Routes.Enabled && cfg.Routes.Online {
+		out.Attribution = append(out.Attribution, "Online routes: adsbdb.com (shown to this station's users only)")
 	}
 	if out.Photos {
 		out.Attribution = append(out.Attribution, "Photos: planespotters.net")
@@ -697,11 +717,25 @@ func apiNavRoute(s *Server, r *http.Request) (any, error) {
 		}
 		pos = &navdata.Point{Lat: lat, Lon: lon}
 	}
-	info, err := s.eng.NavData().Route(r.Context(), cs, pos)
+	// Only an admin may spend the online budget; everyone else gets the
+	// standing data and an already cached answer. Online (restricted-class)
+	// answers are shown only to the station's own users.
+	var info navdata.RouteInfo
+	var err error
+	if s.isAdmin(r) {
+		info, err = s.eng.NavData().Route(r.Context(), cs, pos)
+	} else {
+		info, err = s.eng.NavData().RouteNoFetch(r.Context(), cs, pos)
+	}
 	if err != nil {
 		return nil, navErr(err)
 	}
-	s.eng.PutRoute(info)
+	if info.Source == rtsvc.SrcAdsbdb && !s.routesRestrictedOK(r) {
+		return navdata.RouteInfo{Callsign: info.Callsign}, nil
+	}
+	if rt := s.eng.Routes(); rt != nil {
+		rt.Invalidate(info.Callsign)
+	}
 	return info, nil
 }
 
@@ -1038,4 +1072,12 @@ func apiAlertWatchlistDelete(s *Server, r *http.Request) (any, error) {
 		return nil, alertErr(err)
 	}
 	return map[string]any{"ok": true}, nil
+}
+
+func apiPredictionLearned(s *Server, r *http.Request) (any, error) {
+	fl := s.eng.FlowLearner()
+	if fl == nil {
+		return nil, errStatus(http.StatusServiceUnavailable, "the traffic-flow learner is not running")
+	}
+	return fl.Stats(), nil
 }

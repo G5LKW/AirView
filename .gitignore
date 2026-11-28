@@ -18,6 +18,8 @@ docs/manual/*.pdf
 *.db
 *.db-wal
 *.db-shm
+# test fixtures (e.g. the AirView 1.0.0 database for cmd/airview TestDBMigrateOldFormat) are committed
+!cmd/airview/testdata/*.db
 *.log
 *.log.[0-9]
 window.json

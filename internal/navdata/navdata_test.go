@@ -34,6 +34,8 @@ func routesZip(t *testing.T) []byte {
 	add("standing-data-main/routes/schema-01/B/BAW-all.csv", fixRoutesBAW)
 	add("standing-data-main/routes/schema-01/E/EZY-all.csv", fixRoutesEZY)
 	add("standing-data-main/routes/schema-01/X/BROKEN-all.csv", "not,a,routes,file\n1,2,3,4\n")
+	add("standing-data-main/airlines/schema-01/airlines.csv", "\xef\xbb\xbfCode,Name,ICAO,IATA,PositioningFlightPattern,CharterFlightPattern\n"+
+		"BAW,British Airways,BAW,BA,9\\d\\d\\d,^(45|85|86)\\d\\d$\nEZY,easyJet,EZY,U2,,\n1B,Abacus International,,1B,,\n")
 	if err := zw.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -233,6 +235,17 @@ func TestImportAndQueries(t *testing.T) {
 	for _, d := range ds {
 		if d.Rows != want[d.Dataset] || d.Imported == 0 || d.Source.Licence == "" {
 			t.Errorf("dataset %+v", d)
+		}
+	}
+
+	// The airline list comes with the routes zip.
+	al, err := nd.Airlines(ctx)
+	if err != nil || len(al) != 3 {
+		t.Fatalf("airlines %+v %v", al, err)
+	}
+	for _, a := range al {
+		if a.Code == "BAW" && (a.Name != "British Airways" || a.IATA != "BA" || a.Positioning != `9\d\d\d` || a.Charter != `^(45|85|86)\d\d$`) {
+			t.Fatalf("BAW %+v", a)
 		}
 	}
 

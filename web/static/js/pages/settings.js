@@ -732,7 +732,8 @@ function renderPrediction(S, F) {
         `When no position has arrived for ${START} s, AirView keeps drawing the aircraft where its tracking filter expects it to be: with a soft glow, an uncertainty circle and fading opacity. Positions normally arrive twice a second, so short gaps are ordinary reception jitter. Predicted positions are only drawn - they never enter trails, the database, statistics or records.`)),
     timeline,
     h('div.set-fields.set-fields--2', coastF, pathF),
-    F.toggle('prediction.showPaths', { label: 'Show predicted paths', hint: 'The Live Map draws the predicted path of the selected aircraft, with where it is expected to drop below or rise above the terrain horizon.' }));
+    F.toggle('prediction.showPaths', { label: 'Show predicted paths', hint: 'The Live Map draws the predicted path of the selected aircraft, with where it is expected to drop below or rise above the terrain horizon.' }),
+    F.toggle('prediction.learnedTurns', { label: 'Use turns learned from the traffic', hint: 'Moves the positions of coasting aircraft towards where the surrounding traffic turns (runway in use, arrivals, airway bends). Used only where AirView\'s own self-check has measured it clearly better than flying straight on; elsewhere the tracking filter alone decides.' }));
   paintTimeline();
 
   // ---- status ----
@@ -1015,7 +1016,8 @@ function renderNavData(S, F) {
 
   return [
     ui.card({ title: 'Offline reference data', icon: 'database', body: [
-      F.help('Nothing is downloaded automatically. Import the datasets once (and update them now and then); afterwards airports and routes work without the internet.'),
+      F.help('Airports, runways, navaids and the Virtual Radar Server route table (CC0 / public domain, about 25 MB; no data about your station is sent) are downloaded at first start and checked once a day; an unchanged file is not downloaded again. Switch the automatic update off for an air-gapped station and import by hand below; afterwards airports and routes work without the internet.'),
+      F.toggle('navData.autoRefresh', { label: 'Download and update reference data automatically', hint: 'Daily check at a random time of day for this station (conditional download).' }),
       progHost,
       dataHost,
       force,
@@ -1023,11 +1025,19 @@ function renderNavData(S, F) {
     ui.card({ title: 'Map', icon: 'map', body: [
       F.toggle('navData.airportsOverlay', { label: 'Airports layer on the Live Map', hint: 'Offers an airports / runways overlay (needs the OurAirports import).' }),
     ] }),
-    ui.card({ title: 'Online look-ups (opt-in)', icon: 'globe', actions: clearBtn, body: [
-      F.callout('warn', 'shield', h('b', 'Privacy: these options send data to third parties. '),
-        'Online route look-up sends the callsign of every aircraft that has no offline route to adsbdb.com. Aircraft photos send the ICAO hex address (and registration) of each aircraft you open to planespotters.net, together with your contact. Both requests come from the AirView computer, so these services also see its public IP address and can infer roughly where your station is and what it receives. Leave both off to keep everything local.'),
+    ui.card({ title: 'Routes', icon: 'route', body: [
       h('div.set-fields.set-fields--2',
-        F.toggle('navData.routesOnline', { label: 'Look up unknown routes online', hint: 'Fills gaps of the offline route table via the adsbdb.com API. Results are cached.' }),
+        F.toggle('navData.routes.enabled', { label: 'Show routes', hint: 'Origin and destination from your own overrides, routes AirView learned from take-offs and landings it saw, and the standing data, each checked against the live track.' }),
+        F.toggle('navData.routes.learn', { label: 'Learn routes', hint: 'Learns routes from take-offs and landings this station observes (kept locally; exportable as CC0).' }),
+        F.toggle('navData.routes.eta', { label: 'Estimate arrival times', hint: 'Shows progress and an ETA with its uncertainty for routes that fit the track.' })),
+      h('p.set-licence', h('span.label', 'Overrides'), ' Corrections per callsign: API ', h('code', '/api/routes/overrides'), ' or the file ', h('code', 'routes.overrides.csv'), ' (callsign,airports,mode,note) in the data folder.'),
+      h('p.set-licence', h('span.label', 'Learned routes'), ' ', h('a', { href: '/api/routes/export/learned.csv' }, 'Export (VRS format, CC0)'), ' - submit confident corrections to the ', extLink(h, 'https://sdm.virtualradarserver.co.uk/', 'VRS standing data'), '.'),
+    ] }),
+    ui.card({ title: 'Online look-ups', icon: 'globe', actions: clearBtn, body: [
+      F.callout('warn', 'shield', h('b', 'Privacy: these options send data to third parties. '),
+        'When online route look-up is on (the default), the callsign of each airline aircraft this station receives that has no offline route is sent to adsbdb.com, at most once a day per callsign and at most 1000 per day. The receiver location is never sent. Answers are cached and shown only to this station\'s own users (adsbdb\'s terms forbid republishing them). Switch it off below to keep route look-ups local. Aircraft photos send the ICAO hex address (and registration) of each aircraft you open to planespotters.net, together with your contact. Both requests come from the AirView computer, so these services also see its public IP address and can infer roughly where your station is and what it receives. Leave both off to keep everything local.'),
+      h('div.set-fields.set-fields--2',
+        F.toggle('navData.routes.online', { label: 'Look up unknown routes online', hint: 'Sends unknown airline callsigns to adsbdb.com (on by default). Results are cached for a day.' }),
         F.toggle('navData.photos', { label: 'Aircraft photos', hint: 'Shows a thumbnail from planespotters.net in the aircraft details, with the photographer credit and a link to the photo.', onChange: paintContact }),
         h('div'), contactF),
       h('p.set-licence', h('span.label', 'Routes'), ' ', extLink(h, 'https://www.adsbdb.com/', 'adsbdb.com'), ' - free aircraft and callsign API, used as-is.'),

@@ -105,35 +105,40 @@ func checkBody(ct string, body []byte) error {
 // specialTests names the test that covers each route the generic test
 // skips. A new NoAuto route must be added here (and get a test).
 var specialTests = map[string]string{
-	"PUT /api/config":               "TestConfigRoundTrip, TestAuthFlow",
-	"POST /api/events/view":         "TestViewStreamHTTP",
-	"GET /api/auth/setup":           "TestAggregatorBootstrapAPI, TestStandaloneCSRFAndAccountRoutes",
-	"POST /api/auth/setup/begin":    "TestAggregatorBootstrapAPI, TestStandaloneCSRFAndAccountRoutes",
-	"POST /api/auth/setup/finish":   "TestAggregatorBootstrapAPI, TestStandaloneCSRFAndAccountRoutes",
-	"POST /api/auth/register":       "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
-	"POST /api/auth/password":       "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
-	"POST /api/auth/totp/begin":     "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
-	"POST /api/auth/totp/confirm":   "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
-	"POST /api/auth/totp/disable":   "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
-	"POST /api/auth/recovery-codes": "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
-	"GET /api/auth/sessions":        "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
-	"POST /api/auth/logout-others":  "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
-	"POST /api/factory-reset":       "TestFactoryReset",
-	"POST /api/login":               "TestAuthFlow",
-	"POST /api/logout":              "TestAuthFlow",
-	"GET /api/events":               "TestSSE",
-	"POST /api/tilecache/clear":     "TestTileCache",
-	"POST /api/weather/refresh":     "TestAdminPosts",
-	"POST /api/forecast/refit":      "TestAdminPosts",
-	"POST /api/timing/ntp/sample":   "TestAdminPosts",
-	"POST /api/guess":               "TestAdminPosts",
-	"POST /api/db/vacuum":           "TestAdminPosts",
-	"POST /api/db/prune":            "TestAdminPosts",
-	"POST /api/db/checkpoint":       "TestAdminPosts",
-	"POST /api/db/rollup":           "TestAdminPosts",
-	"POST /api/db/acdb/import":      "TestACDBUpload",
-	"POST /api/db/acdb/upload":      "TestACDBUpload",
-	"POST /api/db/acdb/cancel":      "TestACDBUpload",
+	"GET /api/antenna/heat.jpg":               "TestHeatJPEG",
+	"PUT /api/routes/overrides/{callsign}":    "TestRouteOverridesAPI",
+	"DELETE /api/routes/overrides/{callsign}": "TestRouteOverridesAPI",
+	"POST /api/routes/refresh":                "TestRouteOverridesAPI",
+	"GET /api/routes/board/{airport}":         "TestRouteBoardAPI",
+	"PUT /api/config":                         "TestConfigRoundTrip, TestAuthFlow",
+	"POST /api/events/view":                   "TestViewStreamHTTP",
+	"GET /api/auth/setup":                     "TestAggregatorBootstrapAPI, TestStandaloneCSRFAndAccountRoutes",
+	"POST /api/auth/setup/begin":              "TestAggregatorBootstrapAPI, TestStandaloneCSRFAndAccountRoutes",
+	"POST /api/auth/setup/finish":             "TestAggregatorBootstrapAPI, TestStandaloneCSRFAndAccountRoutes",
+	"POST /api/auth/register":                 "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
+	"POST /api/auth/password":                 "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
+	"POST /api/auth/totp/begin":               "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
+	"POST /api/auth/totp/confirm":             "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
+	"POST /api/auth/totp/disable":             "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
+	"POST /api/auth/recovery-codes":           "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
+	"GET /api/auth/sessions":                  "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
+	"POST /api/auth/logout-others":            "TestAggregatorOwnerScope, TestStandaloneCSRFAndAccountRoutes",
+	"POST /api/factory-reset":                 "TestFactoryReset",
+	"POST /api/login":                         "TestAuthFlow",
+	"POST /api/logout":                        "TestAuthFlow",
+	"GET /api/events":                         "TestSSE",
+	"POST /api/tilecache/clear":               "TestTileCache",
+	"POST /api/weather/refresh":               "TestAdminPosts",
+	"POST /api/forecast/refit":                "TestAdminPosts",
+	"POST /api/timing/ntp/sample":             "TestAdminPosts",
+	"POST /api/guess":                         "TestAdminPosts",
+	"POST /api/db/vacuum":                     "TestAdminPosts",
+	"POST /api/db/prune":                      "TestAdminPosts",
+	"POST /api/db/checkpoint":                 "TestAdminPosts",
+	"POST /api/db/rollup":                     "TestAdminPosts",
+	"POST /api/db/acdb/import":                "TestACDBUpload",
+	"POST /api/db/acdb/upload":                "TestACDBUpload",
+	"POST /api/db/acdb/cancel":                "TestACDBUpload",
 
 	"POST /api/terrain/prefetch":                  "TestExtAdmin",
 	"POST /api/terrain/recompute":                 "TestExtAdmin",
@@ -1512,5 +1517,53 @@ func TestPutConfigKeepsNetworkBlocks(t *testing.T) {
 	cfg := r.eng.Config().Get()
 	if cfg.UplinkTuning.RingMB != 7 || cfg.UplinkTuning.RingSec != 600 || cfg.Aggregator.Beast.MaxLinks != 9 {
 		t.Fatalf("network blocks not kept: %+v %+v", cfg.UplinkTuning, cfg.Aggregator.Beast)
+	}
+}
+
+func TestRouteOverridesAPI(t *testing.T) {
+	r := newRig(t, rigOptions{})
+	rec := r.do("PUT", "/api/routes/overrides/baw117", loopbackAddr, `{"airports":"EGLL-KJFK","mode":"fixed","note":"test"}`)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"callsign":"BAW117"`) {
+		t.Fatalf("PUT: %d %s", rec.Code, rec.Body.String())
+	}
+	if rec := r.do("PUT", "/api/routes/overrides/BAW118", loopbackAddr, `{"airports":"EGLL","mode":"fixed"}`); rec.Code != http.StatusBadRequest {
+		t.Errorf("invalid override: %d %s", rec.Code, rec.Body.String())
+	}
+	if body := r.get("/api/routes/overrides").Body.String(); !strings.Contains(body, "EGLL-KJFK") {
+		t.Errorf("list: %s", body)
+	}
+	if body := r.get("/api/routes/export/overrides.csv").Body.String(); !strings.Contains(body, "BAW117,EGLL-KJFK,fixed,test") {
+		t.Errorf("export: %s", body)
+	}
+	if rec := r.do("DELETE", "/api/routes/overrides/BAW117", loopbackAddr, ""); rec.Code != 200 {
+		t.Errorf("DELETE: %d %s", rec.Code, rec.Body.String())
+	}
+	if rec := r.do("DELETE", "/api/routes/overrides/BAW117", loopbackAddr, ""); rec.Code != http.StatusNotFound {
+		t.Errorf("second DELETE: %d", rec.Code)
+	}
+	if body := r.get("/api/routes/overrides-log").Body.String(); strings.Count(body, `"callsign":"BAW117"`) != 2 {
+		t.Errorf("log: %s", body)
+	}
+	// Offline engine: no downloads.
+	if rec := r.do("POST", "/api/routes/refresh", loopbackAddr, ""); rec.Code != http.StatusConflict {
+		t.Errorf("refresh offline: %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestHeatJPEG(t *testing.T) {
+	r := newRig(t, rigOptions{seedHours: 0.4, aircraft: 15})
+	rec := r.get("/api/antenna/heat.jpg?w=960&h=540&download=1")
+	if rec.Code != 200 || rec.Header().Get("Content-Type") != "image/jpeg" || !strings.HasPrefix(rec.Body.String(), "\xff\xd8") {
+		t.Fatalf("%d %q %.40q", rec.Code, rec.Header().Get("Content-Type"), rec.Body.String())
+	}
+	if !strings.Contains(rec.Header().Get("Content-Disposition"), "airview-heatmap-") || rec.Header().Get("Cache-Control") != "no-store" {
+		t.Errorf("headers %v", rec.Header())
+	}
+	if rec := r.get("/api/antenna/heat.jpg?w=10"); rec.Code != http.StatusBadRequest {
+		t.Errorf("bad size: %d", rec.Code)
+	}
+	empty := newRig(t, rigOptions{})
+	if rec := empty.get("/api/antenna/heat.jpg?w=960&h=540"); rec.Code != http.StatusNotFound {
+		t.Errorf("no data: %d %s", rec.Code, rec.Body.String())
 	}
 }

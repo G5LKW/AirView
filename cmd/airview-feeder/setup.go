@@ -151,7 +151,7 @@ func applySetup(cfg *model.FeederConfig, o setupOptions, p *prompter) error {
 	// ---- aggregator ----
 	ui := -1
 	for i, u := range cfg.Uplinks {
-		if (o.uplinkID == "" && !u.IsBeast()) || u.ID == o.uplinkID {
+		if (o.uplinkID == "" && u.IsAVF()) || u.ID == o.uplinkID {
 			ui = i
 			break
 		}

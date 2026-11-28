@@ -33,6 +33,8 @@ type Manager struct {
 	// Beast outputs ("also feed others", beast.go)
 	beastByID map[string]*beastClient
 	beasts    atomic.Pointer[[]*beastClient]
+	mlatByID  map[string]*mlatClient
+	mlats     atomic.Pointer[[]*mlatClient]
 }
 
 // NewManager loads (or creates) the identity and returns an idle manager;
@@ -47,9 +49,10 @@ func NewManager(o Options) (*Manager, error) {
 			return nil, err
 		}
 	}
-	m := &Manager{o: o, id: id, byID: map[string]*Client{}, beastByID: map[string]*beastClient{}}
+	m := &Manager{o: o, id: id, byID: map[string]*Client{}, beastByID: map[string]*beastClient{}, mlatByID: map[string]*mlatClient{}}
 	m.clients.Store(&[]*Client{})
 	m.beasts.Store(&[]*beastClient{})
+	m.mlats.Store(&[]*mlatClient{})
 	return m, nil
 }
 
@@ -125,7 +128,9 @@ func (m *Manager) Apply(ups []model.Uplink) {
 
 // Active reports whether any uplink is configured (the tee may skip the
 // manager otherwise).
-func (m *Manager) Active() bool { return len(*m.clients.Load()) > 0 || len(*m.beasts.Load()) > 0 }
+func (m *Manager) Active() bool {
+	return len(*m.clients.Load()) > 0 || len(*m.beasts.Load()) > 0 || len(*m.mlats.Load()) > 0
+}
 
 // HandleFrame implements model.FrameSink.
 func (m *Manager) HandleFrame(f model.RawFrame) {
@@ -134,6 +139,9 @@ func (m *Manager) HandleFrame(f model.RawFrame) {
 	}
 	for _, b := range *m.beasts.Load() {
 		b.handleFrame(&f)
+	}
+	for _, c := range *m.mlats.Load() {
+		c.handleFrame(&f)
 	}
 }
 
@@ -151,6 +159,9 @@ func (m *Manager) HandleUpdate(u model.DecodedUpdate) {
 func (m *Manager) HandleClockEvent(feedID string, ev feed.ClockEvent) {
 	for _, c := range *m.clients.Load() {
 		c.handleClockEvent(feedID, ev)
+	}
+	for _, c := range *m.mlats.Load() {
+		c.handleClockEvent(feedID)
 	}
 }
 
@@ -201,6 +212,12 @@ func (m *Manager) Retry(id string) error {
 			b.Retry()
 			return nil
 		}
+		for _, c := range *m.mlats.Load() {
+			if c.uid == id {
+				c.Retry()
+				return nil
+			}
+		}
 	}
 	c := m.pick(id)
 	if c == nil {
@@ -239,6 +256,9 @@ func (m *Manager) Close() {
 	bl := *m.beasts.Load()
 	m.beasts.Store(&[]*beastClient{})
 	m.beastByID = map[string]*beastClient{}
+	ml := *m.mlats.Load()
+	m.mlats.Store(&[]*mlatClient{})
+	m.mlatByID = map[string]*mlatClient{}
 	m.mu.Unlock()
 	var wg sync.WaitGroup
 	for _, c := range list {
@@ -255,6 +275,13 @@ func (m *Manager) Close() {
 			b.close()
 		}(b)
 	}
+	for _, c := range ml {
+		wg.Add(1)
+		go func(c *mlatClient) {
+			defer wg.Done()
+			c.close()
+		}(c)
+	}
 	wg.Wait()
 }
 
@@ -265,6 +292,8 @@ type StatusResponse struct {
 	Uplinks  []Status `json:"uplinks"`
 	// Beast lists the Beast outputs ("also feed others"); omitted when none.
 	Beast []BeastStatus `json:"beast,omitempty"`
+	// MLAT lists the MLAT outputs (mlat-client protocol); omitted when none.
+	MLAT []MLATStatus `json:"mlat,omitempty"`
 }
 
 // ActionRequest is the POST body of the status handler.
@@ -289,7 +318,7 @@ func (m *Manager) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	switch r.Method {
 	case http.MethodGet, http.MethodHead:
-		_ = json.NewEncoder(w).Encode(StatusResponse{FeederID: m.id.FeederID, UUID: m.id.UUID, Uplinks: m.Status(), Beast: m.BeastStatus()})
+		_ = json.NewEncoder(w).Encode(StatusResponse{FeederID: m.id.FeederID, UUID: m.id.UUID, Uplinks: m.Status(), Beast: m.BeastStatus(), MLAT: m.MLATStatus()})
 	case http.MethodPost:
 		var req ActionRequest
 		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&req); err != nil {

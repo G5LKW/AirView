@@ -356,7 +356,9 @@ func TestMetSamplePruner(t *testing.T) {
 	r := rand.New(rand.NewPCG(3, 3))
 	var rows []MetObs
 	for i := range 12_000 {
-		rows = append(rows, msObs(r, now-40*86400+int64(i)*240, uint32(i%7+1)))
+		// +120 s: no row lies exactly on the 30-day cutoff, so a clock tick
+		// between this now and Prune's own time.Now() cannot move one across it
+		rows = append(rows, msObs(r, now-40*86400+120+int64(i)*240, uint32(i%7+1)))
 	}
 	st.AddMetSamples(rows)
 	_ = st.Flush()

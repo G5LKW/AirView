@@ -207,6 +207,7 @@ type Engine struct {
 	st       *store.Store
 	tr       *tracker.Tracker
 	met      *met.Collector
+	hazards  *met.HazardLog // BDS 4,5 hazard reports (internal/engine/metgrid.go)
 	ntp      *ntp.Sampler
 	wx       *weather.Poller
 	an       *analytics.Analyzer
@@ -374,6 +375,8 @@ func (e *Engine) Start(ctx context.Context) error {
 	}
 	e.met = met.New(st, met.Options{Logger: e.log})
 	e.tr.SetEHSHook(e.ehsHook)
+	e.hazards = met.NewHazardLog()
+	e.tr.SetHazardHook(e.hazardHook)
 	e.buildExt(cfg)
 
 	e.installLocate(cfg)

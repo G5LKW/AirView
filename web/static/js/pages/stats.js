@@ -1,10 +1,11 @@
 // pages/stats.js - the statistics hub.
 //
-// Layout: a live tile strip (SSE, 1 Hz) above six tabs (#/stats/<tab>):
+// Layout: a live tile strip (SSE, 1 Hz) above seven tabs (#/stats/<tab>):
 //   overview  range totals, message / position rate, aircraft by source, range & signal
 //   patterns  week heat map, hour-of-day profile, daily totals, unique + new airframes, altitude and distance distributions
 //   messages  downlink-format mix (donut + plain-language legend + stacked area), source share over time, Comm-B registers
 //   fleet     top operators / countries / types / airframes
+//   routes    busiest observed routes, airports and airlines, route coverage (GET /api/routes/stats)
 //   records   all-time records wall, event feed
 //   health    decode quality, feeds, antennas, process, database
 //
@@ -24,7 +25,7 @@ const RANGES = [
   { id: 'all', label: 'All', text: 'all recorded data', p: null },
 ];
 const rangeIndex = (id) => Math.max(0, RANGES.findIndex((r) => r.id === id));
-const TAB_IDS = ['overview', 'patterns', 'messages', 'fleet', 'records', 'health'];
+const TAB_IDS = ['overview', 'patterns', 'messages', 'fleet', 'routes', 'records', 'health'];
 
 // Downlink formats in plain words. `key` matches analytics.DFCount.df.
 const DF_INFO = {
@@ -764,6 +765,45 @@ export default {
     }
 
     // ------------------------------------------------------------------------------------------
+    // tab: routes (docs/ROUTES-DESIGN.md §6.6) - from the legs this station observed (take-off / landing guesses)
+    // ------------------------------------------------------------------------------------------
+    function buildRoutes(root) {
+      const mk = (title, icon, caption) => panel({ title, icon, h: 200, caption });
+      const pR = mk('Busiest routes', 'route', 'Departure-arrival pairs this station saw flown, both ends observed with at least 50 % confidence. Observed, not filed: a diversion counts where it landed.');
+      const pA = mk('Busiest airports', 'pin', 'Take-offs and landings this station observed per airport. Click one for its live board.');
+      const pL = mk('Airlines', 'plane', 'Flights by the airline prefix of the callsign (ICAO three-letter code).');
+      const pC = mk('Route coverage', 'check', 'Which source supplied the route shown when each flight ended, and how many flights had both take-off and landing observed. Routes from online look-ups are not stored with the legs (their licence does not allow it), so those flights count as "No route shown" here.');
+      root.append(h('div.grid.cols-2', pR.card, pA.card, pL.card, pC.card));
+      const range = () => {
+        const r = eff();
+        const nowS = Math.floor(live.serverNow() / 1000);
+        if (!r.p) return { from: 1 };
+        return { from: nowS - (r.p.hours ? r.p.hours * 3600 : r.p.days * 86400) };
+      };
+      const none = 'No observed legs in this range yet. A leg is stored after a flight has ended (at the earliest 30 minutes after the aircraft was last heard), and only when AirView could tell an airport from its first or last positions.';
+      task('routes', () => Math.max(period(), 60e3), () => load([pR, pA, pL, pC], async () => {
+        const p = range();
+        const [r, a, l, c] = await Promise.all(['routes', 'airports', 'airlines', 'coverage'].map((kind) => get('/api/routes/stats', { ...p, kind, limit: 15 }, 30e3)));
+        return { r, a, l, c };
+      }, (d) => {
+        const sub = scope(eff(), false);
+        const fill = (pn, rows, map) => {
+          pn.sub(sub);
+          if (!rows?.length) { pn.empty('Not enough data yet', none); return; }
+          ui.mount(pn.content, barList(rows.map(map)));
+          pn.ok();
+        };
+        fill(pR, d.r.rows, (x) => ({ name: x.key, value: x.n, right: units.int(x.n), rightSub: x.n === 1 ? 'flight' : 'flights', color: C.violet }));
+        fill(pA, d.a.rows, (x) => ({ name: x.key, value: x.n, right: units.int(x.n), sub: units.int(x.dep) + ' departures · ' + units.int(x.arr) + ' arrivals', href: '#/airports/' + encodeURIComponent(x.key), color: C.cyan }));
+        fill(pL, d.l.rows, (x) => ({ name: x.key, value: x.n, right: units.int(x.n), href: searchHref('q', x.key), color: C.amber }));
+        const cov = (d.c.rows || []).filter((x) => x.key !== 'total');
+        const total = (d.c.rows || []).find((x) => x.key === 'total')?.n || 0;
+        const label = { none: 'No route shown', 'both-ends-observed': 'Take-off and landing observed', 'standing-data': 'Standing data (VRS)', learned: 'Learned by AirView', override: 'Operator override' };
+        fill(pC, total ? cov : [], (x) => ({ name: label[x.key] || x.key, value: x.pct || 0, right: units.pct(x.pct || 0, 1), rightSub: units.int(x.n) + ' of ' + units.int(total), color: x.key === 'none' ? C.amber : C.green }));
+      }));
+    }
+
+    // ------------------------------------------------------------------------------------------
     // tab: records + events
     // ------------------------------------------------------------------------------------------
     const RECORDS = [
@@ -1046,10 +1086,10 @@ export default {
     // ------------------------------------------------------------------------------------------
     // assemble
     // ------------------------------------------------------------------------------------------
-    const builders = { overview: buildOverview, patterns: buildPatterns, messages: buildMessages, fleet: buildFleet, records: buildRecords, health: buildHealth };
+    const builders = { overview: buildOverview, patterns: buildPatterns, messages: buildMessages, fleet: buildFleet, routes: buildRoutes, records: buildRecords, health: buildHealth };
     const TABS = [
       { id: 'overview', label: 'Overview', icon: 'chart' }, { id: 'patterns', label: 'Patterns', icon: 'history' },
-      { id: 'messages', label: 'Messages', icon: 'signal' }, { id: 'fleet', label: 'Fleet', icon: 'plane' },
+      { id: 'messages', label: 'Messages', icon: 'signal' }, { id: 'fleet', label: 'Fleet', icon: 'plane' }, { id: 'routes', label: 'Routes', icon: 'route' },
       { id: 'records', label: 'Records & events', icon: 'bolt' }, { id: 'health', label: 'Health', icon: 'shield' },
     ];
     const tabsEl = ui.tabs({

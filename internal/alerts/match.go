@@ -37,6 +37,15 @@ const (
 	kWatchlist
 	kOnGround
 	kSystem
+	kRouteFrom
+	kRouteTo
+	kRouteVia
+	kRouteAirport
+	kRoute
+	kRouteState
+	kRouteKind
+	kETAWithin
+	kACASRA
 )
 
 type icaoRange struct{ lo, hi uint32 }
@@ -162,6 +171,30 @@ func compileCond(c *Cond, system *bool) node {
 	case CondSystem:
 		n.kind, n.globs = kSystem, upperAll(c.Values)
 		*system = true
+	case CondRouteFrom:
+		n.kind, n.globs = kRouteFrom, upperAll(c.Values)
+	case CondRouteTo:
+		n.kind, n.globs = kRouteTo, upperAll(c.Values)
+	case CondRouteVia:
+		n.kind, n.globs = kRouteVia, upperAll(c.Values)
+	case CondRouteAirport:
+		n.kind, n.globs = kRouteAirport, upperAll(c.Values)
+	case CondRoute:
+		// "FROM-TO" patterns are stored as (from glob, to glob) pairs: matching needs no string building
+		n.kind = kRoute
+		for _, v := range upperAll(c.Values) {
+			f, t, _ := strings.Cut(v, "-")
+			n.globs = append(n.globs, f, t)
+		}
+	case CondRouteState:
+		n.kind, n.globs = kRouteState, upperAll(c.Values)
+	case CondRouteKind:
+		n.kind, n.globs = kRouteKind, upperAll(c.Values)
+	case CondETAWithin:
+		n.kind, n.max = kETAWithin, optF(c.Max)
+	case CondACASRA:
+		n.kind, n.b = kACASRA, optB(c.Value, true)
+		n.globs = upperAll(c.Values)
 	case CondEmergency:
 		n.kind = kEmergency
 		for _, v := range upperAll(c.Values) {
@@ -223,6 +256,7 @@ type view struct {
 	sys       *SystemEvent
 	sysKind   string // "KIND" upper case
 	sysKey    string // "KIND:KEY" upper case
+	nowS      int64  // evaluation time, Unix s (etaWithin)
 }
 
 func (v *view) set(a *model.Aircraft) {
@@ -378,6 +412,69 @@ func (n *node) evalRaw(v *view) bool {
 			return false
 		}
 		return len(n.globs) == 0 || anyGlob(n.globs, a.Emergency)
+	case kRouteFrom:
+		r := a.Route
+		return r != nil && (anyGlob(n.globs, r.From) || anyGlob(n.globs, r.FromIATA))
+	case kRouteTo:
+		r := a.Route
+		return r != nil && (anyGlob(n.globs, r.To) || anyGlob(n.globs, r.ToIATA))
+	case kRouteVia:
+		r := a.Route
+		if r == nil || len(r.Stops) < 3 {
+			return false
+		}
+		for _, s := range r.Stops[1 : len(r.Stops)-1] {
+			if anyGlob(n.globs, s) {
+				return true
+			}
+		}
+		return false
+	case kRouteAirport:
+		r := a.Route
+		if r == nil {
+			return false
+		}
+		if anyGlob(n.globs, r.From) || anyGlob(n.globs, r.FromIATA) || anyGlob(n.globs, r.To) || anyGlob(n.globs, r.ToIATA) {
+			return true
+		}
+		for _, s := range r.Stops {
+			if anyGlob(n.globs, s) {
+				return true
+			}
+		}
+		return false
+	case kRoute:
+		r := a.Route
+		if r == nil || r.From == "" || r.To == "" {
+			return false
+		}
+		for i := 0; i+1 < len(n.globs); i += 2 {
+			if globMatch(n.globs[i], r.From) && globMatch(n.globs[i+1], r.To) ||
+				r.FromIATA != "" && r.ToIATA != "" && globMatch(n.globs[i], r.FromIATA) && globMatch(n.globs[i+1], r.ToIATA) {
+				return true
+			}
+		}
+		return false
+	case kRouteState:
+		return a.Route != nil && anyGlob(n.globs, a.Route.State)
+	case kRouteKind:
+		return a.Route != nil && anyGlob(n.globs, a.Route.Kind)
+	case kETAWithin:
+		r := a.Route
+		if r == nil || r.ETA <= 0 || v.nowS <= 0 {
+			return false
+		}
+		left := float64(r.ETA-v.nowS) / 60
+		return left >= -1 && left <= n.max
+	case kACASRA:
+		ra := a.ACAS
+		if ra == nil {
+			return !n.b
+		}
+		if !n.b {
+			return false
+		}
+		return len(n.globs) == 0 || anyGlob(n.globs, ra.Sense) || anyGlob(n.globs, ra.Advisory)
 	case kMilitary:
 		return a.Military == n.b
 	case kOnGround:

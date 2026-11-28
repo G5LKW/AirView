@@ -4,6 +4,8 @@
 //   airports- airports, runways, extended centrelines  /api/navdata/airports?bbox&format=geojson (by view)
 //   heat    - all-time position heat map  /api/antenna/heat
 //   prox    - proximity pairs             /api/prediction/proximity       (lines are drawn by map.js)
+//   acas    - TCAS resolution advisories  /api/acas/events?hours=24       (where each RA started)
+//   winds   - winds / temperature aloft   /api/met/grid?level=FL&minutes=60 (Mode S EHS, one flight level)
 // Every loader keeps a status note { state: 'off'|'loading'|'ok'|'empty'|'error', text } that the
 // layers panel and the legend show, so each overlay has loading / empty / error states.
 
@@ -17,6 +19,8 @@ const RANGE_REFRESH_MS = 5 * 60000;
 const TERRAIN_REFRESH_MS = 10 * 60000;
 const HEAT_REFRESH_MS = 10 * 60000;
 const PROX_REFRESH_MS = 5000;
+const ACAS_REFRESH_MS = 60000;
+const WINDS_REFRESH_MS = 120000;
 
 /** Airport size threshold for a zoom level (fewer, bigger airports when zoomed out). */
 export function airportMinSize(z) { return z < 6.5 ? 'large' : z < 8.5 ? 'medium' : 'small'; }
@@ -151,6 +155,62 @@ export function createExtras(ctx, host) {
     schedule('heat', HEAT_REFRESH_MS, loadHeat);
   }
 
+  // ---- TCAS resolution advisories ----
+  async function loadACAS() {
+    const s = nextSeq('acas');
+    if (!host.on('acas')) { host.setData('acas', EMPTY_FC); note('acas', 'off'); return; }
+    if (!notes.get('acas') || notes.get('acas').state === 'off') note('acas', 'loading', 'Loading…');
+    try {
+      const j = await ctx.api.get('/api/acas/events', { params: { hours: 24, limit: 2000 }, signal: ctx.signal, timeout: 20000 });
+      if (!current('acas', s)) return;
+      const feats = (j?.events || []).filter((e) => typeof e.lat === 'number' && typeof e.lon === 'number').map((e) => ({
+        type: 'Feature', geometry: { type: 'Point', coordinates: [e.lon, e.lat] },
+        properties: { icao: e.icao, t: `${e.callsign || e.icao} ${units.clock(e.start, { seconds: false })}\n${(e.advisories || []).join(' › ')}` },
+      }));
+      host.setData('acas', fc(feats));
+      note('acas', feats.length ? 'ok' : 'empty', feats.length ? `${feats.length} in 24 h` : 'No resolution advisories in the last 24 h');
+    } catch (e) {
+      if (e.aborted || !current('acas', s)) return;
+      note('acas', 'error', e.status === 401 || e.status === 403 ? 'Log in to see them' : errText(e));
+    }
+    schedule('acas', ACAS_REFRESH_MS, loadACAS);
+  }
+
+  // ---- winds / temperature aloft (gridded EHS observations) ----
+  async function loadWinds(fl) {
+    const s = nextSeq('winds');
+    if (!host.on('winds')) { host.setData('winds', EMPTY_FC); note('winds', 'off'); return; }
+    const level = fl || 300;
+    if (!notes.get('winds') || notes.get('winds').state === 'off') note('winds', 'loading', 'Loading…');
+    try {
+      const j = await ctx.api.get('/api/met/grid', { params: { level, minutes: 60, cell: 0.5 }, signal: ctx.signal, timeout: 30000 });
+      if (!current('winds', s)) return;
+      const feats = [];
+      for (const c of j?.cells || []) {
+        const kt = typeof c.windKt === 'number' ? c.windKt : null;
+        const label = [kt !== null ? `${String(Math.round(c.windDir)).padStart(3, '0')}/${Math.round(kt)}` : '', typeof c.tempC === 'number' ? `${Math.round(c.tempC)}°` : ''].filter(Boolean).join(' ');
+        feats.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [c.lon, c.lat] },
+          properties: { t: label, d: typeof c.isaDevC === 'number' ? c.isaDevC : 0, n: c.nAc } });
+        if (kt !== null && kt >= 3) {
+          // shaft towards where the wind blows (dir + 180), length grows with speed up to the cell size
+          const len = (j.cellDeg || 0.5) * 0.45 * Math.min(1, 0.25 + kt / 120);
+          const r = ((c.windDir + 180) * Math.PI) / 180;
+          const k = Math.cos((c.lat * Math.PI) / 180) || 1;
+          const tip = [c.lon + (len * Math.sin(r)) / k, c.lat + len * Math.cos(r)];
+          const wing = (a) => [tip[0] - (len * 0.3 * Math.sin(r + a)) / k, tip[1] - len * 0.3 * Math.cos(r + a)];
+          feats.push({ type: 'Feature', geometry: { type: 'MultiLineString', coordinates: [[[c.lon, c.lat], tip], [wing(0.5), tip, wing(-0.5)]] }, properties: { kt } });
+        }
+      }
+      host.setData('winds', fc(feats));
+      const n = (j?.cells || []).length;
+      note('winds', n ? 'ok' : 'empty', n ? `FL${level}: ${n} cells, ${j.samples} observations (60 min)` : `No observations near FL${level} in the last hour`);
+    } catch (e) {
+      if (e.aborted || !current('winds', s)) return;
+      note('winds', 'error', e.status === 401 || e.status === 403 ? 'Log in to see them' : errText(e));
+    }
+    schedule('winds', WINDS_REFRESH_MS, () => loadWinds(fl));
+  }
+
   // ---- proximity pairs ----
   async function loadProx() {
     const s = nextSeq('prox');
@@ -180,10 +240,12 @@ export function createExtras(ctx, host) {
     airports: loadAirports,
     heat: loadHeat,
     prox: loadProx,
+    acas: loadACAS,
+    winds: loadWinds,
     /** Re-label unit-dependent data (terrain altitude labels). */
     relabel() { if (terrainRaw) host.setData('terrain', labelTerrain()); },
     /** Push every layer's last data again (after a base-map switch dropped the sources). */
-    reloadAll(kind) { loadRange(); loadTerrain(kind); loadAirports(); loadHeat(); loadProx(); },
+    reloadAll(kind) { loadRange(); loadTerrain(kind); loadAirports(); loadHeat(); loadProx(); loadACAS(); loadWinds(host.windsFL ? host.windsFL() : 300); },
     stop() { stopped = true; for (const t of timers.values()) clearTimeout(t); timers.clear(); },
   };
 }

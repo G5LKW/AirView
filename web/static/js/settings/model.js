@@ -326,6 +326,7 @@ export function validate(cfg) {
   if (cfg.prediction) {
     bool('prediction', 'prediction.enabled');
     bool('prediction', 'prediction.showPaths');
+    bool('prediction', 'prediction.learnedTurns');
     range('prediction', 'prediction.coastSec', 5, 120, 'Coasting time', { int: true, unit: 's', optional: true });
     range('prediction', 'prediction.pathSec', 10, 900, 'Path length', { int: true, unit: 's', optional: true });
   }
@@ -343,7 +344,8 @@ export function validate(cfg) {
 
   // aviation data
   if (cfg.navData) {
-    for (const k of ['airportsOverlay', 'routesOnline', 'photos']) bool('navdata', 'navData.' + k);
+    for (const k of ['airportsOverlay', 'autoRefresh', 'photos']) bool('navdata', 'navData.' + k);
+    if (cfg.navData.routes) for (const k of ['enabled', 'online', 'learn', 'eta']) bool('navdata', 'navData.routes.' + k);
     const c = cfg.navData.photoContact;
     if (c !== undefined && typeof c !== 'string') add('navdata', 'navData.photoContact', 'Enter text.');
     const ct = String(c ?? '').trim();

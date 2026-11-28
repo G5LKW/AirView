@@ -2,9 +2,11 @@ package engine
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"airview/internal/navdata"
+	"airview/internal/routes"
 	"airview/internal/store"
 )
 
@@ -74,6 +76,8 @@ func (e *Engine) resolveAirports(ctx context.Context, now time.Time, limit int, 
 		return 0, err
 	}
 	out := make([]store.FlightAirports, 0, len(ids))
+	x := e.ext
+	var legs []routes.Leg
 	var tp []navdata.TrackPoint
 	for i, id := range ids {
 		if i > 0 && pace > 0 {
@@ -92,20 +96,59 @@ func (e *Engine) resolveAirports(ctx context.Context, now time.Time, limit int, 
 			tp = append(tp, navdata.TrackPoint{T: p.T * 1000, Lat: p.Lat, Lon: p.Lon, AltFt: p.Alt, GS: p.GS, Track: p.Track})
 		}
 		fa := store.FlightAirports{ID: id}
+		leg := routes.Leg{Flight: id}
 		if len(tp) > 0 {
+			leg.Start, leg.End = tp[0].T/1000, tp[len(tp)-1].T/1000
 			if g, ok := navdata.GuessDeparture(tp, reg); ok {
 				fa.Dep = g.Airport.Code()
+				leg.Dep = fa.Dep
+				leg.DepTier, leg.DepConf = eventTier(g, false)
 			}
 			if g, ok := navdata.GuessArrival(tp, reg); ok {
 				fa.Arr = g.Airport.Code()
+				leg.Arr = fa.Arr
+				leg.ArrTier, leg.ArrConf = eventTier(g, true)
 			}
 		}
 		out = append(out, fa)
+		if rt := x.rt; rt != nil && (leg.Dep != "" || leg.Arr != "") {
+			if f, ok, err := e.st.FlightByID(ctx, id); err == nil && ok && f.Callsign != "" {
+				leg.Callsign = f.Callsign
+				leg.Route, leg.RouteSrc = rt.RouteForLeg(ctx, f.Callsign)
+				legs = append(legs, leg)
+			}
+		}
 	}
 	if err := e.st.SetFlightAirports(ctx, out); err != nil {
 		return 0, err
 	}
+	for _, l := range legs {
+		if err := x.rt.CloseLeg(ctx, l); err != nil && ctx.Err() == nil {
+			e.log.Debug("routes: recording a leg", "flight", l.Flight, "err", err)
+		}
+	}
 	return len(out), nil
+}
+
+// eventTier grades an airport guess as a take-off / landing event
+// (docs/ROUTES-DESIGN.md §3.1) and returns the tier and the event
+// confidence used by the route learner: on the surface T1/L1 (0.99), low and
+// aligned with a runway T2/L2 (0.90), only low near the airport T3 (0.75) /
+// L5 (0.30), each scaled by the guess' own distance/height confidence.
+func eventTier(g navdata.AirportGuess, arrival bool) (string, float64) {
+	q, tier := 0.75, "T3"
+	switch {
+	case strings.Contains(g.Reason, "on ground"):
+		q, tier = 0.99, "T1"
+	case g.Runway != "":
+		q, tier = 0.90, "T2"
+	case arrival:
+		q = 0.30
+	}
+	if arrival {
+		tier = map[string]string{"T1": "L1", "T2": "L2", "T3": "L5"}[tier]
+	}
+	return tier, q * (0.5 + 0.5*g.Confidence)
 }
 
 // airportsAfterImport re-queues the flights that found no airport before

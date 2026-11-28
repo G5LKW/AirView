@@ -109,8 +109,19 @@ func FromAircraft(a *model.Aircraft) Aircraft {
 		FirstSeen: a.FirstSeen, LastSeen: a.LastSeen,
 		Predicted: a.Predicted, CoastS: a.CoastS, PredSigmaM: a.PredSigmaM,
 		LastRealLat: a.LastRealLat, LastRealLon: a.LastRealLon,
-		Route: a.Route, MLATGrade: a.MLATGrade, MLATSigmaM: a.MLATSigmaM,
+		Route: PublicRoute(a.Route), MLATGrade: a.MLATGrade, MLATSigmaM: a.MLATSigmaM,
 	}
+}
+
+// PublicRoute returns the route if it may be shown publicly: routes whose
+// licence class is "restricted" (answers of online providers such as
+// adsbdb.com, whose terms forbid republishing) are removed
+// (docs/ROUTES-DESIGN.md §2.2).
+func PublicRoute(r *model.RouteShort) *model.RouteShort {
+	if r == nil || r.Class == "restricted" {
+		return nil
+	}
+	return r
 }
 
 // Coarsen rounds the aircraft's positions to grid degrees and marks it

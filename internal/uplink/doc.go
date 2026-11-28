@@ -40,6 +40,12 @@
 //     (no buffering, no backfill) and apply the same never-forwarded rules.
 //     An external mlat-client runs alongside unchanged: it reads the same
 //     receiver, and its results (magic timestamp) are never forwarded.
+//   - MLAT outputs (mlatout.go, manager_mlat.go): the client side of the
+//     mlat-client protocol (docs/aggregator/MLATC.md), so the station can
+//     take part in a community network's multilateration next to a Beast
+//     output to the same network ("uplinks[]" entries of type "mlat").
+//     12 MHz receiver clocks only; results are injected as external MLAT
+//     positions (FeedID "uplink/mlat/<id>") and never forwarded.
 //   - FixUpdate (results.go): MLAT_RESULTS become model.DecodedUpdates with
 //     FeedID "uplink/<id>" and are injected into the local tracker; they are
 //     never forwarded upstream.

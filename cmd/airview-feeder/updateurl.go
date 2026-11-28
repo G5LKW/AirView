@@ -27,7 +27,7 @@ func defaultManifestURL(eff *model.FeederConfig) {
 func derivedManifestURL(ups []model.Uplink) string {
 	for _, u := range ups {
 		h := strings.TrimSpace(u.Host)
-		if u.Disabled || u.IsBeast() || h == "" {
+		if u.Disabled || !u.IsAVF() || h == "" {
 			continue
 		}
 		if ip := net.ParseIP(h); ip != nil && ip.To4() == nil {

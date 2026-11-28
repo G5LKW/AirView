@@ -38,6 +38,7 @@
 package tracker
 
 import (
+	"airview/internal/acas"
 	"context"
 	"log/slog"
 	"math"
@@ -314,13 +315,17 @@ type Tracker struct {
 	afChecked int64 // statistics for tests / debugging
 
 	// Extensions (see extend.go). Guarded by mu.
-	tj      *trajectory.Manager // tracking filter (nil = off)
-	coastMs int64               // longest predicted position shown after the last real one
-	rf      *rfstat.Stats       // RF statistics (nil = off)
-	onNewAF func(icao uint32)   // first sighting of an airframe ever (called without locks)
-	enrich  func(s *model.LiveSnapshot)
-	snapMu  sync.Mutex // serialises snapshot builds (enrich runs without mu)
-	lastBDS uint8      // Comm-B register settled on for the frame being applied
+	tj *trajectory.Manager // tracking filter (nil = off)
+	// learnTurn blends learned traffic-flow turns into coasting positions (nil = off).
+	learnTurn func(lat, lon, altFt, trk, gs, dtS float64, nowMs int64) (lat2, lon2, w float64, ok bool)
+	coastMs   int64              // longest predicted position shown after the last real one
+	rf        *rfstat.Stats      // RF statistics (nil = off)
+	onNewAF   func(icao uint32)  // first sighting of an airframe ever (called without locks)
+	onACAS    func(acas.Report)  // ACAS resolution advisory report (called under the lock; must be cheap)
+	onHaz     func(HazardReport) // BDS 4,5 meteorological hazard report (called under the lock; must be cheap)
+	enrich    func(s *model.LiveSnapshot)
+	snapMu    sync.Mutex // serialises snapshot builds (enrich runs without mu)
+	lastBDS   uint8      // Comm-B register settled on for the frame being applied
 
 	// Latency-chain analysis (nil = off). obs is the reused observation;
 	// cprLat / cprLon / cprOK is the position handleCPR decoded from the
@@ -561,6 +566,41 @@ func (t *Tracker) SetEHSHook(fn func(EHSEvent) EHSResult) {
 	t.hookPending = false
 	t.mu.Unlock()
 	t.hookMu.Unlock()
+	if s := t.sh.Load(); s != nil {
+		s.setHooks(t)
+	}
+}
+
+// SetACASHook installs fn, called for every received ACAS resolution
+// advisory report (DF16, BDS 3,0, TC28). It runs under the tracker's lock:
+// it must be quick and must not call back into the tracker. nil removes it.
+func (t *Tracker) SetACASHook(fn func(acas.Report)) {
+	t.mu.Lock()
+	t.onACAS = fn
+	t.mu.Unlock()
+	if s := t.sh.Load(); s != nil {
+		s.setHooks(t)
+	}
+}
+
+// HazardReport is a BDS 4,5 meteorological hazard report of an aircraft.
+type HazardReport struct {
+	T        int64 // data time, Unix ms
+	ICAO     uint32
+	Callsign string
+	Lat, Lon float64
+	PosOK    bool
+	AltFt    float64
+	AltOK    bool
+	H        modes.MeteoHazard
+}
+
+// SetHazardHook installs fn, called for every BDS 4,5 hazard report (under
+// the tracker's lock: it must be quick). nil removes it.
+func (t *Tracker) SetHazardHook(fn func(HazardReport)) {
+	t.mu.Lock()
+	t.onHaz = fn
+	t.mu.Unlock()
 	if s := t.sh.Load(); s != nil {
 		s.setHooks(t)
 	}

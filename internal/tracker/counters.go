@@ -17,7 +17,7 @@ type counters struct {
 	Updates, UpdateMsgs                                                           uint64
 	Positions, MLATPositions, PosRejected, PosPending, PosJumps                   uint64
 	DF                                                                            [modes.NumDFIndex]uint64
-	BDS40, BDS50, BDS60, BDS44                                                    uint64
+	BDS40, BDS50, BDS60, BDS44, BDS45                                             uint64
 	Flights, Emergencies                                                          uint64
 }
 
@@ -98,7 +98,7 @@ func (t *Tracker) Counters() Counters {
 		Positions: c.Positions, MLATPositions: c.MLATPositions, PosRejected: c.PosRejected,
 		PosPending: c.PosPending, PosJumps: c.PosJumps,
 		DF:      make(map[string]uint64, modes.NumDFIndex),
-		BDS:     map[string]uint64{"4,0": c.BDS40, "5,0": c.BDS50, "6,0": c.BDS60, "4,4": c.BDS44},
+		BDS:     map[string]uint64{"4,0": c.BDS40, "5,0": c.BDS50, "6,0": c.BDS60, "4,4": c.BDS44, "4,5": c.BDS45},
 		Flights: c.Flights, Emergencies: c.Emergencies,
 		MsgRate: round1(t.msgRate), PosRate: round1(t.posRate),
 		Aircraft: t.live, Tracked: len(t.ac),

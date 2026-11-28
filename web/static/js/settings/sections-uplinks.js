@@ -28,6 +28,48 @@ const BEAST_FORMATS = [
   { value: 'beast_out', label: 'beast_out (every frame)' },
 ];
 
+/** Consent text of an MLAT output (shown next to it and before a preset is added). */
+const CONSENT_MLAT = 'MLAT needs your receiver position and timestamps: both, this UUID and the display name go to that network\'s mlat server (unencrypted) under their terms. "Hide on the public map" asks the network not to show the station. MLAT positions come back to this map; AirView never forwards them anywhere.';
+
+/**
+ * Community networks that take Beast data and run an mlat server. Hosts, ports and Beast formats were checked on
+ * 27 Nov 2026 against each network's own feed client (configure.sh / README on its GitHub: adsblol/feed,
+ * adsbfi/adsb-fi-scripts, airplanes-live/feed, adsbexchange/feedclient, TheAirTraffic/tat-feeder, and OARC's
+ * mpentler/oarc-adsb-scripts linked from wiki.oarc.uk); check the
+ * network's feeder page if a connection fails. Each preset adds a Beast output and an MLAT output sharing one
+ * UUID, so the network joins both links into one station. `format` is the Beast format the network's own client
+ * sends; `note` is shown before the outputs are added. The fallback hosts some clients list (e.g. feed2.adsbexchange.com:64004) are not configured.
+ */
+export const NETWORK_PRESETS = [
+  { name: 'adsb.lol', beast: ['feed.adsb.lol', 30004], format: 'beast_reduce_plus_out', mlat: ['feed.adsb.lol', 31090], url: 'https://adsb.lol/' },
+  { name: 'adsb.fi', beast: ['feed.adsb.fi', 30004], format: 'beast_reduce_plus_out', mlat: ['feed.adsb.fi', 31090], url: 'https://adsb.fi/' },
+  { name: 'airplanes.live', beast: ['feed.airplanes.live', 30004], format: 'beast_reduce_plus_out', mlat: ['feed.airplanes.live', 31090], url: 'https://airplanes.live/' },
+  { name: 'ADS-B Exchange', beast: ['feed1.adsbexchange.com', 30004], format: 'beast_reduce_out', mlat: ['feed.adsbexchange.com', 31090], url: 'https://www.adsbexchange.com/' },
+  { name: 'OARC', beast: ['adsb.oarc.uk', 30004], format: 'beast_reduce_plus_out', mlat: ['adsb.oarc.uk', 31090], url: 'https://adsb.oarc.uk/',
+    note: 'OARC (Online Amateur Radio Community) asks that only its members feed this network: see www.oarc.uk.' },
+  { name: 'The Air Traffic', beast: ['feed.theairtraffic.com', 30004], format: 'beast_reduce_out', mlat: ['feed.theairtraffic.com', 31090], url: 'https://theairtraffic.com/' },
+];
+
+/** The Beast output a preset adds (exported for the tests). */
+export function presetBeastUplink(existing, n, uuid) {
+  const b = newBeastUplink(existing);
+  b.host = n.beast[0]; b.port = n.beast[1]; b.uuid = uuid;
+  if (n.format) b.format = n.format;
+  return b;
+}
+
+function nextId(existing, base) {
+  const ids = new Set((existing || []).map((u) => u.id));
+  let n = 1;
+  while (ids.has(`${base}${n}`)) n++;
+  return `${base}${n}`;
+}
+
+/** A new MLAT output (uplinks[] with type "mlat": the mlat-client protocol). */
+export function newMLATUplink(existing, host = '', port = 31090, uuid = '') {
+  return { id: nextId(existing, 'mlat'), type: 'mlat', host, port, user: '', uuid, inputs: [], timestamps: true, sendLocation: true, returnMlat: true, spoolMb: SPOOL_AUTO, pin: 'hidden', disabled: false };
+}
+
 /** A new Beast output ("also feed others", uplinks[] with type "beast"). */
 export function newBeastUplink(existing) {
   let n = 1;
@@ -77,7 +119,8 @@ export function renderUplinks(S, F) {
       }
       const u = (status.uplinks || []).find((x) => x.id === id);
       const b = u ? null : (status.beast || []).find((x) => x.id === id);
-      ui.mount(el, u ? statusCard(u) : b ? beastCard(b) : h('div.set-help', 'No status yet.'));
+      const ml = u || b ? null : (status.mlat || []).find((x) => x.id === id);
+      ui.mount(el, u ? statusCard(u) : b ? beastCard(b) : ml ? mlatCard(ml) : h('div.set-help', 'No status yet.'));
     }
   }
   function statusCard(u) {
@@ -131,6 +174,26 @@ export function renderUplinks(S, F) {
         h('span.set-help', 'Use the same UUID for an mlat-client to this aggregator, so it joins both links into one station.')) : null,
       b.state === 'backoff' ? h('div.row-wrap', ui.button({ label: 'Retry now', icon: 'refresh', size: 'sm', onClick: () => retry(b) })) : null);
   }
+  function mlatCard(m) {
+    const kind = STATE_KIND[m.state] || 'off';
+    return h('div.col.gap-3',
+      h('div.row.gap-2', h('i.set-dot.' + kind), h('b', m.state || 'unknown'), ui.badge('MLAT', 'mlat'), m.compress ? ui.badge(m.compress, 'blue') : null),
+      (m.denied || []).length ? F.callout('bad', 'alert', 'The server refused the connection: ', m.denied.join('; ')) : m.lastError && m.state !== 'connected' ? F.callout('warn', 'alert', m.lastError) : null,
+      m.motd ? F.callout('info', 'info', m.motd) : null,
+      ui.kv([
+        ['Aircraft announced', units.int(m.seen)],
+        ['Requested by the server', units.int(m.requested)],
+        ['Sync messages', units.int(m.syncSent)],
+        ['MLAT messages', units.int(m.mlatSent)],
+        ['Results on the map', units.int(m.results)],
+        ['Peers', m.peerCount ? units.int(m.peerCount) : units.DASH, { tip: 'Stations this one is synchronised with (from the server\'s statistics)' }],
+        ['Clock', m.clockType === 'radarcape_gps' ? 'GPS (ns of the UTC day)' : m.clockType ? '12 MHz counter' : units.DASH, { tip: 'The timestamp kind this output sends; it follows the receiver (12 MHz: RTL-SDR with readsb / dump1090, Beast, Radarcape in 12 MHz mode; GPS: Radarcape with GPS lock)' }],
+        ['Frames without a timestamp', units.int(m.noClock), { tip: 'Skipped: MLAT needs receiver timestamps' }],
+        m.noGpsLock ? ['GPS frames without lock', units.int(m.noGpsLock), { tip: 'Skipped: a Radarcape in GPS mode without GPS lock (emulated time) or without UTC; MLAT needs UTC from a locked GPS' }] : null,
+        m.otherClock ? ['Frames of another clock', units.int(m.otherClock), { tip: 'Skipped: inputs with different clocks (12 MHz and GPS) cannot share one MLAT output; it follows the clock it sees and reconnects when that changes. Pick one input under Inputs.' }] : null,
+      ].filter(Boolean), { columns: 2 }),
+      m.state === 'backoff' ? h('div.row-wrap', ui.button({ label: 'Retry now', icon: 'refresh', size: 'sm', onClick: () => retry(m) })) : null);
+  }
   async function claim(u) {
     const rxNo = (u.receivers || [])[0]?.rxNo ?? 0;
     try {
@@ -176,9 +239,47 @@ export function renderUplinks(S, F) {
     });
   }
 
+  function mlatItem(i) {
+    const u = list()[i];
+    const p = `uplinks.${i}.`;
+    const stHost = h('div');
+    statusHost.set(u.id, stHost);
+    return ui.card({
+      title: u.host ? `${u.host}:${u.port || 31090}` : 'New MLAT output',
+      sub: `ID ${u.id} · MLAT${u.disabled ? ' · disabled' : ''}`,
+      icon: 'radar',
+      actions: [ui.button({ icon: 'trash', variant: 'ghost', size: 'sm', tip: 'Remove this output', onClick: async () => {
+        if (savedIds.has(u.id) && !(await ui.confirm({ title: 'Remove this output?', message: 'This station stops taking part in that network\'s MLAT after you save.', confirmLabel: 'Remove', danger: true }))) return;
+        list().splice(i, 1);
+        structural();
+      } })],
+      body: h('div.col.gap-4',
+        stHost,
+        F.callout('info', 'info', CONSENT_MLAT),
+        h('div.set-fields.set-fields--2',
+          F.text(p + 'host', { label: 'MLAT server host', mono: true, placeholder: 'feed.example.org', hint: 'The network\'s mlat server (mlat-client protocol).' }),
+          F.number(p + 'port', { label: 'Port', min: 1, max: 65535, step: 1, hint: 'Usually 31090.' }),
+          F.text(p + 'user', { label: 'Display name', placeholder: 'airview', hint: 'Shown by the network (letters, digits, space, _ . -).' }),
+          F.text(p + 'uuid', { label: 'UUID (optional)', mono: true, placeholder: 'leave empty to generate one', hint: 'Use the UUID of your Beast output to the same network.' }),
+          F.seg(p + 'pin', { label: 'Public map', options: [{ value: 'hidden', label: 'Hide the station' }, { value: 'region', label: 'May be shown' }], block: true }),
+          F.toggle(p + 'disabled', { label: 'Disabled', hint: 'Keep the settings but do not connect.' }))),
+    });
+  }
+
+  async function addPreset(n) {
+    const ok = await ui.confirm({ title: `Feed ${n.name}?`, message: [n.note, CONSENT_C9, CONSENT_MLAT].filter(Boolean).join(' '), confirmLabel: 'Add both outputs' });
+    if (!ok) return;
+    const uuid = globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : '';
+    list().push(presetBeastUplink(list(), n, uuid));
+    list().push(newMLATUplink(list(), n.mlat[0], n.mlat[1], uuid));
+    structural();
+    ui.toast(`Added the ${n.name} outputs - save to connect.`);
+  }
+
   function item(i) {
     const u = list()[i];
     if (u.type === 'beast') return beastItem(i);
+    if (u.type === 'mlat') return mlatItem(i);
     const p = `uplinks.${i}.`;
     const stHost = h('div');
     statusHost.set(u.id, stHost);
@@ -244,7 +345,15 @@ export function renderUplinks(S, F) {
       ui.button({ label: 'Add Beast output', icon: 'plus', tip: 'Also feed another aggregator (Beast, e.g. readsb on port 30004)', onClick: () => {
         list().push(newBeastUplink(list()));
         structural();
+      } }),
+      ui.button({ label: 'Add MLAT output', icon: 'plus', tip: 'Take part in another network\'s multilateration (mlat-client protocol, e.g. port 31090)', onClick: () => {
+        list().push(newMLATUplink(list()));
+        structural();
       } })),
+    ] }),
+    ui.card({ title: 'Feed community networks', icon: 'users', body: [
+      F.help('Adds a Beast output and an MLAT output with one shared UUID for a network. Feeding a network shares this station\'s receiver data with it under its terms; MLAT positions it sends back are shown here and never forwarded. Check the network\'s own feeder page if a connection fails: their addresses can change.'),
+      h('div.row-wrap', NETWORK_PRESETS.map((n) => ui.button({ label: n.name, icon: 'plus', size: 'sm', tip: `Beast ${n.beast.join(':')} (${n.format}) + MLAT ${n.mlat.join(':')}`, onClick: () => addPreset(n) }))),
     ] }),
     ...list().map((_, i) => item(i)),
   ];

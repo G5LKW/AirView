@@ -3,6 +3,9 @@ package alerts
 import (
 	"strconv"
 	"strings"
+	"time"
+
+	"airview/internal/model"
 )
 
 // Placeholders understood in Rule.Message:
@@ -10,9 +13,10 @@ import (
 //	{rule} {severity} {icao} {callsign} {reg} {type} {operator} {squawk}
 //	{alt} (ft) {dist} (km) {ident} (callsign, else reg, else icao)
 //	{event} {key} {value} {text} (system events) {watchlist} {note} (watch-list hit)
+//	{route} {from} {to} {eta} (UTC) {routeSource} (live route) {ra} (TCAS advisory)
 //
 // Unknown placeholders are kept verbatim; unknown values expand to "?".
-const placeholderHelp = "{rule} {severity} {icao} {callsign} {reg} {type} {operator} {squawk} {alt} {dist} {ident} {event} {key} {value} {text} {watchlist} {note}"
+const placeholderHelp = "{rule} {severity} {icao} {callsign} {reg} {type} {operator} {squawk} {alt} {dist} {ident} {event} {key} {value} {text} {watchlist} {note} {route} {from} {to} {eta} {routeSource} {ra}"
 
 // PlaceholderHelp lists the message template placeholders (for the UI).
 func PlaceholderHelp() string { return placeholderHelp }
@@ -41,7 +45,10 @@ func (e *Engine) expand(r *Rule, al *Alert, v *view, ev *SystemEvent) string {
 		}
 		b.WriteString(tpl[:i])
 		name := tpl[i+1 : i+j]
-		val, ok := placeholder(name, r, al, ev, wlName, wlNote)
+		val, ok := routePlaceholder(name, v)
+		if !ok {
+			val, ok = placeholder(name, r, al, ev, wlName, wlNote)
+		}
 		if ok {
 			b.WriteString(val)
 		} else {
@@ -150,4 +157,48 @@ func defaultTemplate(al *Alert, ev *SystemEvent) string {
 		s += " {dist} km"
 	}
 	return s
+}
+
+// routePlaceholder expands the route and TCAS variables ({route}, {from},
+// {to}, {eta} (UTC hh:mm), {routeSource}, {ra}) from the aircraft's live data.
+func routePlaceholder(name string, v *view) (string, bool) {
+	switch name {
+	case "route", "from", "to", "eta", "routeSource", "ra":
+	default:
+		return "", false
+	}
+	var a *model.Aircraft
+	if v != nil {
+		a = v.ac
+	}
+	if name == "ra" {
+		if a == nil || a.ACAS == nil {
+			return "?", true
+		}
+		return a.ACAS.Advisory, true
+	}
+	if a == nil || a.Route == nil {
+		return "?", true
+	}
+	r := a.Route
+	code := func(icao, iata string) string {
+		if iata != "" {
+			return iata
+		}
+		return q(icao)
+	}
+	switch name {
+	case "route":
+		return code(r.From, r.FromIATA) + "-" + code(r.To, r.ToIATA), true
+	case "from":
+		return code(r.From, r.FromIATA), true
+	case "to":
+		return code(r.To, r.ToIATA), true
+	case "eta":
+		if r.ETA <= 0 {
+			return "?", true
+		}
+		return time.Unix(r.ETA, 0).UTC().Format("15:04") + " UTC", true
+	}
+	return q(r.Source), true
 }

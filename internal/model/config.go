@@ -121,6 +121,11 @@ type PredictionConfig struct {
 	PathSec int `json:"pathSec"`
 	// ShowPaths: the map draws the predicted path of the selected aircraft (default true).
 	ShowPaths bool `json:"showPaths"`
+	// LearnedTurns blends the turns learned from the surrounding traffic
+	// (internal/flowlearn) into the positions of coasting aircraft, weighted
+	// by the learner's self-check: only where the learned turns were measured
+	// clearly better than dead reckoning (default true).
+	LearnedTurns bool `json:"learnedTurns"`
 }
 
 // TerrainConfig controls the terrain line-of-sight analysis (internal/terrain).
@@ -142,15 +147,37 @@ type TerrainConfig struct {
 // Nothing is downloaded automatically: imports run only on request.
 type NavDataConfig struct {
 	AirportsOverlay bool `json:"airportsOverlay"` // airports layer offered on the map (default true)
-	// RoutesOnline looks unknown callsigns up at adsbdb.com (sends the
-	// callsign to a third party; default false). Without it only the
-	// imported offline standing data is used.
-	RoutesOnline bool `json:"routesOnline"`
+	// AutoRefresh downloads the reference data (airports, runways, navaids,
+	// countries, VRS standing-data routes; CC0 / public domain, about 25 MB,
+	// no user data sent) at first start and checks it daily at a per-install
+	// random time with a conditional GET (default true; off for air-gapped
+	// sites).
+	AutoRefresh bool `json:"autoRefresh"`
 	// Photos shows aircraft photos from planespotters.net (sends the ICAO
 	// address; default false). Requires PhotoContact.
-	Photos       bool   `json:"photos"`
-	PhotoContact string `json:"photoContact"` // contact URL or e-mail sent in the User-Agent (required by planespotters.net)
+	Photos       bool         `json:"photos"`
+	PhotoContact string       `json:"photoContact"` // contact URL or e-mail sent in the User-Agent (required by planespotters.net)
+	Routes       RoutesConfig `json:"routes"`       // route look-ups, learning and overrides
 }
+
+// RoutesConfig controls route resolution (internal/routes).
+type RoutesConfig struct {
+	Enabled bool `json:"enabled"` // master switch of the route feature (default true)
+	// Online looks callsigns up at adsbdb.com when no offline route (override,
+	// learned, standing data) exists (default true). It sends the callsign,
+	// never the receiver location; answers are only cached, never merged into
+	// AirView's own tables, and shown only to the station's own users.
+	Online    bool   `json:"online"`
+	DailyCap  int    `json:"dailyCap"`  // online look-ups per 24 h (default 1000)
+	StableSec int    `json:"stableSec"` // a callsign must be received this long before it is looked up online (default 45)
+	Contact   string `json:"contact"`   // contact URL or e-mail in the User-Agent of online look-ups (default: the project URL)
+	Learn     bool   `json:"learn"`     // learn routes from observed take-offs and landings (default true)
+	ETA       bool   `json:"eta"`       // estimate the arrival time (default true)
+}
+
+// ProjectURL identifies AirView in the User-Agent of online look-ups
+// (never a personal address).
+const ProjectURL = "https://github.com/G5LKW/AirView"
 
 // AlertsConfig controls the alert rules engine (internal/alerts).
 type AlertsConfig struct {
@@ -391,11 +418,12 @@ func DefaultConfig() Config {
 		},
 		Demo: DemoConfig{Enabled: false, Aircraft: 60},
 
-		Prediction: PredictionConfig{Enabled: true, CoastSec: 60, PathSec: 120, ShowPaths: true},
+		Prediction: PredictionConfig{Enabled: true, CoastSec: 60, PathSec: 120, ShowPaths: true, LearnedTurns: true},
 		Terrain:    TerrainConfig{Enabled: true, RadiusKm: 450, Zoom: 0, KFactor: 4.0 / 3.0, AutoPrefetch: true},
-		NavData:    NavDataConfig{AirportsOverlay: true},
-		Alerts:     AlertsConfig{Enabled: true, Sound: true, Webhooks: true},
-		RFStat:     RFStatConfig{Enabled: true},
+		NavData: NavDataConfig{AirportsOverlay: true, AutoRefresh: true,
+			Routes: RoutesConfig{Enabled: true, Online: true, DailyCap: 1000, StableSec: 45, Learn: true, ETA: true}},
+		Alerts: AlertsConfig{Enabled: true, Sound: true, Webhooks: true},
+		RFStat: RFStatConfig{Enabled: true},
 
 		Aggregator:   DefaultAggregator(),
 		UplinkTuning: DefaultUplinkTuning(),

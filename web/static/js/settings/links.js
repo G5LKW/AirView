@@ -23,6 +23,9 @@ export function sectionForPath(path) {
 }
 
 /** Banner id -> where its link goes (app.js renderBanners). Every banner link is listed here. */
+/** First-start text about the online route look-up (ROUTES-DESIGN binding decision 2: on by default). */
+export const ROUTES_ONLINE_NOTE = 'With the factory settings, AirView looks up the route of airline callsigns it has no offline route for at adsbdb.com: the callsign is sent, the receiver location is not. Switch it off in ';
+
 export const BANNER_LINKS = {
   setup: { label: 'Finish the first-run setup', href: '#/setup' },
   demo: { label: 'Turn off in Settings', href: settingsHref('demo') },
@@ -31,6 +34,7 @@ export const BANNER_LINKS = {
   feeds: { label: 'Check feeds', href: settingsHref('feeds') },
   nofeeds: { label: 'Add a receiver', href: settingsHref('feeds') },
   nofeedsDemo: { label: 'enable demo mode', href: settingsHref('demo') },
+  routesOnline: { label: 'Aviation data settings', href: settingsHref('navdata') },
 };
 
 // Free-text notices of the engine (internal/engine Notify) -> Settings section.

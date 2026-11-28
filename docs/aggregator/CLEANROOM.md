@@ -356,3 +356,15 @@ All changes are AirView's own code derived from the review evidence and our own 
 Original code and scripts: the wininstall `postInstall` step and as-invoker elevation decision (`NeedElevation`, `/ELEVATED`), the pisetup update.conf handling, the piimage licence/notices/update.conf payload, relkit's licence-notice rule for archives, the build-script guards (test-key refusal, source-change check) and the selfupdate test helper (`waitUp`). Written from our own design and the review evidence; no installer, image-builder or third-party source was consulted or copied.
 
 - fix:surface (2026-11-14): PRIV-A1..A8, SEC-R1..R4/R7/R8, UX-01/03/06/07/08/11..14 fixes in internal/server, internal/engine, internal/privacy/publicdto, internal/model, internal/config, cmd/airview, cmd/airview-feeder and web/. Own code from the findings' descriptions and Go standard library / golang.org/x/sys (registry) APIs only; no third-party code consulted or copied.
+
+## v1.1 (2026-11-27): provenance of the 1.1 features
+
+| Component | Sources | GPL source read? | Notes |
+|---|---|---|---|
+| `internal/routes` (route resolution, scoring, fusion, learner, overrides) | docs/ROUTES-DESIGN.md (AirView's own design); VRS standing data (CC0) as data; adsbdb.com's public API documentation | no | Online answers stay in the expiring cache and are never merged, exported or shown publicly. |
+| `internal/acas` (TCAS RA events) | ICAO Annex 10 Vol IV field definitions as already implemented in `internal/modes` (BDS 3,0 / DF16 MV / TC28) | no | Advisory wording is AirView's own. |
+| `internal/met/grid.go`, BDS 4,5 hazards | ICAO standard atmosphere; `internal/modes` BDS 4,5 decoder | no | |
+| `internal/heatexport` (8K JPEG) | Go standard library `image/jpeg`; 5x7 font drawn for this package | no | |
+| `internal/uplink/mlatout.go` (MLAT output, client side of the mlat-client protocol) | `docs/aggregator/MLATC.md` only (AirView's own protocol description, written for WP-B3) | no | No mlat-client code was consulted for the client side; offers `zlib`/`none` only; 12 MHz and (since the second v1.1 session) Radarcape GPS clocks, with the frame-start offsets of MLATC.md §5.1 that `internal/ingest/mlatc` already removes on the server side. |
+| `internal/flowlearn` (learned traffic-flow prediction) | own design | no | |
+| Feed-community presets (`web/static/js/settings/sections-uplinks.js` `NETWORK_PRESETS`), checked 2026-11-27 | Only the host / port / Beast-format setting lines (`MLATSERVER=`, `TARGET="--net-connector ..."`, README feeder command) of each network's own feed client: adsblol/feed README, adsbfi/adsb-fi-scripts, airplanes-live/feed, adsbexchange/feedclient, TheAirTraffic/tat-feeder and (OARC, via wiki.oarc.uk) mpentler/oarc-adsb-scripts `configure.sh` / README | no code read | Facts (addresses, ports, format names) only; no script logic consulted or copied. ADS-B Exchange and The Air Traffic use `beast_reduce_out`, the others `beast_reduce_plus_out`. |

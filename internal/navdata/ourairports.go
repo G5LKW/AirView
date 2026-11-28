@@ -295,6 +295,33 @@ func ParseRoutesCSV(r io.Reader, fn func(RouteRecord) error) (ParseStats, error)
 	})
 }
 
+// Airline is one row of the standing-data airline list.
+type Airline struct {
+	Code        string `json:"code"` // ICAO, else IATA code
+	Name        string `json:"name"`
+	ICAO        string `json:"icao,omitempty"`
+	IATA        string `json:"iata,omitempty"`
+	Positioning string `json:"positioning,omitempty"` // regular expression over the flight number
+	Charter     string `json:"charter,omitempty"`     // regular expression over the flight number
+}
+
+// ParseAirlinesCSV parses the standing-data airline list (header
+// "Code,Name,ICAO,IATA,PositioningFlightPattern,CharterFlightPattern").
+func ParseAirlinesCSV(r io.Reader, fn func(Airline) error) (ParseStats, error) {
+	c, err := newCSV(r, "code", "name")
+	if err != nil {
+		return ParseStats{}, err
+	}
+	return c.loop(func() (bool, error) {
+		a := Airline{Code: strings.ToUpper(c.s("code")), Name: c.s("name"), ICAO: strings.ToUpper(c.s("icao")), IATA: strings.ToUpper(c.s("iata")),
+			Positioning: c.s("positioningflightpattern"), Charter: c.s("charterflightpattern")}
+		if a.Code == "" || len(a.Code) > 8 || len(a.Positioning) > 300 || len(a.Charter) > 300 {
+			return false, nil
+		}
+		return true, fn(a)
+	})
+}
+
 // splitCodes splits "EGLL-KJFK" into upper-case codes; nil when any code is
 // empty or implausible.
 func splitCodes(s string) []string {

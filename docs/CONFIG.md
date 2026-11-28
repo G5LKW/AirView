@@ -98,7 +98,7 @@ The `server` profile commits every 5 s; the aggregator's per-station statistics 
 
 ### Storage layout migration
 
-A database written by AirView 1.0 is converted to the 1.1 layout in the background after the first start (trails into compressed chunks, compact heat, range and met tables). The station works normally meanwhile; every step is a separate transaction, so a crash or power cut resumes where it stopped. Before the first step AirView writes a backup `<data>/backup/airview-pre-1.1-<date>.db` when the disk has room for it (`storage.backupBeforeMigrate`: `auto`; `always` = no migration without a backup; `never`). The automatic backup is deleted 14 days after the migration finished. `airview db migrate --status` shows the progress, `--backup` writes a backup now, `--now` finishes the migration at once while AirView is stopped. The space the old layout used is returned to the disk over the following hours; a file that was created without incremental auto-vacuum keeps it for new rows instead (the log says so) until `airview db vacuum` runs with AirView stopped. Going back to 1.0 is only possible by restoring that backup.
+A database written by AirView 1.0.0 is converted to the new storage layout of 1.0.1 (internally the 1.1 layout, hence the backup file name) in the background after the first start (trails into compressed chunks, compact heat, range and met tables). The station works normally meanwhile; every step is a separate transaction, so a crash or power cut resumes where it stopped. Before the first step AirView writes a backup `<data>/backup/airview-pre-1.1-<date>.db` when the disk has room for it (`storage.backupBeforeMigrate`: `auto`; `always` = no migration without a backup; `never`). The automatic backup is deleted 14 days after the migration finished. `airview db migrate --status` shows the progress, `--backup` writes a backup now, `--now` finishes the migration at once while AirView is stopped. The space the old layout used is returned to the disk over the following hours; a file that was created without incremental auto-vacuum keeps it for new rows instead (the log says so) until `airview db vacuum` runs with AirView stopped. Going back to 1.0 is only possible by restoring that backup.
 
 ## Settings
 
@@ -306,6 +306,7 @@ Controls the trajectory filter (internal/trajectory): coasting aircraft on the l
 | `prediction.coastSec` | integer | `60` | `AIRVIEW_PREDICTION_COAST_SEC` | coastSec is how long an aircraft without new positions is shown at its predicted position (default 60, 5..120). Predicted positions start PredictAfterSec (4 s) after the last real position. |
 | `prediction.pathSec` | integer | `120` | `AIRVIEW_PREDICTION_PATH_SEC` | pathSec is the default horizon of predicted paths (default 120, 10..900). |
 | `prediction.showPaths` | boolean | `true` | `AIRVIEW_PREDICTION_SHOW_PATHS` | ShowPaths: the map draws the predicted path of the selected aircraft (default true). |
+| `prediction.learnedTurns` | boolean | `true` | `AIRVIEW_PREDICTION_LEARNED_TURNS` | learnedTurns blends the turns learned from the surrounding traffic (internal/flowlearn) into the positions of coasting aircraft, weighted by the learner's self-check: only where the learned turns were measured clearly better than dead reckoning (default true). |
 
 ### Terrain analysis (`terrain`)
 
@@ -326,9 +327,23 @@ Controls aviation reference data (internal/navdata). Nothing is downloaded autom
 | Setting | Type | Default | Environment variable | Description |
 |---|---|---|---|---|
 | `navData.airportsOverlay` | boolean | `true` | `AIRVIEW_NAV_DATA_AIRPORTS_OVERLAY` | Airports layer offered on the map (default true) |
-| `navData.routesOnline` | boolean | `false` | `AIRVIEW_NAV_DATA_ROUTES_ONLINE` | routesOnline looks unknown callsigns up at adsbdb.com (sends the callsign to a third party; default false). Without it only the imported offline standing data is used. |
+| `navData.autoRefresh` | boolean | `true` | `AIRVIEW_NAV_DATA_AUTO_REFRESH` | autoRefresh downloads the reference data (airports, runways, navaids, countries, VRS standing-data routes; CC0 / public domain, about 25 MB, no user data sent) at first start and checks it daily at a per-install random time with a conditional GET (default true; off for air-gapped sites). |
 | `navData.photos` | boolean | `false` | `AIRVIEW_NAV_DATA_PHOTOS` | photos shows aircraft photos from planespotters.net (sends the ICAO address; default false). Requires PhotoContact. |
 | `navData.photoContact` | string | `""` | `AIRVIEW_NAV_DATA_PHOTO_CONTACT` | Contact URL or e-mail sent in the User-Agent (required by planespotters.net) |
+
+#### `navData.routes`
+
+Controls route resolution (internal/routes).
+
+| Setting | Type | Default | Environment variable | Description |
+|---|---|---|---|---|
+| `navData.routes.enabled` | boolean | `true` | `AIRVIEW_NAV_DATA_ROUTES_ENABLED` | Master switch of the route feature (default true) |
+| `navData.routes.online` | boolean | `true` | `AIRVIEW_NAV_DATA_ROUTES_ONLINE` | online looks callsigns up at adsbdb.com when no offline route (override, learned, standing data) exists (default true). It sends the callsign, never the receiver location; answers are only cached, never merged into AirView's own tables, and shown only to the station's own users. |
+| `navData.routes.dailyCap` | integer | `1000` | `AIRVIEW_NAV_DATA_ROUTES_DAILY_CAP` | Online look-ups per 24 h (default 1000) |
+| `navData.routes.stableSec` | integer | `45` | `AIRVIEW_NAV_DATA_ROUTES_STABLE_SEC` | A callsign must be received this long before it is looked up online (default 45) |
+| `navData.routes.contact` | string | `""` | `AIRVIEW_NAV_DATA_ROUTES_CONTACT` | contact URL or e-mail in the User-Agent of online look-ups (default: the project URL) |
+| `navData.routes.learn` | boolean | `true` | `AIRVIEW_NAV_DATA_ROUTES_LEARN` | learn routes from observed take-offs and landings (default true) |
+| `navData.routes.eta` | boolean | `true` | `AIRVIEW_NAV_DATA_ROUTES_ETA` | Estimate the arrival time (default true) |
 
 ### Alerts (`alerts`)
 
@@ -378,6 +393,7 @@ Environment: `AIRVIEW_UPLINKS` (whole list as JSON), `AIRVIEW_UPLINKS_<n>` (one 
 | `uplinks[].format` | string | `""` | `AIRVIEW_UPLINKS_<n>_FORMAT` | format is the Beast output format (Beast only): beast_reduce_plus_out (default), beast_reduce_out or beast_out. |
 | `uplinks[].uuid` | string | `""` | `AIRVIEW_UPLINKS_<n>_UUID` | uuid is the station UUID sent to a Beast aggregator (Beast only; "" = a random UUID generated for this uplink). An identifier at that aggregator, not a password: shown to the owner, never public. |
 | `uplinks[].reduceMs` | integer | `0` | `AIRVIEW_UPLINKS_<n>_REDUCE_MS` | reduceMs is the Beast reduce interval (Beast only; default 250, 50..5000 ms; ignored for beast_out). |
+| `uplinks[].user` | string | `""` | `AIRVIEW_UPLINKS_<n>_USER` | user is the display name sent to an mlat-server (MLAT only; default "airview"). An MLAT uplink also uses UUID (as for Beast), Inputs, Disabled and Pin: "hidden" (the default) asks the network to keep the station off its public maps. |
 
 ### `uplinkTuning` (`uplinkTuning`)
 
