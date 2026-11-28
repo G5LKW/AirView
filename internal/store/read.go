@@ -319,6 +319,7 @@ type EventQuery struct {
 	Kind     string // "" = all kinds
 	ICAO     uint32 // 0 = all aircraft
 	Since    int64  // t >= Since (Unix seconds), 0 = open
+	Until    int64  // t < Until (Unix seconds), 0 = open
 	BeforeID int64  // id < BeforeID, for paging backwards; 0 = from the newest
 	Limit    int    // default 100, max 5000
 }
@@ -338,6 +339,10 @@ func (s *Store) Events(ctx context.Context, q EventQuery) ([]Event, error) {
 	if q.Since > 0 {
 		where = append(where, "t >= ?")
 		args = append(args, q.Since)
+	}
+	if q.Until > 0 {
+		where = append(where, "t < ?")
+		args = append(args, q.Until)
 	}
 	if q.BeforeID > 0 {
 		where = append(where, "id < ?")

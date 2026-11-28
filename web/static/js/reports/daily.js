@@ -5,6 +5,7 @@
 // 31 days, fetched lazily, three at a time).
 
 import { DAY, HOUR, fin } from './common.js';
+import { mountBriefing } from './briefing.js';
 
 const RANGES = [{ value: 7, label: '7 days' }, { value: 14, label: '14 days' }, { value: 30, label: '30 days' }, { value: 90, label: '90 days' }];
 const FARTHEST_MAX_DAYS = 31;
@@ -33,6 +34,7 @@ export function mountDaily(host, ctx, scope) {
   const chartCard = ui.card({ title: 'Traffic per day', icon: 'chart', sub: '', body: [chartHost, h('p.muted', { style: 'margin:8px 0 0;font-size:var(--fs-sm)' }, 'Bars: different aircraft and flights logged each day (left scale). Line: the farthest position received that day (right scale). A low day with a normal range usually means less traffic, not a receiver problem.')] });
   const tableCard = ui.card({ title: 'Daily summary', icon: 'report', sub: 'Click a day to list its flights', actions: csvBtn, body: tableHost, flush: true });
   host.append(h('div.rpd',
+    mountBriefing(ctx, scope),
     h('div.rpd-bar', rangeSeg, h('span.muted.rpd-note', 'Days are station-local days.')),
     h('div.rpd-tiles', Object.values(tiles)),
     chartCard, tableCard));

@@ -35,6 +35,7 @@ export function mountBuilder(host, ctx, scope) {
     S.q = { ...blankQuery(), preset: 'custom', from: +rq.from, to: Number.isFinite(+rq.to) ? +rq.to : +rq.from + DAY };
     S.offset = 0; S.ran = true; S.at = 0;
     if (rq.sort) { S.sort = String(rq.sort); S.desc = rq.desc !== '0'; }
+    if (typeof rq.icao === 'string' && /^[0-9A-Fa-f]{6}$/.test(rq.icao)) S.q.icao = rq.icao.toUpperCase();
   }
   const persist = () => ctx.shared.set(SHARED_KEY, JSON.parse(JSON.stringify(S)));
   scope.onCleanup(persist);

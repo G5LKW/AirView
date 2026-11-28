@@ -52,6 +52,34 @@ Route `#/reports/daily`. Per-day totals for the last **7**, **14**, **30** or **
 busiest day, busiest hour and farthest flight, a **Traffic per day** chart and the **Daily summary** table. Click
 a day to list its flights in the report. **CSV** downloads the summary.
 
+### Daily briefing
+
+The **Daily briefing** card at the top describes **Yesterday** (the default) or **Today so far** in a few
+sentences: how much traffic there was and how that compares with comparable earlier days, the busiest hour, the
+farthest position, the most frequent operator and type, and the day's emergencies, military and watch-list
+catches, new records and feed outages (each links to the flight or the day's flights of that aircraft).
+Below the text, chips show each figure with an arrow when it was unusually high or low; hover a chip for the
+typical value.
+
+How it is written:
+
+- Everything is computed on this station from its own statistics. No data leaves the station and no language
+  model is used: each sentence is a template filled with measured numbers.
+- A day is compared with the earlier days of the last four weeks that had at least 20 hours of data: the same
+  weekday when there are at least three of them, otherwise all of them (at least five). Until then the card says
+  that there is no comparison yet.
+- "Typical" is the median of those days. A figure is called unusual when it is more than two robust standard
+  deviations (from the median absolute deviation) away from it, and very unusual beyond three.
+- The card reasons about causes only from what it measured. A short day of data explains low totals (the card
+  says how long the station had data). Low traffic with a normal range is most likely less traffic, not a
+  receiver problem; low traffic **and** a short range with the station online all day looks like a receiver,
+  antenna or cable fault; an unusually long range is often enhanced propagation (tropospheric ducting). These
+  are hints, not diagnoses.
+- **Today so far** is not compared with whole days and does not judge uptime, because the hourly roll-ups lag
+  the clock.
+
+The same text is available from `GET /api/briefing/daily` (see the API reference).
+
 ## 2.10.4 Replay
 
 ![Replay of stored traffic](img/station/replay.png)

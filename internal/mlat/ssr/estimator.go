@@ -21,6 +21,7 @@ type Stats struct {
 	Observations  int    // stored observations
 	Stride        int    // current thinning stride
 	Tracks        int    // tracked aircraft
+	SweepObs      int    // stored DF11 bursts for the sweep locator
 }
 
 type dwellKey struct {
@@ -51,6 +52,7 @@ type Estimator struct {
 	open    map[dwellKey]*dwell
 	recent  []*dwell
 	obs     []PairObs
+	sweep   []SweepObs // DF11 bursts with an interrogator code (LocateBySweep)
 	stride  int
 	skip    int
 	st      Stats
@@ -199,6 +201,9 @@ func (e *Estimator) pruneRecent(cut float64) {
 // aircraft that overlap it in time.
 func (e *Estimator) close(d *dwell) {
 	cfg := &e.cfg
+	if d.key.Class == ClassModeS && d.key.iid != 0 {
+		e.addSweep(d)
+	}
 	if len(d.t) < cfg.MinMatches {
 		return
 	}
@@ -244,6 +249,51 @@ func (e *Estimator) close(d *dwell) {
 	e.recent = append(e.recent, d)
 }
 
+// addSweep records a DF11 burst with an interrogator code for the sweep
+// locator: its mean reply time and the aircraft position then. Memory is
+// bounded by time (sweepKeepS) and count (sweepMaxObs).
+func (e *Estimator) addSweep(d *dwell) {
+	var tm float64
+	for _, t := range d.t {
+		tm += t
+	}
+	tm /= float64(len(d.t))
+	p, _, ok := e.tracks.At(d.key.ICAO, tm)
+	if !ok {
+		return
+	}
+	cut := tm - sweepKeepS
+	k := 0
+	for k < len(e.sweep) && e.sweep[k].T < cut {
+		k++
+	}
+	if k == 0 && len(e.sweep) >= sweepMaxObs {
+		k = len(e.sweep) / 4
+	}
+	if k > 0 {
+		e.sweep = append(e.sweep[:0], e.sweep[k:]...)
+	}
+	e.sweep = append(e.sweep, SweepObs{T: tm, ICAO: d.key.ICAO, IID: d.key.iid, P: p, N: len(d.t)})
+}
+
+// SweepObservations returns a copy of the stored DF11 bursts.
+func (e *Estimator) SweepObservations() []SweepObs {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return append([]SweepObs(nil), e.sweep...)
+}
+
+// LocateRadars runs the sweep locator (LocateBySweep) on the stored DF11
+// bursts. It is independent of the station position: the hint only
+// centres the search square.
+func (e *Estimator) LocateRadars(h Hint) []SweepRadar {
+	e.mu.Lock()
+	obs := append([]SweepObs(nil), e.sweep...)
+	cfg := e.cfg
+	e.mu.Unlock()
+	return LocateBySweep(obs, h, cfg)
+}
+
 func (e *Estimator) addObs(o PairObs) {
 	e.skip++
 	if e.skip < e.stride {
@@ -277,6 +327,7 @@ func (e *Estimator) Stats() Stats {
 	s.Observations = len(e.obs)
 	s.Stride = e.stride
 	s.Tracks = e.tracks.Len()
+	s.SweepObs = len(e.sweep)
 	return s
 }
 
@@ -288,6 +339,7 @@ func (e *Estimator) Reset() {
 	e.open = map[dwellKey]*dwell{}
 	e.recent = nil
 	e.obs = nil
+	e.sweep = nil
 	e.stride, e.skip = 1, 0
 	e.st = Stats{}
 	e.mu.Unlock()

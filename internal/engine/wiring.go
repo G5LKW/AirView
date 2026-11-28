@@ -333,6 +333,7 @@ func (e *Engine) reconfigure(old, cur model.Config) {
 	}
 	e.syncUplinks(cur, eff)
 	e.syncSSR(eff.cfg)
+	e.syncACARS(eff.cfg, eff.demo)
 	if old.NTP != cur.NTP {
 		e.ntp.Reconfigure(cur.NTP)
 	}
@@ -463,6 +464,7 @@ func (e *Engine) FactoryReset() error {
 	e.syncLatencyReceiver()
 	e.applyExt(nil, eff)
 	e.syncSSR(eff.cfg)
+	e.syncACARS(eff.cfg, eff.demo)
 	if old.NTP != cfg.NTP {
 		e.ntp.Reconfigure(cfg.NTP)
 	}

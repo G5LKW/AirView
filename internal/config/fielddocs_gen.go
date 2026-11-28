@@ -5,6 +5,11 @@ package config
 // modelDocs holds the doc comments of the configuration structs in
 // internal/model, keyed "Type" and "Type.Field" (see package docgen).
 var modelDocs = map[string]string{
+	"ACARSConfig":                        "ACARSConfig configures the ACARS / VDL Mode 2 message input (top-level \"acars\" block; internal/acars). AirView does not demodulate VHF: a separate decoder (acarsdec or dumpvdl2 on its own SDR) sends its JSON output to these listeners. Off by default. The messages are kept in memory only and are shown to the station owner / admin, never in public views.",
+	"ACARSConfig.Enabled":                "Enabled turns the ACARS input on (default false).",
+	"ACARSConfig.Keep":                   "Keep is the number of messages kept in memory (default 2000, 100..20000; typically well under 1 kB each, at most about 4 kB).",
+	"ACARSConfig.TCPListen":              "TCPListen is the \"host:port\" for newline-separated JSON over TCP (decoders in TCP client mode); \"\" = off (default).",
+	"ACARSConfig.UDPListen":              "UDPListen is the \"host:port\" for JSON datagrams from acarsdec (--output json:udp:...) or dumpvdl2 (--output decoded:json:udp:...). Default \"127.0.0.1:5550\"; \":5550\" accepts decoders on other hosts of the network. \"off\" disables the UDP input.",
 	"AggAuth":                            "AggAuth holds the aggregator account and session policy (DESIGN §7, §20.3).",
 	"AggAuth.AdminIdleMinutes":           "AdminIdleMinutes ends an admin session without activity (default 120, 5..1440 minutes).",
 	"AggAuth.AdminSessionHours":          "AdminSessionHours is the absolute lifetime of an admin session (default 12, 1..168 hours).",
@@ -515,6 +520,7 @@ var modelDocs = map[string]string{
 	"Antenna.Type":                       "Ant* constants",
 	"Antenna.VBeamwidthDeg":              "-3 dB vertical beamwidth",
 	"Config":                             "Config is the complete persisted configuration (config.json in the data dir). GET/PUT /api/config exchange exactly this shape.",
+	"Config.ACARS":                       "ACARS is the ACARS / VDL2 message input from an external decoder (off by default).",
 	"Config.Aggregator":                  "Aggregator holds the aggregator-mode settings (used only when Mode is ModeAggregator). Stand-alone configs carry the defaults; a document without this key decodes to the defaults when decoded over DefaultConfig(), and a zero block is restored by Aggregator.Normalize.",
 	"Config.Locate":                      "Locate controls Locate Me v2: the guess samples recorded to estimate the receiver position from what it hears.",
 	"Config.Process":                     "Process holds the log file and memory settings of the server process (applied at start).",

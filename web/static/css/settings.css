@@ -307,3 +307,7 @@ button.set-item-toggle:hover { background: var(--hover); }
 
 /* Long status badges inside key/value lists wrap instead of running off narrow screens. */
 .set .kv .badge { white-space: normal; max-width: 100%; height: auto; line-height: 1.35; padding-top: 2px; padding-bottom: 2px; }
+
+/* Settings > SSR: radars located from beam sweeps */
+.ssr-radars { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; min-width: 0; }
+.ssr-radars ul.set-help { padding-left: 18px; }

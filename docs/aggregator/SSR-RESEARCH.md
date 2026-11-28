@@ -192,3 +192,37 @@ Tests (`go test ./internal/mlat/ssr/...`):
 4. Possible later work: radar-site sharing between stations of one aggregator (learned sites with rotation
    periods are network-wide facts and not private); sidelobe/reflection outlier models; a field-data
    regression suite.
+
+## 9. Addendum (2026-11-27): locating the interrogators from their beam sweeps
+
+The negative case of §5 (Mode S radars with lockout, no Mode A/C) leaves DF11 all-call replies with a non-zero
+interrogator code. They carry no common-interrogation pairs, but their **timing** still follows the beam: an
+aircraft answers a radar's all-calls only while that radar's beam points at it, so the azimuth of the replying
+aircraft seen from the radar is φ + ω·t. `ssr.LocateBySweep` (`internal/mlat/ssr/sweep.go`) fits the radar site,
+ω and one phase per 60 s window to the DF11 bursts of each code, with the aircraft positions from ADS-B. It needs
+neither the station position nor a 1030 MHz receiver.
+
+1. **Period**: periodogram of each aircraft's repeat-burst intervals (successive scans are k·P apart); the lowest
+   strong peak is the fundamental (harmonics P/2, P/3 score as high, the sub-harmonic 2P does not).
+2. **Site**: windowed circular coherence of e^{j(az_i − ω t_i)} on the gnomonic plane (§4), coarse 8 km grid over
+   the 500 km search square, the best four peaks refined to 125 m, both senses of rotation.
+3. **Fit**: robust Gauss-Newton (Huber 2.5σ, 6σ rejection) on (x, y, ω, φ_w); formal covariance from the inliers,
+   scaled by the residual scatter. Up to three radars per code (codes are reused); the inliers of each are
+   removed before the next fit.
+
+Gates: ≥ 40 bursts, ≥ 6 aircraft, ≥ 15 repeat intervals, azimuth spread ≥ 20°, coherence ≥ 0.5, semi-major axis
+≤ 15 km, not at the edge of the search square.
+
+**Simulation** (ssrsim, all-call-only Mode S radars with 50 % of aircraft locked out, 150 aircraft, 15 minutes;
+`TestLocateBySweepModeS`): three radars at 60, 140 and 230 km (two sharing II 3, one anticlockwise on SI 12) were
+located 10, 7 and 26 m from the truth with formal σ_h of 6-23 m and periods within 0.3 ms. With 40 aircraft, 40 %
+of them with up to 0.6 s of position latency and 10 minutes: 10-100 m, inside about 1σ. With every aircraft locked out, no radar is
+reported (no repeat bursts). `BenchmarkLocateBySweep` takes 0.4 s for these three radars on one core of a 4-core VM (a Pi 4 is expected to be
+several times slower; it runs on the estimator's own goroutine at each solve).
+
+**Not proven.** ssrsim's beam is an ideal ±1.2° window centred on the boresight, so burst centres are unbiased.
+Real antennas have squint and sidelobes, lockout truncates bursts on one side, and transponders may skip
+interrogations, so real errors will be larger than the formal ellipse; how much has not been measured. The
+period estimate needs aircraft that answer the same radar on several scans, which lockout often prevents.
+Comparing results with published sites (entered in `ssr.sites`) is the open field step.
+

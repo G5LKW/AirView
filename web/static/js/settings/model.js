@@ -21,6 +21,7 @@ export const SECTIONS = [
   { id: 'demo', label: 'Demo mode', icon: 'play', keys: ['demo'] },
   { id: 'updates', label: 'Updates', icon: 'download', keys: ['update'] },
   { id: 'ssr', label: 'SSR self-location', icon: 'wave', keys: ['ssr'] },
+  { id: 'acars', label: 'ACARS / VDL2', icon: 'list', keys: ['acars'] },
   { id: 'danger', label: 'Danger zone', icon: 'alert', keys: [] },
   { id: 'about', label: 'About & diagnostics', icon: 'info', keys: [] },
 ];

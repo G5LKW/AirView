@@ -261,6 +261,8 @@ type Engine struct {
 	locate atomic.Pointer[locateWiring]
 	// ssr is the experimental SSR self-location (ssrwire.go); nil = off.
 	ssr atomic.Pointer[ssrWiring]
+	// acars is the ACARS / VDL2 message input (acarswire.go); nil = off.
+	acars atomic.Pointer[acarsWiring]
 }
 
 // New creates an engine for the data directory. Nothing is opened or started
@@ -388,6 +390,7 @@ func (e *Engine) Start(ctx context.Context) error {
 	e.started = true
 	e.syncUplinks(cfg, eff)
 	e.syncSSR(eff.cfg)
+	e.syncACARS(eff.cfg, eff.demo)
 	e.startRuntime()
 
 	for _, w := range warns {
@@ -415,6 +418,7 @@ func (e *Engine) Stop() {
 	e.stopRuntime(true)
 	e.closeLocate()
 	e.closeSSR()
+	e.closeACARS()
 	e.closeUplinks()
 	e.closeNet()
 	if err := e.st.Close(); err != nil {

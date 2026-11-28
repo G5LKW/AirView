@@ -49,6 +49,7 @@ vertical antenna. Other inputs (dump1090/readsb Beast, AVR, SBS, aircraft.json) 
 | `internal/stat` | Numerical toolbox (stdlib only): descriptive/circular statistics, correlation, OLS/ridge/logistic regression, Holt-Winters, Kalman, Nelder-Mead, backtesting metrics. |
 | `internal/tracker` | Live aircraft table: decode → state, CPR pairing, trails, geometry vs receiver, per-antenna stats accumulation, flight sessions; writes to `store`. |
 | `internal/analytics` | Read-side analysis: coverage/polar plots, antenna pattern estimation, RSSI-vs-distance, heatmaps, records, weather correlation, receiver-location guesser. |
+| `internal/briefing` | Daily briefing: a plain-language account of one station day from `analytics.Daily` / `Top` and the event log; robust (median / MAD) comparison with comparable earlier days and template text (no language model). |
 | `internal/met` | Aircraft-derived meteorology (wind/temperature aloft from Mode S EHS/MRAR) and vertical profiles. |
 | `internal/predict` | Forecasting: traffic levels, reception conditions, local weather tendency; backtesting. |
 | `internal/trajectory` | IMM tracking filter per aircraft (fed by the tracker), coasting / predicted positions, predicted paths, intent (holding, approach, closest approach to the station), proximity pairs, self-scored prediction skill. In memory only. |
@@ -57,6 +58,7 @@ vertical antenna. Other inputs (dump1090/readsb Beast, AVR, SBS, aircraft.json) 
 | `internal/navdata` | OurAirports airports / runways / navaids / countries and VRS standing-data routes (imported on request into `navdata_*` tables), airport region index, approach matching, airport association, opt-in online route and photo look-ups (cached, paced). |
 | `internal/latency` | Latency chain from GPS time stamps: per-stage statistics (propagation, receiver → host, processing, T=1 transponder latency, T=0 position-age change, totals), histograms, per-aircraft rows and stage waterfall, per-feed receiver-delay clock filter and NTP / GPS consistency check, plain-language findings. 15 min window in memory, per-feed minutes in `latency_minute` (24 h restored at start). See `internal/latency/WIRING.md`. |
 | `internal/alerts` | Alert rules engine (AND/OR/NOT trees, geofences, watch-lists, system events), cooldowns, highlights, webhooks; tables `alerts_rule`, `alerts_watch`. |
+| `internal/acars` | ACARS / VDL2 message input from external decoders (acarsdec, dumpvdl2 JSON over UDP/TCP): parsing, bounded in-memory history with de-duplication, registration linking to the live picture, label descriptions. Imports only the standard library. |
 | `internal/engine` | Wires everything together and owns lifecycles; applies config changes live. |
 | `internal/server` | HTTP API, SSE live stream, embedded UI, tile cache proxy, admin auth. |
 | `web` | `package web` — `//go:embed static` exposing `web.FS`. All front-end assets (no build step, ES modules, vendored libs). |
