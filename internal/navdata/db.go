@@ -462,3 +462,25 @@ func (n *NavData) StoredRoute(ctx context.Context, callsign string) (RouteRecord
 	rr.Codes = splitCodes(airports)
 	return rr, len(rr.Codes) >= 2, nil
 }
+
+// Airlines returns the imported standing-data airline list (empty before
+// the first routes import of AirView 1.1).
+func (n *NavData) Airlines(ctx context.Context) ([]Airline, error) {
+	if n.st == nil {
+		return nil, ErrNoStore
+	}
+	rows, err := n.st.DB().QueryContext(ctx, `SELECT code, name, icao, iata, positioning, charter FROM navdata_airline`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Airline
+	for rows.Next() {
+		var a Airline
+		if err := rows.Scan(&a.Code, &a.Name, &a.ICAO, &a.IATA, &a.Positioning, &a.Charter); err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}

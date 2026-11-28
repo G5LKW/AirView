@@ -66,6 +66,14 @@ const (
   name TEXT NOT NULL DEFAULT '',
   continent TEXT NOT NULL DEFAULT ''
 ) WITHOUT ROWID`
+	colsAirline = `(
+  code TEXT PRIMARY KEY,
+  name TEXT NOT NULL DEFAULT '',
+  icao TEXT NOT NULL DEFAULT '',
+  iata TEXT NOT NULL DEFAULT '',
+  positioning TEXT NOT NULL DEFAULT '',
+  charter TEXT NOT NULL DEFAULT ''
+) WITHOUT ROWID`
 	colsRoute = `(
   callsign TEXT PRIMARY KEY,
   airline TEXT NOT NULL DEFAULT '',
@@ -114,6 +122,13 @@ var (
 	tblCountry = table{
 		name: "navdata_country", cols: colsCountry,
 		insert: `INSERT OR REPLACE INTO %s(code, name, continent) VALUES(?,?,?)`,
+	}
+	// tblAirline is the VRS standing-data airline list (airlines/schema-01,
+	// CC0), imported together with the routes from the same zip.
+	tblAirline = table{
+		name: "navdata_airline", cols: colsAirline,
+		indexes: []string{`CREATE INDEX navdata_airline_icao ON navdata_airline(icao) WHERE icao <> ''`},
+		insert:  `INSERT OR REPLACE INTO %s(code, name, icao, iata, positioning, charter) VALUES(?,?,?,?,?,?)`,
 	}
 	tblRoute = table{
 		name: "navdata_route", cols: colsRoute,
@@ -176,8 +191,24 @@ CREATE TABLE IF NOT EXISTS navdata_photo(
 	return b.String()
 }
 
+// migrationV2 adds the airline table (AirView 1.1).
+func migrationV2() string {
+	var b strings.Builder
+	t := tblAirline
+	fmt.Fprintf(&b, "CREATE TABLE IF NOT EXISTS %s %s;\n", t.name, t.cols)
+	fmt.Fprintf(&b, "CREATE TABLE IF NOT EXISTS %s %s;\n", t.stage(), t.cols)
+	for _, ix := range t.indexes {
+		b.WriteString(strings.Replace(ix, "CREATE INDEX", "CREATE INDEX IF NOT EXISTS", 1))
+		b.WriteString(";\n")
+	}
+	return b.String()
+}
+
 func init() {
 	if err := store.RegisterMigration(MigrationName, 1, migrationV1()); err != nil {
+		panic(err)
+	}
+	if err := store.RegisterMigration(MigrationName, 2, migrationV2()); err != nil {
 		panic(err)
 	}
 }

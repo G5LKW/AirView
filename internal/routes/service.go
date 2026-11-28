@@ -64,6 +64,8 @@ type Service struct {
 	statsMu   sync.Mutex
 	stats     Stats
 	learnMu   sync.Mutex // serialises CloseLeg rebuilds
+	kindMu    sync.RWMutex
+	kinds     map[string]airlineKinds // airline ICAO -> positioning / charter patterns
 	lastPrune time.Time
 }
 
@@ -87,7 +89,8 @@ type entry struct {
 	ready     bool
 	exp       time.Time
 	firstSeen time.Time
-	online    bool // an online look-up was queued for it
+	online    bool   // an online look-up was queued for it
+	kind      string // KindPositioning / KindCharter from the airline list
 }
 
 // track is the per-aircraft hysteresis state.
@@ -144,6 +147,7 @@ func New(o Options) *Service {
 // ctx ends.
 func (s *Service) Run(ctx context.Context) {
 	s.loadOverrides(ctx)
+	s.loadAirlines(ctx)
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() { defer wg.Done(); s.resolveLoop(ctx) }()
@@ -227,6 +231,7 @@ func (s *Service) Live(a *model.Aircraft, now time.Time) *model.RouteShort {
 		p = 1
 	}
 	tr.out = s.short(h, sc, tr.state, p, o, cfg, now)
+	tr.out.Kind = e.kind
 	tr.ent, tr.outAt, tr.outExp = e, now, now.Add(liveRefresh)
 	return tr.out
 }
@@ -476,6 +481,9 @@ func (s *Service) Invalidate(cs string) {
 // RecheckStanding marks the entries that use standing data for a new
 // look-up (after a reference-data import), without wiping the others.
 func (s *Service) RecheckStanding() {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	s.loadAirlines(ctx)
+	cancel()
 	s.airMu.Lock()
 	clear(s.airports)
 	s.airMu.Unlock()
@@ -551,7 +559,7 @@ func (s *Service) override(cs string, now time.Time) (Override, bool) {
 // callsign. Never sends a request.
 func (s *Service) resolve(ctx context.Context, cs string) (*entry, error) {
 	now := s.o.Now()
-	e := &entry{ready: true, exp: now.Add(missTTL)}
+	e := &entry{ready: true, exp: now.Add(missTTL), kind: s.kindOf(cs)}
 	hyps := map[string]*Hyp{}
 	var order []string
 	add := func(codes []string, c Claim) error {
@@ -871,6 +879,7 @@ func (s *Service) Detail(ctx context.Context, callsign string, o DetailOptions) 
 			p = 1
 		}
 		d.Route = s.short(hs[f.Best], f.Scores[f.Best], f.Scores[f.Best].State, p, ob, s.o.Config(), s.o.Now())
+		d.Route.Kind = e.kind
 		d.Path = path(hs[f.Best].Stops)
 	}
 	return d, nil

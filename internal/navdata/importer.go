@@ -408,6 +408,8 @@ func (n *NavData) load(ctx context.Context, ds Dataset, r io.Reader, total, max 
 	rep.stage("import", 0, total)
 	var st ParseStats
 	var err error
+	var aw *stageWriter // routes: the airline list from the same zip
+	airlines := 0
 	switch ds {
 	case DatasetCountries:
 		st, err = ParseCountries(r, func(c Country) error { return w.add(c.Code, c.Name, c.Continent) })
@@ -428,8 +430,17 @@ func (n *NavData) load(ctx context.Context, ds Dataset, r io.Reader, total, max 
 				nf(x.MagVarDeg), x.Usage, x.Power, x.Airport)
 		})
 	case DatasetRoutes:
+		// The repository zip also carries the airline list: staged alongside
+		// and swapped in only when the routes import succeeds.
+		aw = &stageWriter{n: n, ctx: ctx, tbl: tblAirline, rep: &reporter{}}
+		if err := aw.begin(); err != nil {
+			return ParseStats{}, err
+		}
 		st, err = parseRoutesAny(ctx, r, max, func(rr RouteRecord) error {
 			return w.add(rr.Callsign, rr.Airline, rr.Number, strings.Join(rr.Codes, "-"))
+		}, func(a Airline) error {
+			airlines++
+			return aw.add(a.Code, a.Name, a.ICAO, a.IATA, a.Positioning, a.Charter)
 		})
 	}
 	rep.counts(st.Records, st.Skipped)
@@ -442,6 +453,16 @@ func (n *NavData) load(ctx context.Context, ds Dataset, r io.Reader, total, max 
 	if err == nil {
 		err = w.commit()
 	}
+	if aw != nil {
+		if err == nil && airlines > 0 {
+			if aerr := aw.commit(); aerr != nil {
+				n.log.Warn("navdata: airline list not updated", "err", aerr)
+				aw.abort()
+			}
+		} else {
+			aw.abort()
+		}
+	}
 	if err != nil {
 		w.abort()
 		return st, err
@@ -451,7 +472,7 @@ func (n *NavData) load(ctx context.Context, ds Dataset, r io.Reader, total, max 
 
 // parseRoutesAny accepts a standing-data repository zip (all
 // routes/schema-01/**/*.csv members) or a single routes CSV.
-func parseRoutesAny(ctx context.Context, r io.Reader, max int64, fn func(RouteRecord) error) (ParseStats, error) {
+func parseRoutesAny(ctx context.Context, r io.Reader, max int64, fn func(RouteRecord) error, airlineFn func(Airline) error) (ParseStats, error) {
 	br := &peekReader{r: r}
 	head, _ := br.peek(4)
 	if !bytes.Equal(head, []byte("PK\x03\x04")) {
@@ -464,14 +485,37 @@ func parseRoutesAny(ctx context.Context, r io.Reader, max int64, fn func(RouteRe
 	if int64(len(data)) > max {
 		return ParseStats{}, ErrTooLarge
 	}
-	return ParseRoutesZip(ctx, bytes.NewReader(data), int64(len(data)), fn)
+	return ParseStandingZip(ctx, bytes.NewReader(data), int64(len(data)), fn, airlineFn)
 }
 
 // ParseRoutesZip parses every routes CSV inside a standing-data repository zip.
 func ParseRoutesZip(ctx context.Context, ra io.ReaderAt, size int64, fn func(RouteRecord) error) (ParseStats, error) {
+	return ParseStandingZip(ctx, ra, size, fn, nil)
+}
+
+// ParseStandingZip parses the routes CSVs of a standing-data repository zip
+// and, when airlineFn is set, its airline list (airlines/schema-01/airlines.csv;
+// a zip without one is not an error).
+func ParseStandingZip(ctx context.Context, ra io.ReaderAt, size int64, fn func(RouteRecord) error, airlineFn func(Airline) error) (ParseStats, error) {
 	zr, err := zip.NewReader(ra, size)
 	if err != nil {
 		return ParseStats{}, fmt.Errorf("navdata: routes zip: %w", err)
+	}
+	if airlineFn != nil {
+		for _, f := range zr.File {
+			if !strings.HasSuffix(f.Name, "airlines/schema-01/airlines.csv") || f.UncompressedSize64 > 16<<20 {
+				continue
+			}
+			rc, err := f.Open()
+			if err != nil {
+				return ParseStats{}, err
+			}
+			_, err = ParseAirlinesCSV(io.LimitReader(rc, 16<<20), airlineFn)
+			rc.Close()
+			if err != nil && !errors.Is(err, ErrBadHeader) {
+				return ParseStats{}, err
+			}
+		}
 	}
 	var total ParseStats
 	files := 0

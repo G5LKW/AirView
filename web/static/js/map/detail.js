@@ -317,7 +317,9 @@ export function createDetail(ctx, hooks) {
         h('div.det-route-mid', h('i'), via ? h('span.muted', `${via} stop${via > 1 ? 's' : ''}`) : null),
         h('div.det-route-ap.end', h('b.num', { tip: to.icao }, to.code), h('span', to.name))),
       progress,
-      h('div.det-route-foot', badge, n(ri?.distanceKm) ? h('span.muted', units.dist(ri.distanceKm)) : null, h('span.muted', { tip: srcTip }, src),
+      h('div.det-route-foot', badge,
+        r?.kind ? ui.badge(r.kind === 'positioning' ? 'Positioning' : r.kind === 'charter' ? 'Charter' : r.kind, 'other', { tip: 'From the airline\'s flight-number patterns in the VRS standing data' }) : null,
+        n(ri?.distanceKm) ? h('span.muted', units.dist(ri.distanceKm)) : null, h('span.muted', { tip: srcTip }, src),
         correctButton(a, 'Correct route…')));
   }
 
