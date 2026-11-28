@@ -49,6 +49,7 @@ vertical antenna. Other inputs (dump1090/readsb Beast, AVR, SBS, aircraft.json) 
 | `internal/stat` | Numerical toolbox (stdlib only): descriptive/circular statistics, correlation, OLS/ridge/logistic regression, Holt-Winters, Kalman, Nelder-Mead, backtesting metrics. |
 | `internal/tracker` | Live aircraft table: decode → state, CPR pairing, trails, geometry vs receiver, per-antenna stats accumulation, flight sessions; writes to `store`. |
 | `internal/analytics` | Read-side analysis: coverage/polar plots, antenna pattern estimation, RSSI-vs-distance, heatmaps, records, weather correlation, receiver-location guesser. |
+| `internal/briefing` | Daily briefing: a plain-language account of one station day from `analytics.Daily` / `Top` and the event log; robust (median / MAD) comparison with comparable earlier days and template text (no language model). |
 | `internal/met` | Aircraft-derived meteorology (wind/temperature aloft from Mode S EHS/MRAR) and vertical profiles. |
 | `internal/predict` | Forecasting: traffic levels, reception conditions, local weather tendency; backtesting. |
 | `internal/trajectory` | IMM tracking filter per aircraft (fed by the tracker), coasting / predicted positions, predicted paths, intent (holding, approach, closest approach to the station), proximity pairs, self-scored prediction skill. In memory only. |

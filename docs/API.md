@@ -77,6 +77,7 @@ Base URL: the origin the UI was loaded from (`http://<host>[:port]`). In the web
 - `GET /api/stats/df` - Downlink-format and source mix over a range, plus the live DF / Comm-B register counters since start
 - `GET /api/stats/heatmap` - Day-of-week x hour-of-day heat map (7 x 24, Monday first, local time) of aircraft and message rate
 - `GET /api/stats/daily` - Daily totals (local days) with the busiest day and hour
+- `GET /api/briefing/daily` - Daily briefing: a short plain-language account of one station-local day, written on the station from its own statistics (no language model, nothing leaves the station)
 - `GET /api/stats/top` - Top operators, countries, aircraft types and airframes
 - `GET /api/stats/altitudes` - Altitude distribution: positions per altitude band and a histogram of flight maximum altitudes
 - `GET /api/stats/records` - All-time records
@@ -2877,6 +2878,52 @@ Example: `GET /api/stats/daily`
     "aircraft": 49,
     "frames": 199423
   }
+}
+```
+
+### `GET /api/briefing/daily`
+
+Daily briefing: a short plain-language account of one station-local day, written on the station from its own statistics (no language model, nothing leaves the station).
+
+| Parameter | Meaning |
+|---|---|
+| `date` | `YYYY-MM-DD`, `today` (the day so far) or `yesterday` (default) |
+| `ant` | antenna ID (`config.antennas[].id`); empty, `all` or `combined` = all antennas combined. Per-antenna data exists only when feeds are attributed to an antenna (`feed.antennaId`) or in demo mode |
+
+`headline` and `paragraphs` carry unit tokens `{int:N}`, `{dist:KM}`, `{pct:P}`, `{hour:H}`, `{alt:FT}`, `{speed:KT}` for the client to format; `plain` has the headline and the paragraphs in metric units. `facts[]` `{key, label, unit, value, typical, low, high, diffPct, z, level, explained?}` (`key` aircraft | flights | peak | maxKm | newAirframes | uptime): `typical` is the median of comparable earlier days (at least 20 h of data; the same weekday when there are at least 3, else all of the last 28 days, at least 5), `low` / `high` the median -/+ 1.5 robust sigma, `z` a robust z-score (MAD); `level` normal | high | low | veryHigh | veryLow (|z| >= 2 / 3), empty without a baseline or for a partial day; `explained` marks a low count explained by station downtime. `mood` busy | normal | quiet | outage | nodata | partial. `notable[]` `{kind, t, icao, name, text, plain, flightId}` from the event log: every emergency, military / watch-list catches once per airframe, the day's last value of each new record, feed outages. `baseline` `{days, candidates, weekday, text}`. A date before the first stored day gives `mood` `nodata`; a date after today is a 400.
+
+Server-side cache: 1m0s (identical requests share one computation).
+
+Response: `briefing.Briefing`
+
+Example: `GET /api/briefing/daily?date=2026-11-27` (shortened)
+
+```jsonc
+{
+  "date": "2026-11-27",
+  "from": 1795737600000,
+  "to": 1795824000000,
+  "partial": false,
+  "utcOffsetSec": 0,
+  "generated": 1795824500000,
+  "mood": "busy",
+  "headline": "Busier than a typical Friday: {int:1380} aircraft (+{pct:39}).",
+  "paragraphs": [
+    "On Friday 27 November 2026 the station logged {int:1610} flights by {int:1380} different aircraft; at most {int:150} were in view at once. That is {pct:39} more than the typical Friday ({int:990} aircraft), an unusually busy day. The busiest hour was {hour:15} with {int:142} aircraft.",
+    "The farthest position was {dist:455} (UAE17), well beyond the usual {dist:397}."
+  ],
+  "plain": ["Busier than a typical Friday: 1,380 aircraft (+39 %).", "On Friday 27 November 2026 the station logged 1,610 flights /* … */"],
+  "facts": [
+    {"key": "aircraft", "label": "Aircraft", "unit": "", "value": 1380, "typical": 990, "low": 905.5, "high": 1074.5, "diffPct": 39.394, "z": 6.92, "level": "veryHigh"},
+    {"key": "uptime", "label": "Data", "unit": "min", "value": 1440, "typical": null, "low": null, "high": null, "diffPct": null, "z": null, "level": "normal"}
+    /* … aircraft, flights, peak, maxKm, newAirframes, uptime */
+  ],
+  "notable": [
+    {"kind": "emergency", "t": 1795770000000, "icao": "4CA123", "name": "RYR12AB", "text": "RYR12AB: general emergency, squawk 7700", "plain": "RYR12AB: general emergency, squawk 7700", "flightId": 42},
+    {"kind": "record", "t": 1795784400000, "icao": "400002", "name": "UAE17", "text": "New record, farthest position: {dist:455.2} (UAE17)", "plain": "New record, farthest position: 455 km (UAE17)"}
+  ],
+  "baseline": {"days": 4, "candidates": 28, "weekday": true, "text": "Compared with the last 4 Fridays with a full day of data."},
+  "method": "Written on this station from its own statistics. /* … */"
 }
 ```
 

@@ -36,7 +36,7 @@ work on the top unfinished item, and update it before they finish.
 - [ ] Learned flight prediction from surrounding traffic, self-correcting against observed positions.
 - [x] ACARS/VDL2 integration (acarsdec/dumpvdl2 JSON input) (branch `auto/acars`, 2026-11-27: `internal/acars`, `acars` config block, `/api/acars`, map detail panel group, Settings card).
 - [x] Interrogator radar locating (SSR bistatic; Ofcom data as a reference) (branch `auto/radar-locate`, 2026-11-27: `ssr.LocateBySweep` locates Mode S radars from the beam-sweep timing of their DF11 II/SI bursts, also under lockout where the pair method fails; `GET /api/ssr` `radars`; Settings > SSR table; reference = nearest `ssr.sites` entry, no radar list shipped; simulation only, no real-radar accuracy yet).
-- [ ] On-device AI (Pi 4 class) with a daily summary.
+- [x] On-device AI (Pi 4 class) with a daily summary (branch `auto/daily-summary`, 2026-11-28: `internal/briefing` writes a daily briefing on the station from its own statistics - robust median/MAD comparison with comparable earlier days, cause reasoning from traffic vs range vs uptime, notable events; `GET /api/briefing/daily`; Reports > Daily summary card. Deliberately no language model: explainable, ~22 us per briefing; an optional local model is in the backlog for the owner to decide).
 - [ ] Information architecture and navigation overhaul, and chart explanations.
 - [ ] Better Locate Me: reverse MLAT, statistics, and honest error bars.
 - [ ] Better terrain model for coverage prediction.
@@ -64,3 +64,8 @@ _(Automated runs append ideas here.)_
 - Radar locating: show located radars as a map layer (site, error ellipse, a rotating beam line), and link the RF Lab "Interrogators" census to the Settings > SSR table; consider running the locator without the full self-location (its own switch), since it needs no station timing precision.
 - Radar locating: persist located sites across restarts (today they are recomputed from the last hour after each solve).
 - Uplink: add a deterministic regression test for side records of a receiver that appears mid-session (the fix in `auto/radar-locate` was verified by reasoning and the existing tests; the race was not reproduced on demand).
+- Daily briefing: optional rewording by a local language model the owner runs on the LAN (llama.cpp / Ollama HTTP endpoint, off by default, the template text stays the fallback and the source of every number); decide first whether this is wanted at all, since the statistical text is already explainable and Pi-friendly.
+- Daily briefing: push it as a morning notification (alerts channel / Web Push) and offer it in the weekly e-mail if one is added; add a "last 7 days" weekly variant.
+- Daily briefing: compare per hour of day for "Today so far" (hourly baseline from `stats/heatmap`) so a running day can be judged against the same hours of earlier days.
+- Daily briefing: include MLAT, ACARS, TCAS RA and weather (BDS 4,4/4,5) highlights once those branches are merged (ACARS/TCAS events are not in the event log yet).
+- Daily briefing: account for daylight-saving switches inside the 28-day window (the analyzer applies today's UTC offset to the whole range).
