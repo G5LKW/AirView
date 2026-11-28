@@ -461,3 +461,8 @@ func compass(deg float64) string {
 }
 
 func fmtDeg(v float64) string { return fmt.Sprintf("%.0f°", v) }
+
+// Now returns the analyzer's current time and the UTC offset (seconds) of
+// its "local" time zone in force now: the same clock and offset that the
+// day boundaries of Daily use.
+func (a *Analyzer) Now() (time.Time, int64) { return a.clock() }

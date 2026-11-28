@@ -183,6 +183,12 @@ var routes = []Route{
 	{Method: "GET", Path: "/api/stats/daily", Group: grpStats, Access: AccessAdmin, API: apiStatsDaily, Cache: ttlMed,
 		Summary: "Daily totals (local days) with the busiest day and hour.",
 		Params:  params(pRange, pAnt), Notes: "Default 30 days."},
+	{Method: "GET", Path: "/api/briefing/daily", Group: grpStats, Access: AccessAdmin, API: apiBriefingDaily, Cache: ttlMed, Sample: "/api/briefing/daily?date=today",
+		Summary: "Daily briefing: a short plain-language account of one station-local day, written on the station from its own statistics (no language model, nothing leaves the station).",
+		Params:  params(Param{"date", "`YYYY-MM-DD`, `today` (the day so far) or `yesterday` (default)"}, pAnt),
+		Notes: "`headline` and `paragraphs` carry unit tokens `{int:N}`, `{dist:KM}`, `{pct:P}`, `{hour:H}` for the client to format; `plain` has the same text in metric units. " +
+			"`facts[]` `{key, label, unit, value, typical, low, high, diffPct, z, level, explained?}`: `typical` is the median of comparable earlier days (>= 20 h of data; the same weekday when there are at least 3, else all of the last 28 days, at least 5), `z` a robust z-score (MAD); `level` normal | high | low | veryHigh | veryLow (|z| >= 2 / 3), empty without a baseline or for a partial day. " +
+			"`mood` busy | normal | quiet | outage | nodata | partial. `notable[]` `{kind, t, icao, name, text, flightId}` from the event log (emergencies, military / watch-list catches once per airframe, the day's last value of each new record, feed outages)."},
 	{Method: "GET", Path: "/api/stats/top", Group: grpStats, Access: AccessAdmin, API: apiStatsTop, Cache: ttlMed, Sample: "/api/stats/top?limit=5",
 		Summary: "Top operators, countries, aircraft types and airframes.",
 		Params:  params(pRange, Param{"limit", "rows per list, 1..200 (default 15)"}), Notes: "Default 30 days."},

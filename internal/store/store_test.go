@@ -1290,6 +1290,15 @@ func TestFlightsEventsKVAndCounts(t *testing.T) {
 	if since, _ := s.Events(bg, EventQuery{Since: 30, Limit: 2}); len(since) != 2 || since[0].Kind != "now" {
 		t.Fatalf("since/limit: %+v", since)
 	}
+	if win, _ := s.Events(bg, EventQuery{Since: 30, Until: 41}); len(win) == 0 || win[0].T != 40 {
+		t.Fatalf("since/until: %+v", win)
+	} else {
+		for _, e := range win {
+			if e.T < 30 || e.T >= 41 {
+				t.Fatalf("since/until: event at %d outside [30, 41)", e.T)
+			}
+		}
+	}
 	if older, _ := s.Events(bg, EventQuery{BeforeID: ev[2].ID}); len(older) != 2 || older[0].ID != ev[3].ID {
 		t.Fatalf("paging backwards: %+v", older)
 	}
