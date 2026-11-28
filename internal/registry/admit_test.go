@@ -2,6 +2,7 @@ package registry
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"strings"
 	"testing"
@@ -181,7 +182,11 @@ func TestAdmitCompatIdentity(t *testing.T) {
 	if !a1.New || a2.New || a1.Station.Idx != a2.Station.Idx || !strings.HasPrefix(k, "ip:") {
 		t.Errorf("unidentified identity: %+v %+v", a1, a2)
 	}
-	if strings.Contains(k, "2001") {
+	// The key is 10 HMAC bytes in hex, so any four hex digits such as "2001"
+	// turn up in it by chance (about 1 run in 3,900); test for the address
+	// itself, as text or as its 16 bytes in hex.
+	ipHex := hex.EncodeToString(mustAddr("2001:db8::1").AsSlice())
+	if strings.Contains(k, "2001:db8") || strings.Contains(k, ipHex[:8]) {
 		t.Error("identity key contains the IP")
 	}
 }
