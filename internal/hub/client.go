@@ -136,8 +136,9 @@ func (c *Client) Station() (Station, bool) {
 // Delivered frames carry the host receiver's original GPS / 12 MHz
 // timestamps, signal level, channel and MLAT flag. RawFrame.Recv is the
 // host's receive time translated into the local clock (the constant offset
-// between both system clocks is estimated from heartbeats), so frame
-// spacing is exactly what the host saw. Each frame's Data slice is freshly
+// between both system clocks is estimated from heartbeats and lowered by
+// any record that would otherwise land in the future), so frame spacing is
+// exactly what the host saw. Each frame's Data slice is freshly
 // allocated and may be retained by the sink.
 func (c *Client) Run(ctx context.Context, sink model.FrameSink) error {
 	delay := c.opts.MinBackoff
@@ -330,16 +331,24 @@ func (c *Client) readRecords(conn net.Conn, br *bufio.Reader, sink model.FrameSi
 	override := c.opts.FeedID
 
 	// toLocal converts a host receive time to the local clock.
+	//
+	// A record's arrival here minus its host receive time is, like a
+	// heartbeat, an upper bound on the clock offset (it adds host queueing
+	// and network delay). If the host time plus the current estimate lies in
+	// the future, the estimate is too high (the login heartbeat is stamped
+	// before it is written, so it starts high), and it is lowered to this
+	// sample. That keeps every converted time at or before now without
+	// clamping each record to its own arrival time, so records with the same
+	// host time keep the same local time and host spacing is preserved
+	// exactly.
 	toLocal := func(hostNs int64) time.Time {
-		now := time.Now()
 		if hostNs == 0 || !haveOff {
-			return now
+			return time.Now()
 		}
-		t := time.Unix(0, hostNs+clockOff)
-		if t.After(now) {
-			return now
+		if d := time.Now().UnixNano() - hostNs; d < clockOff {
+			clockOff = d
 		}
-		return t
+		return time.Unix(0, hostNs+clockOff)
 	}
 
 	for {
